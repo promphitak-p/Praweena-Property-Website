@@ -76,7 +76,6 @@ function renderPropertyDetails(property) {
   const pageTitle = `${property.title} - Praweena Property`;
   const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province} สนใจติดต่อ Praweena Property`;
   const keywords = `${property.title}, บ้าน${property.district}, อสังหาฯ ${property.province}`;
-  const openLightbox = setupLightbox();
 
   document.title = pageTitle;
   $('#meta-description').setAttribute('content', description);
