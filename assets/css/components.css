@@ -263,32 +263,43 @@ tbody tr:last-child td {
 /* assets/css/components.css */
 
 /* Full-screen Image Overlay (Lightbox) */
+/* พื้นหลังสีดำเต็มจอ */
 .lightbox-overlay {
-  position: fixed; /* 1. ทำให้มันลอยทับทุกอย่าง */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.85); /* 2. พื้นหลังสีดำโปร่งแสง */
-  z-index: 1000; /* 3. ให้แสดงอยู่ชั้นบนสุด */
-  display: none; /* 4. ซ่อนไว้เป็นค่าเริ่มต้น */
-  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: none; /* ซ่อนไว้เป็นค่าเริ่มต้น */
   align-items: center;
-  cursor: pointer; /* ทำให้ดูเหมือนคลิกเพื่อปิดได้ */
+  justify-content: center;
 }
-
 .lightbox-overlay.show {
-  display: flex; /* เปลี่ยนเป็น flex เพื่อจัดให้อยู่กลางจอ */
+  display: flex;
 }
 
+/* Container ของรูปภาพที่จะทำให้เลื่อนได้ (หัวใจสำคัญ) */
+.lightbox-gallery {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+}
+/* ซ่อน Scrollbar */
+.lightbox-gallery::-webkit-scrollbar { display: none; }
+.lightbox-gallery { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* รูปภาพแต่ละรูปใน Lightbox */
 .lightbox-image {
-  max-width: 90vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 8px;
-  /* --- เปลี่ยน transition ให้ควบคุม transform --- */
-  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* ใช้ cubic-bezier เพื่อให้การสไลด์ดูมีมิติ */
-  position: absolute; /* ทำให้รูปภาพลอยตัวเพื่อจัดตำแหน่งได้ */
+  flex: 0 0 100%; /* ทำให้แต่ละรูปกว้าง 100% */
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: center; /* ทำให้รูปเข้าล็อคตรงกลาง */
+  object-fit: contain; /* ให้รูปแสดงเต็มขนาดโดยไม่ถูกตัด */
 }
 
 /* คลาสสำหรับควบคุมสถานะของรูปภาพ */
@@ -310,11 +321,12 @@ tbody tr:last-child td {
   font-size: 40px;
   font-weight: bold;
   cursor: pointer;
+  z-index: 1002; /* <-- เพิ่มบรรทัดนี้ เพื่อให้ปุ่มอยู่เหนือทุกอย่าง */
 }
 
 /* assets/css/components.css */
 
-/* Navigation arrows inside the lightbox */
+/* ปุ่มลูกศรซ้าย-ขวา */
 .lightbox-nav {
   position: absolute;
   top: 50%;
@@ -327,12 +339,8 @@ tbody tr:last-child td {
   height: 45px;
   font-size: 30px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001; /* ให้อยู่เหนือรูปภาพ */
+  z-index: 1001;
   transition: background-color 0.2s;
-  user-select: none; /* ป้องกันการเผลอเลือกข้อความบนปุ่ม */
 }
 
 .lightbox-nav:hover {
@@ -365,4 +373,27 @@ tbody tr:last-child td {
     align-items: center;
     position: relative;
     overflow: hidden; /* ซ่อนรูปภาพที่อยู่นอกกรอบ */
+}
+
+/* assets/css/components.css */
+
+/* Container for Gallery Dots */
+.gallery-dots {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.dot {
+  cursor: pointer;
+  height: 12px;
+  width: 12px;
+  margin: 0 4px;
+  background-color: #ddd;
+  border-radius: 50%;
+  display: inline-block;
+  transition: background-color 0.3s ease;
+}
+
+.dot.active, .dot:hover {
+  background-color: var(--brand);
 }

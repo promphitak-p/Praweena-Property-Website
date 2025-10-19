@@ -11,87 +11,63 @@ import { signOutIfAny } from '../auth/auth.js';
 
 const container = $('#property-detail-container');
 
-// --- Upgraded Lightbox with Slide & Swipe Functionality ---
+// js/pages/property-detail.page.js
+
+// --- Upgraded Lightbox with Smooth Scrolling (Final Version) ---
 function setupLightbox(imageUrls) {
+  // 1. สร้าง elements ของ Lightbox แค่ครั้งเดียว
   let overlay = $('#lightbox-overlay');
   if (!overlay) {
     overlay = el('div', { id: 'lightbox-overlay', className: 'lightbox-overlay' });
-    // เราจะสร้าง img สองอันเพื่อใช้ทำเอฟเฟคสไลด์
     overlay.innerHTML = `
       <span class="lightbox-close">&times;</span>
       <button class="lightbox-nav lightbox-prev">&lsaquo;</button>
-      <div class="lightbox-image-container">
-         <img class="lightbox-image">
-         <img class="lightbox-image">
-      </div>
+      <div class="lightbox-gallery"></div>
       <button class="lightbox-nav lightbox-next">&rsaquo;</button>
     `;
     document.body.append(overlay);
   }
 
-  const images = $$('.lightbox-image');
-  let activeImage = images[0];
-  let inactiveImage = images[1];
-
+  const gallery = $('.lightbox-gallery');
   const prevBtn = $('.lightbox-prev');
   const nextBtn = $('.lightbox-next');
-  let currentIndex = 0;
-  let isTransitioning = false;
 
-  function showImage(newIndex, direction) {
-    if (isTransitioning || newIndex < 0 || newIndex >= imageUrls.length) return;
+  // 2. สร้างรูปภาพทั้งหมดใส่ใน Lightbox Gallery
+  gallery.innerHTML = ''; // เคลียร์ของเก่าทิ้งก่อน
+  imageUrls.forEach(url => {
+    const img = el('img', {
+      className: 'lightbox-image',
+      attributes: { src: url, loading: 'lazy' }
+    });
+    gallery.append(img);
+  });
 
-    isTransitioning = true;
-    const oldIndex = currentIndex;
-    currentIndex = newIndex;
-
-    // กำหนดรูปภาพที่จะเข้ามาและทิศทาง
-    inactiveImage.src = imageUrls[currentIndex];
-    inactiveImage.className = 'lightbox-image ' + (direction === 'next' ? 'next' : 'prev');
-    activeImage.className = 'lightbox-image current';
-
-    // เริ่มแอนิเมชัน
-    setTimeout(() => {
-        inactiveImage.className = 'lightbox-image current';
-        activeImage.className = 'lightbox-image ' + (direction === 'next' ? 'prev' : 'next');
-    }, 20); // หน่วงเวลาเล็กน้อยเพื่อให้เบราว์เซอร์พร้อม
-
-    // รอให้แอนิเมชันจบแล้วสลับสถานะรูปภาพ
-    setTimeout(() => {
-        [activeImage, inactiveImage] = [inactiveImage, activeImage]; // สลับตัวแปร
-        isTransitioning = false;
-    }, 400); // 400ms คือระยะเวลาของ transition
-
-    // อัปเดตปุ่ม
-    prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
-    nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
-  }
-
+  // 3. ฟังก์ชันสำหรับเปิด/ปิด
   function openLightbox(index) {
-    currentIndex = index;
-    activeImage.src = imageUrls[currentIndex];
-    activeImage.className = 'lightbox-image current';
-    inactiveImage.className = 'lightbox-image'; // รีเซ็ตคลาส
-    prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
-    nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
     overlay.classList.add('show');
+    // เลื่อนไปยังรูปภาพที่ถูกคลิกทันทีโดยไม่มีแอนิเมชัน
+    gallery.scrollTo({
+      left: gallery.offsetWidth * index,
+      behavior: 'instant'
+    });
+  }
+  function closeLightbox() {
+    overlay.classList.remove('show');
   }
 
-  // (ฟังก์ชัน closeLightbox และ Event Listener ส่วนอื่นยังคงเหมือนเดิม)
-  function closeLightbox() { overlay.classList.remove('show'); }
-  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1, 'prev'); });
-  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1, 'next'); });
+  // 4. เพิ่ม Event Listeners ให้ปุ่มต่างๆ
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' });
+  });
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    gallery.scrollBy({ left: gallery.offsetWidth, behavior: 'smooth' });
+  });
   $('.lightbox-close').addEventListener('click', closeLightbox);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
-
-  // (โค้ดส่วน Swipe)
-  let touchStartX = 0;
-  overlay.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
-  overlay.addEventListener('touchend', (e) => {
-    const touchEndX = e.changedTouches[0].screenX;
-    const swipeDistance = touchEndX - touchStartX;
-    if (swipeDistance < -50) showImage(currentIndex + 1, 'next');
-    if (swipeDistance > 50) showImage(currentIndex - 1, 'prev');
+  overlay.addEventListener('click', (e) => {
+    // ปิดเมื่อคลิกที่พื้นหลังสีดำเท่านั้น
+    if (e.target === overlay) closeLightbox();
   });
 
   return openLightbox;
@@ -121,12 +97,14 @@ function renderPropertyDetails(property) {
   // --- 2. สร้าง Gallery ---
   const galleryWrapper = el('div', { className: 'gallery-wrapper' });
   const galleryContainer = el('div', { className: 'image-gallery' });
+  const dotsContainer = el('div', { className: 'gallery-dots' }); // Container สำหรับ Dots
   
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
   if (allImages.length === 0) { allImages.push('/assets/img/placeholder.jpg'); }
 
   const openLightbox = setupLightbox(allImages);
 
+// สร้างรูปภาพและ Dots
   allImages.forEach((imageUrl, index) => {
     const img = el('img', {
       className: 'gallery-image',
@@ -134,6 +112,32 @@ function renderPropertyDetails(property) {
     });
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
+
+    // สร้าง Dot สำหรับแต่ละรูป
+    const dot = el('span', { className: 'dot', attributes: { 'data-index': index } });
+    dot.addEventListener('click', () => {
+      // เมื่อคลิกที่ Dot ให้เลื่อน Gallery ไปยังรูปนั้นๆ
+      galleryContainer.scrollTo({
+        left: galleryContainer.offsetWidth * index,
+        behavior: 'smooth'
+      });
+    });
+    dotsContainer.append(dot);
+  });
+  
+  // --- ตรรกะสำหรับอัปเดต Active Dot เมื่อผู้ใช้ปัด ---
+  const dots = dotsContainer.querySelectorAll('.dot');
+  if (dots.length > 0) {
+      dots[0].classList.add('active'); // ให้ Dot แรก Active ไว้ก่อน
+  }
+
+  galleryContainer.addEventListener('scroll', () => {
+    // คำนวณว่ารูปไหนกำลังแสดงอยู่ตรงกลาง
+    const scrollIndex = Math.round(galleryContainer.scrollLeft / galleryContainer.offsetWidth);
+    // อัปเดตคลาส active
+    dots.forEach((dot, index) => {
+      dot.classList.toggle('active', index === scrollIndex);
+    });
   });
 
   if (allImages.length > 1) {
