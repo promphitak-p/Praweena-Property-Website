@@ -43,8 +43,12 @@ async function loadProperties() {
   const grid = $('#property-grid');
   const filterForm = $('#filter-form');
   
-  clear(grid);
-  grid.append(el('p', { textContent: 'กำลังค้นหา...' }));
+clear(grid);
+  // --- แสดง Skeleton ก่อนโหลด ---
+  for (let i = 0; i < 6; i++) {
+    grid.append(renderSkeletonCard());
+  }
+  // ----------------------------
 
   // ดึงค่าจากฟอร์ม filter
   const filters = {
@@ -84,3 +88,15 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProperties();
   });
 });
+
+function renderSkeletonCard() {
+  const card = el('div', { className: 'property-card' });
+  const image = el('div', { className: 'skeleton', style: 'height: 200px;' });
+  const body = el('div', { className: 'property-card__body' });
+  const title = el('div', { className: 'skeleton', style: 'height: 24px; width: 80%; margin-bottom: 0.5rem;' });
+  const address = el('div', { className: 'skeleton', style: 'height: 16px; width: 60%; margin-bottom: 1rem;' });
+  const price = el('div', { className: 'skeleton', style: 'height: 28px; width: 50%; margin-top: auto;' });
+  body.append(title, address, price);
+  card.append(image, body);
+  return card;
+}

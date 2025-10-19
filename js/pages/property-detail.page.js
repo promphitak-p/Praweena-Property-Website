@@ -15,7 +15,18 @@ const container = $('#property-detail-container');
  * @param {object} property - ข้อมูลอสังหาฯ
  */
 function renderPropertyDetails(property) {
-  document.title = `${property.title} - Praweena Property`;
+  // --- อัปเดต Title และ Meta Tags ---
+  const pageTitle = `${property.title} - Praweena Property`;
+  const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province} สนใจติดต่อ Praweena Property`;
+  const keywords = `${property.title}, บ้าน${property.district}, อสังหาฯ ${property.province}`;
+
+  document.title = pageTitle;
+  $('#meta-description').setAttribute('content', description);
+  $('#meta-keywords').setAttribute('content', keywords);
+  $('#meta-og-title').setAttribute('content', pageTitle);
+  $('#meta-og-description').setAttribute('content', description);
+  $('#meta-og-image').setAttribute('content', property.cover_url || '/assets/img/placeholder.jpg');
+  // --- สิ้นสุดการอัปเดต ---
   clear(container);
 
   // --- 1. สร้างโครงสร้างหลัก (Grid Layout) ---

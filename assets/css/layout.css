@@ -85,3 +85,26 @@ main {
     font-size: 2rem;
   }
 }
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  /* ลด padding ด้านข้างบนมือถือ */
+  .container {
+    padding: 0 1rem;
+  }
+
+  /* ทำให้ Grid ในหน้ารายละเอียดเรียงเป็น 1 คอลัมน์ */
+  .grid.grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* ลดขนาดตัวอักษรของ Hero */
+  .hero-grad h1 {
+    font-size: 1.8rem;
+  }
+
+  /* ทำให้ Filter ในหน้าแรกเรียงเป็น 2 คอลัมน์ */
+  #filter-form.grid.grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
