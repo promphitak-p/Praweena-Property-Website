@@ -10,19 +10,18 @@ import { signOutIfAny } from '../auth/auth.js';
 
 const container = $('#property-detail-container');
 
-// --- Upgraded Lightbox Functionality ---
+// --- Upgraded Lightbox with Swipe Functionality ---
 function setupLightbox(imageUrls) {
   // 1. ตรวจสอบและสร้าง elements ของ Lightbox แค่ครั้งเดียว
   let overlay = $('#lightbox-overlay');
   if (!overlay) {
     overlay = el('div', { id: 'lightbox-overlay', className: 'lightbox-overlay' });
-    const content = `
+    overlay.innerHTML = `
       <span class="lightbox-close">&times;</span>
       <button class="lightbox-nav lightbox-prev">&lsaquo;</button>
       <img class="lightbox-image">
       <button class="lightbox-nav lightbox-next">&rsaquo;</button>
     `;
-    overlay.innerHTML = content;
     document.body.append(overlay);
   }
 
@@ -31,14 +30,16 @@ function setupLightbox(imageUrls) {
   const nextBtn = $('.lightbox-next');
   let currentIndex = 0;
 
-  // 2. ฟังก์ชันสำหรับแสดงรูปภาพ
+  // 2. ฟังก์ชันสำหรับแสดงรูปภาพ (ปรับปรุงให้วนลูปได้)
   function showImage(index) {
-    if (index < 0 || index >= imageUrls.length) return;
+    // ทำให้วนลูปได้ เมื่อปัดไปจนสุด
+    if (index < 0) {
+      index = imageUrls.length - 1;
+    } else if (index >= imageUrls.length) {
+      index = 0;
+    }
     currentIndex = index;
     lightboxImage.src = imageUrls[currentIndex];
-    // ซ่อน/แสดงปุ่มตามตำแหน่งรูป
-    prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
-    nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
   }
 
   // 3. ฟังก์ชันสำหรับเปิด/ปิด
@@ -50,7 +51,7 @@ function setupLightbox(imageUrls) {
     overlay.classList.remove('show');
   }
 
-  // 4. เพิ่ม Event Listeners ให้ปุ่มต่างๆ
+  // 4. เพิ่ม Event Listeners ให้ปุ่มต่างๆ (สำหรับ Desktop)
   prevBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     showImage(currentIndex - 1);
@@ -63,6 +64,33 @@ function setupLightbox(imageUrls) {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeLightbox();
   });
+
+  // --- 5. เพิ่มตรรกะการปัด (Swipe) ---
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  // ใช้กับ lightboxImage แทนที่จะเป็น overlay เพื่อไม่ให้รบกวนการคลิกปิด
+  lightboxImage.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true }); // passive: true เพื่อ performance ที่ดีขึ้น
+
+  lightboxImage.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  });
+
+  function handleSwipe() {
+    const swipeDistance = touchEndX - touchStartX;
+    // ตรวจสอบว่ามีการปัดเป็นระยะทางที่ไกลพอ (เช่น 50px)
+    if (swipeDistance < -50) {
+      // ปัดไปทางซ้าย -> ดูรูปถัดไป
+      showImage(currentIndex + 1);
+    }
+    if (swipeDistance > 50) {
+      // ปัดไปทางขวา -> ดูรูปก่อนหน้า
+      showImage(currentIndex - 1);
+    }
+  }
 
   return openLightbox;
 }

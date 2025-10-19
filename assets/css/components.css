@@ -333,19 +333,11 @@ tbody tr:last-child td {
   right: 15px;
 }
 
-/* assets/css/components.css */
-
-/* Media Query สำหรับอุปกรณ์ที่ใช้การสัมผัสเป็นหลัก (Coarse Pointer)
-  เช่น นิ้วมือบนมือถือและแท็บเล็ต 
-*/
-@media (pointer: coarse) {
-  /* ซ่อนปุ่มลูกศรใน Gallery */
-  .gallery-nav {
-    display: none;
-  }
-
-  /* ซ่อนปุ่มลูกศรใน Lightbox ที่แสดงเต็มจอ */
-  .lightbox-nav {
-    display: none;
+/* ซ่อนปุ่มลูกศรบนอุปกรณ์ที่ใช้การสัมผัสเป็นหลัก หรือมีหน้าจอขนาดเล็ก */
+@media (pointer: coarse), (hover: none), (max-width: 1024px) {
+  /* ใช้ Selector ที่เจาะจงขึ้นเพื่อเพิ่มความสำคัญ */
+  .gallery-wrapper .gallery-nav,
+  .lightbox-overlay .lightbox-nav {
+    display: none !important; /* !important เพื่อให้แน่ใจว่าคำสั่งนี้จะถูกใช้งานเสมอ */
   }
 }
