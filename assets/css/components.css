@@ -332,3 +332,20 @@ tbody tr:last-child td {
 .lightbox-next {
   right: 15px;
 }
+
+/* assets/css/components.css */
+
+/* Media Query สำหรับอุปกรณ์ที่ใช้การสัมผัสเป็นหลัก (Coarse Pointer)
+  เช่น นิ้วมือบนมือถือและแท็บเล็ต 
+*/
+@media (pointer: coarse) {
+  /* ซ่อนปุ่มลูกศรใน Gallery */
+  .gallery-nav {
+    display: none;
+  }
+
+  /* ซ่อนปุ่มลูกศรใน Lightbox ที่แสดงเต็มจอ */
+  .lightbox-nav {
+    display: none;
+  }
+}
