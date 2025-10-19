@@ -282,11 +282,24 @@ tbody tr:last-child td {
 }
 
 .lightbox-image {
-  max-width: 90vw; /* 5. กว้างสุดไม่เกิน 90% ของความกว้างหน้าจอ */
-  max-height: 90vh; /* 6. สูงสุดไม่เกิน 90% ของความสูงหน้าจอ */
-  object-fit: contain; /* 7. ให้รูปแสดงเต็มขนาดโดยไม่ถูกตัด */
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
   border-radius: 8px;
-  transition: opacity 0.3s ease-in-out; /* ทำให้การเปลี่ยนความโปร่งใสดูนุ่มนวลใน 0.3 วินาที */
+  /* --- เปลี่ยน transition ให้ควบคุม transform --- */
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* ใช้ cubic-bezier เพื่อให้การสไลด์ดูมีมิติ */
+  position: absolute; /* ทำให้รูปภาพลอยตัวเพื่อจัดตำแหน่งได้ */
+}
+
+/* คลาสสำหรับควบคุมสถานะของรูปภาพ */
+.lightbox-image.prev {
+    transform: translateX(-100%); /* สไลด์ไปทางซ้ายสุด */
+}
+.lightbox-image.next {
+    transform: translateX(100%); /* สไลด์ไปทางขวาสุด */
+}
+.lightbox-image.current {
+    transform: translateX(0); /* อยู่ตรงกลาง */
 }
 
 .lightbox-close {
@@ -342,4 +355,14 @@ tbody tr:last-child td {
   .lightbox-overlay .lightbox-nav {
     display: none;
   }
+}
+
+.lightbox-image-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden; /* ซ่อนรูปภาพที่อยู่นอกกรอบ */
 }

@@ -11,72 +11,87 @@ import { signOutIfAny } from '../auth/auth.js';
 
 const container = $('#property-detail-container');
 
-// --- Upgraded Lightbox with Smooth Fade & Swipe (Final Version) ---
+// --- Upgraded Lightbox with Slide & Swipe Functionality ---
 function setupLightbox(imageUrls) {
   let overlay = $('#lightbox-overlay');
   if (!overlay) {
     overlay = el('div', { id: 'lightbox-overlay', className: 'lightbox-overlay' });
+    // เราจะสร้าง img สองอันเพื่อใช้ทำเอฟเฟคสไลด์
     overlay.innerHTML = `
-      <span class="lightbox-close">×</span>
-      <button class="lightbox-nav lightbox-prev">‹</button>
-      <img class="lightbox-image">
-      <button class="lightbox-nav lightbox-next">›</button>
+      <span class="lightbox-close">&times;</span>
+      <button class="lightbox-nav lightbox-prev">&lsaquo;</button>
+      <div class="lightbox-image-container">
+         <img class="lightbox-image">
+         <img class="lightbox-image">
+      </div>
+      <button class="lightbox-nav lightbox-next">&rsaquo;</button>
     `;
     document.body.append(overlay);
   }
 
-  const lightboxImage = $('.lightbox-image');
+  const images = $$('.lightbox-image');
+  let activeImage = images[0];
+  let inactiveImage = images[1];
+
   const prevBtn = $('.lightbox-prev');
   const nextBtn = $('.lightbox-next');
   let currentIndex = 0;
-  let isTransitioning = false; // Flag to prevent rapid clicks/swipes
+  let isTransitioning = false;
 
-  function showImage(index) {
-    if (isTransitioning || index < 0 || index >= imageUrls.length) return;
-    
+  function showImage(newIndex, direction) {
+    if (isTransitioning || newIndex < 0 || newIndex >= imageUrls.length) return;
+
     isTransitioning = true;
-    currentIndex = index;
-    lightboxImage.style.opacity = 0;
+    const oldIndex = currentIndex;
+    currentIndex = newIndex;
 
+    // กำหนดรูปภาพที่จะเข้ามาและทิศทาง
+    inactiveImage.src = imageUrls[currentIndex];
+    inactiveImage.className = 'lightbox-image ' + (direction === 'next' ? 'next' : 'prev');
+    activeImage.className = 'lightbox-image current';
+
+    // เริ่มแอนิเมชัน
     setTimeout(() => {
-      lightboxImage.src = imageUrls[currentIndex];
-      lightboxImage.style.opacity = 1;
-      
-      setTimeout(() => {
+        inactiveImage.className = 'lightbox-image current';
+        activeImage.className = 'lightbox-image ' + (direction === 'next' ? 'prev' : 'next');
+    }, 20); // หน่วงเวลาเล็กน้อยเพื่อให้เบราว์เซอร์พร้อม
+
+    // รอให้แอนิเมชันจบแล้วสลับสถานะรูปภาพ
+    setTimeout(() => {
+        [activeImage, inactiveImage] = [inactiveImage, activeImage]; // สลับตัวแปร
         isTransitioning = false;
-      }, 300);
+    }, 400); // 400ms คือระยะเวลาของ transition
 
-    }, 300);
-
+    // อัปเดตปุ่ม
     prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
     nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
   }
 
   function openLightbox(index) {
     currentIndex = index;
-    lightboxImage.src = imageUrls[currentIndex];
-    lightboxImage.style.opacity = 1;
+    activeImage.src = imageUrls[currentIndex];
+    activeImage.className = 'lightbox-image current';
+    inactiveImage.className = 'lightbox-image'; // รีเซ็ตคลาส
     prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
     nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
     overlay.classList.add('show');
   }
 
-  function closeLightbox() {
-    overlay.classList.remove('show');
-  }
-
-  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1); });
-  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1); });
+  // (ฟังก์ชัน closeLightbox และ Event Listener ส่วนอื่นยังคงเหมือนเดิม)
+  function closeLightbox() { overlay.classList.remove('show'); }
+  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1, 'prev'); });
+  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1, 'next'); });
   $('.lightbox-close').addEventListener('click', closeLightbox);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
 
+  // (โค้ดส่วน Swipe)
   let touchStartX = 0;
-  lightboxImage.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
-  lightboxImage.addEventListener('touchend', (e) => {
+  overlay.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+  overlay.addEventListener('touchend', (e) => {
     const touchEndX = e.changedTouches[0].screenX;
     const swipeDistance = touchEndX - touchStartX;
-    if (swipeDistance < -50) showImage(currentIndex + 1);
-    if (swipeDistance > 50) showImage(currentIndex - 1);
+    if (swipeDistance < -50) showImage(currentIndex + 1, 'next');
+    if (swipeDistance > 50) showImage(currentIndex - 1, 'prev');
   });
 
   return openLightbox;
