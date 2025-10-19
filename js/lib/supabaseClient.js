@@ -1,6 +1,3 @@
-// js/lib/supabaseClient.js
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
 // ดึงค่า SUPABASE_URL และ SUPABASE_ANON_KEY จาก Environment Variables
 // ในตัวอย่างนี้ เราจะตั้งค่าให้มันอ่านจาก window object เพื่อความง่ายในการ deploy
 // บน Netlify/Vercel คุณต้องไปตั้งค่า Environment Variables ในหน้าตั้งค่าของเว็บ
