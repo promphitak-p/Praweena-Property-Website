@@ -260,10 +260,9 @@ tbody tr:last-child td {
   }
 }
 
-/* assets/css/components.css */
+/* assets/css/components.css (เวอร์ชันแก้ไขสำหรับ Desktop) */
 
-/* Full-screen Image Overlay (Lightbox) */
-/* พื้นหลังสีดำเต็มจอ */
+/* พื้นหลังสีดำเต็มจอ - เพิ่ม padding เพื่อสร้างกรอบ */
 .lightbox-overlay {
   position: fixed;
   top: 0;
@@ -272,34 +271,35 @@ tbody tr:last-child td {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.85);
   z-index: 1000;
-  display: none; /* ซ่อนไว้เป็นค่าเริ่มต้น */
-  align-items: center;
-  justify-content: center;
+  display: none;
+  /* เพิ่ม padding 5% รอบด้าน เพื่อสร้างขอบเขตให้รูปภาพ */
+  padding: 5vh 5vw;
+  box-sizing: border-box; /* สำคัญ: ทำให้ padding ไม่ไปเพิ่มขนาดโดยรวม */
 }
 .lightbox-overlay.show {
-  display: flex;
+  display: block; /* เปลี่ยนจาก flex เป็น block */
 }
 
-/* Container ของรูปภาพที่จะทำให้เลื่อนได้ (หัวใจสำคัญ) */
+/* Container ของรูปภาพที่จะทำให้เลื่อนได้ */
 .lightbox-gallery {
   display: flex;
-  width: 100%;
-  height: 100%;
+  width: 100%; /* ให้กว้าง 100% ของพื้นที่หลังหัก padding ออกแล้ว */
+  height: 100%; /* ให้สูง 100% ของพื้นที่หลังหัก padding ออกแล้ว */
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
+  border-radius: 8px; /* เพิ่มความมนให้กรอบ */
 }
-/* ซ่อน Scrollbar */
 .lightbox-gallery::-webkit-scrollbar { display: none; }
 .lightbox-gallery { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* รูปภาพแต่ละรูปใน Lightbox */
 .lightbox-image {
-  flex: 0 0 100%; /* ทำให้แต่ละรูปกว้าง 100% */
+  flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  scroll-snap-align: center; /* ทำให้รูปเข้าล็อคตรงกลาง */
-  object-fit: contain; /* ให้รูปแสดงเต็มขนาดโดยไม่ถูกตัด */
+  scroll-snap-align: center;
+  object-fit: contain;
 }
 
 /* คลาสสำหรับควบคุมสถานะของรูปภาพ */
