@@ -1,4 +1,5 @@
 // js/pages/property-detail.page.js
+
 import { getBySlug } from '../services/propertiesService.js';
 import { createLead } from '../services/leadsService.js';
 import { getFormData } from '../ui/forms.js';
@@ -10,17 +11,16 @@ import { signOutIfAny } from '../auth/auth.js';
 
 const container = $('#property-detail-container');
 
-// --- Upgraded Lightbox with Swipe Functionality ---
+// --- Upgraded Lightbox with Smooth Fade & Swipe (Final Version) ---
 function setupLightbox(imageUrls) {
-  // 1. ตรวจสอบและสร้าง elements ของ Lightbox แค่ครั้งเดียว
   let overlay = $('#lightbox-overlay');
   if (!overlay) {
     overlay = el('div', { id: 'lightbox-overlay', className: 'lightbox-overlay' });
     overlay.innerHTML = `
-      <span class="lightbox-close">&times;</span>
-      <button class="lightbox-nav lightbox-prev">&lsaquo;</button>
+      <span class="lightbox-close">×</span>
+      <button class="lightbox-nav lightbox-prev">‹</button>
       <img class="lightbox-image">
-      <button class="lightbox-nav lightbox-next">&rsaquo;</button>
+      <button class="lightbox-nav lightbox-next">›</button>
     `;
     document.body.append(overlay);
   }
@@ -29,104 +29,87 @@ function setupLightbox(imageUrls) {
   const prevBtn = $('.lightbox-prev');
   const nextBtn = $('.lightbox-next');
   let currentIndex = 0;
+  let isTransitioning = false; // Flag to prevent rapid clicks/swipes
 
-  // 2. ฟังก์ชันสำหรับแสดงรูปภาพ (ปรับปรุงให้วนลูปได้)
   function showImage(index) {
-    // ทำให้วนลูปได้ เมื่อปัดไปจนสุด
-    if (index < 0) {
-      index = imageUrls.length - 1;
-    } else if (index >= imageUrls.length) {
-      index = 0;
-    }
+    if (isTransitioning || index < 0 || index >= imageUrls.length) return;
+    
+    isTransitioning = true;
+    currentIndex = index;
+    lightboxImage.style.opacity = 0;
+
+    setTimeout(() => {
+      lightboxImage.src = imageUrls[currentIndex];
+      lightboxImage.style.opacity = 1;
+      
+      setTimeout(() => {
+        isTransitioning = false;
+      }, 300);
+
+    }, 300);
+
+    prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
+    nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
+  }
+
+  function openLightbox(index) {
     currentIndex = index;
     lightboxImage.src = imageUrls[currentIndex];
-  }
-
-  // 3. ฟังก์ชันสำหรับเปิด/ปิด
-  function openLightbox(index) {
-    showImage(index);
+    lightboxImage.style.opacity = 1;
+    prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
+    nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
     overlay.classList.add('show');
   }
+
   function closeLightbox() {
     overlay.classList.remove('show');
   }
 
-  // 4. เพิ่ม Event Listeners ให้ปุ่มต่างๆ (สำหรับ Desktop)
-  prevBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showImage(currentIndex - 1);
-  });
-  nextBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showImage(currentIndex + 1);
-  });
+  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1); });
+  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1); });
   $('.lightbox-close').addEventListener('click', closeLightbox);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeLightbox();
-  });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
 
-  // --- 5. เพิ่มตรรกะการปัด (Swipe) ---
   let touchStartX = 0;
-  let touchEndX = 0;
-
-  // ใช้กับ lightboxImage แทนที่จะเป็น overlay เพื่อไม่ให้รบกวนการคลิกปิด
-  lightboxImage.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  }, { passive: true }); // passive: true เพื่อ performance ที่ดีขึ้น
-
+  lightboxImage.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
   lightboxImage.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-  });
-
-  function handleSwipe() {
+    const touchEndX = e.changedTouches[0].screenX;
     const swipeDistance = touchEndX - touchStartX;
-    // ตรวจสอบว่ามีการปัดเป็นระยะทางที่ไกลพอ (เช่น 50px)
-    if (swipeDistance < -50) {
-      // ปัดไปทางซ้าย -> ดูรูปถัดไป
-      showImage(currentIndex + 1);
-    }
-    if (swipeDistance > 50) {
-      // ปัดไปทางขวา -> ดูรูปก่อนหน้า
-      showImage(currentIndex - 1);
-    }
-  }
+    if (swipeDistance < -50) showImage(currentIndex + 1);
+    if (swipeDistance > 50) showImage(currentIndex - 1);
+  });
 
   return openLightbox;
 }
 
 /**
- * แสดงผลข้อมูลอสังหาฯ บนหน้าเว็บ (เวอร์ชันสมบูรณ์พร้อมปุ่มลูกศร)
- * @param {object} property - ข้อมูลอสังหาฯ
+ * แสดงผลข้อมูลอสังหาฯ บนหน้าเว็บ
  */
 function renderPropertyDetails(property) {
   // --- อัปเดต Title และ Meta Tags ---
   const pageTitle = `${property.title} - Praweena Property`;
   const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province} สนใจติดต่อ Praweena Property`;
-  const keywords = `${property.title}, บ้าน${property.district}, อสังหาฯ ${property.province}`;
-
   document.title = pageTitle;
   $('#meta-description').setAttribute('content', description);
-  $('#meta-keywords').setAttribute('content', keywords);
+  $('#meta-keywords').setAttribute('content', `${property.title}, บ้าน${property.district}, อสังหาฯ ${property.province}`);
   $('#meta-og-title').setAttribute('content', pageTitle);
   $('#meta-og-description').setAttribute('content', description);
   $('#meta-og-image').setAttribute('content', property.cover_url || '/assets/img/placeholder.jpg');
-  // --- สิ้นสุดการอัปเดต ---
+
   clear(container);
 
-  // --- 1. สร้างโครงสร้างหลัก (Grid Layout) ---
+  // --- 1. สร้างโครงสร้างหลัก ---
   const grid = el('div', { className: 'grid grid-cols-3', style: 'gap: 2rem;' });
   const leftCol = el('div', { className: 'col-span-2' });
   const rightCol = el('div', { className: 'col-span-1' });
 
-// --- สร้าง Gallery ที่สมบูรณ์ ---
+  // --- 2. สร้าง Gallery ---
   const galleryWrapper = el('div', { className: 'gallery-wrapper' });
   const galleryContainer = el('div', { className: 'image-gallery' });
-
+  
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
   if (allImages.length === 0) { allImages.push('/assets/img/placeholder.jpg'); }
 
-  // *** เรียกใช้ Lightbox โดยส่ง Array รูปภาพทั้งหมดเข้าไป ***
   const openLightbox = setupLightbox(allImages);
 
   allImages.forEach((imageUrl, index) => {
@@ -134,28 +117,17 @@ function renderPropertyDetails(property) {
       className: 'gallery-image',
       attributes: { src: imageUrl, alt: 'Property image', loading: 'lazy' }
     });
-
-    // เมื่อคลิก ให้เปิด Lightbox ที่รูปภาพลำดับ (index) นั้นๆ
     img.addEventListener('click', () => openLightbox(index));
-
     galleryContainer.append(img);
   });
 
-  // สร้างปุ่มลูกศร (จะแสดงก็ต่อเมื่อมีรูปมากกว่า 1 รูป)
   if (allImages.length > 1) {
     const prevButton = el('button', { className: 'gallery-nav prev', textContent: '‹' });
     const nextButton = el('button', { className: 'gallery-nav next', textContent: '›' });
-
-    prevButton.addEventListener('click', () => {
-      galleryContainer.scrollBy({ left: -galleryContainer.offsetWidth, behavior: 'smooth' });
-    });
-    nextButton.addEventListener('click', () => {
-      galleryContainer.scrollBy({ left: galleryContainer.offsetWidth, behavior: 'smooth' });
-    });
-    
+    prevButton.addEventListener('click', () => { galleryContainer.scrollBy({ left: -galleryContainer.offsetWidth, behavior: 'smooth' }); });
+    nextButton.addEventListener('click', () => { galleryContainer.scrollBy({ left: galleryContainer.offsetWidth, behavior: 'smooth' }); });
     galleryWrapper.append(prevButton, nextButton);
   }
-
   galleryWrapper.prepend(galleryContainer);
 
   // --- 3. สร้างส่วนรายละเอียดประกาศ ---
@@ -163,11 +135,10 @@ function renderPropertyDetails(property) {
   const price = el('h2', { textContent: formatPrice(property.price), style: 'color: var(--brand); margin-bottom: 1rem;' });
   const address = el('p', { textContent: `ที่อยู่: ${property.address || 'N/A'}, ${property.district}, ${property.province}` });
   const details = el('p', { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
-
-  // นำ Gallery และรายละเอียดทั้งหมดใส่ในคอลัมน์ซ้าย
+  
   leftCol.append(galleryWrapper, title, price, address, details);
 
-  // --- 4. สร้างแผนที่ (ถ้ามีพิกัด) และใส่ในคอลัมน์ซ้าย ---
+  // --- 4. สร้างแผนที่ ---
   if (property.latitude && property.longitude) {
     const mapEl = el('div', { attributes: { id: 'map', style: 'height: 400px; margin-top: 1.5rem; border-radius: var(--radius); z-index: 1;' } });
     leftCol.append(mapEl);
@@ -183,7 +154,7 @@ function renderPropertyDetails(property) {
     }, 100);
   }
 
-  // --- 5. สร้างฟอร์มในคอลัมน์ขวา ---
+  // --- 5. สร้างฟอร์ม ---
   const formCard = el('div', { style: 'background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow-md);' });
   const formHeader = el('h3', { textContent: 'สนใจนัดชม / สอบถามข้อมูล' });
   const form = el('form', { attributes: { id: 'lead-form' } });
@@ -215,6 +186,23 @@ async function loadProperty() {
     container.append(el('p', { textContent: 'ไม่พบรหัสอ้างอิงของประกาศ' }));
     return;
   }
+  
+  // Skeleton UI
+  const skeleton = `
+    <div class="grid grid-cols-3" style="gap: 2rem;">
+      <div class="col-span-2">
+        <div class="skeleton" style="height: 450px; border-radius: 16px;"></div>
+        <div class="skeleton" style="height: 36px; width: 70%; margin-top: 1.5rem;"></div>
+        <div class="skeleton" style="height: 32px; width: 40%; margin-top: 1rem;"></div>
+        <div class="skeleton" style="height: 20px; width: 90%; margin-top: 1rem;"></div>
+        <div class="skeleton" style="height: 20px; width: 80%; margin-top: 0.5rem;"></div>
+      </div>
+      <div class="col-span-1">
+        <div class="skeleton" style="height: 350px; border-radius: 16px;"></div>
+      </div>
+    </div>
+  `;
+  container.innerHTML = skeleton;
 
   const { data, error } = await getBySlug(slug);
 

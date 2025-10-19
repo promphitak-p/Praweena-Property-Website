@@ -286,6 +286,7 @@ tbody tr:last-child td {
   max-height: 90vh; /* 6. สูงสุดไม่เกิน 90% ของความสูงหน้าจอ */
   object-fit: contain; /* 7. ให้รูปแสดงเต็มขนาดโดยไม่ถูกตัด */
   border-radius: 8px;
+  transition: opacity 0.3s ease-in-out; /* ทำให้การเปลี่ยนความโปร่งใสดูนุ่มนวลใน 0.3 วินาที */
 }
 
 .lightbox-close {
