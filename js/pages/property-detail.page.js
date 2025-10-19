@@ -3,7 +3,7 @@
 import { getBySlug } from '../services/propertiesService.js';
 import { createLead } from '../services/leadsService.js';
 import { getFormData } from '../ui/forms.js';
-import { el, $, clear } from '../ui/dom.js';
+import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { formatPrice } from '../utils/format.js';
 import { setupNav } from '../utils/config.js';
