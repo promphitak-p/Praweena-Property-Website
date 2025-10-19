@@ -333,11 +333,12 @@ tbody tr:last-child td {
   right: 15px;
 }
 
-/* ซ่อนปุ่มลูกศรบนอุปกรณ์ที่ใช้การสัมผัสเป็นหลัก หรือมีหน้าจอขนาดเล็ก */
-@media (pointer: coarse), (hover: none), (max-width: 1024px) {
-  /* ใช้ Selector ที่เจาะจงขึ้นเพื่อเพิ่มความสำคัญ */
+/* ซ่อนปุ่มลูกศรบนอุปกรณ์ที่ใช้การสัมผัสเป็นหลัก (Coarse Pointer)
+   หรืออุปกรณ์ที่ไม่รองรับการ Hover (ส่วนใหญ่คือทัชสกรีน)
+*/
+@media (pointer: coarse), (hover: none) {
   .gallery-wrapper .gallery-nav,
   .lightbox-overlay .lightbox-nav {
-    display: none !important; /* !important เพื่อให้แน่ใจว่าคำสั่งนี้จะถูกใช้งานเสมอ */
+    display: none;
   }
 }
