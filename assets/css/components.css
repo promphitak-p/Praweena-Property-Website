@@ -1,0 +1,232 @@
+/* assets/css/components.css */
+
+/* === Property Card === */
+.property-card {
+  background-color: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.property-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.property-card__image {
+  height: 200px;
+  width: 100%;
+  object-fit: cover;
+}
+
+.property-card__body {
+  padding: 1.25rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.property-card__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.property-card__address {
+  color: var(--text-light);
+  margin-bottom: 1rem;
+}
+
+.property-card__price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--brand);
+  margin-top: auto;
+}
+
+/* === Modal === */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-content {
+  background-color: var(--surface);
+  margin: auto;
+  padding: 2rem;
+  border-radius: var(--radius);
+  max-width: 600px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: var(--text);
+}
+
+
+/* === Table === */
+.table-wrapper {
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+thead th {
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  font-size: 0.875rem;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* === Toast Notification === */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--text);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+}
+
+.toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -10px);
+}
+
+.property-cover-image {
+  width: 100%; /* ให้ความกว้างเต็มพื้นที่ที่มันอยู่ */
+  max-height: 550px; /* กำหนดความสูงสูงสุดไม่ให้เกินนี้ */
+  object-fit: cover; /* ทำให้รูปเต็มกรอบโดยไม่เสียสัดส่วน (ส่วนที่เกินจะถูกซ่อน) */
+  border-radius: var(--radius);
+  background-color: #eee; /* สีพื้นหลังเผื่อรูปยังไม่โหลด */
+}
+
+/* assets/css/components.css */
+
+/* Container หลักของ Gallery ที่จะทำให้ปัดได้ */
+.image-gallery {
+  display: flex; /* 1. จัดเรียงรูปภาพในแนวนอน */
+  overflow-x: auto; /* 2. ทำให้แกน X (แนวนอน) เลื่อนได้เมื่อเนื้อหาล้น */
+  scroll-snap-type: x mandatory; /* 3. ทำให้การเลื่อน "เข้าล็อค" ทีละรูป */
+  scroll-behavior: smooth; /* ทำให้การเลื่อนสมูทขึ้น (เมื่อใช้ปุ่มในอนาคต) */
+  -webkit-overflow-scrolling: touch; /* ทำให้การปัดบน iOS ลื่นขึ้น */
+  margin-top: 1rem;
+}
+
+/* ซ่อนแถบ Scrollbar ที่ไม่สวยงาม */
+.image-gallery::-webkit-scrollbar {
+  display: none;
+}
+.image-gallery {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* สไตล์ของรูปภาพแต่ละรูปใน Gallery */
+.gallery-image {
+  flex: 0 0 100%; /* 4. ทำให้แต่ละรูปกว้าง 100% ของ Container */
+  width: 100%;
+  scroll-snap-align: start; /* 5. กำหนดให้รูปภาพ "เข้าล็อค" ที่ด้านซ้าย */
+  object-fit: cover;
+  height: 450px; /* กำหนดความสูงของรูปในแกลเลอรี */
+  border-radius: var(--radius);
+  background-color: #eee;
+}
+
+.thumbnail-image:hover {
+  border-color: var(--brand);
+}
+
+/* assets/css/components.css */
+
+/* Wrapper ใหม่สำหรับจัดตำแหน่งปุ่ม */
+.gallery-wrapper {
+  position: relative; /* ทำให้ปุ่มลูกศรจัดตำแหน่งเทียบกับกรอบนี้ */
+  width: 100%;
+}
+
+/* สไตล์ของปุ่มลูกศร */
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background-color 0.2s;
+}
+
+.gallery-nav:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.gallery-nav.prev {
+  left: 10px;
+}
+
+.gallery-nav.next {
+  right: 10px;
+}

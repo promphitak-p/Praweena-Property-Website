@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Praweena Property - ค้นหาบ้านและอสังหาริมทรัพย์</title>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/layout.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">Praweena Property</a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="#" id="sign-out-btn" style="display: none;">ออกจากระบบ</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-grad">
+          <h1>ค้นหาอสังหาริมทรัพย์ในฝันของคุณ</h1>
+          <p>บ้าน ทาวน์โฮม และที่ดินทำเลดีในสุราษฎร์ธานี</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="container" id="listings">
+      <h2>รายการล่าสุด</h2>
+
+      <form id="filter-form" class="grid grid-cols-4" style="margin: 2rem 0;">
+        <div class="form-group">
+          <input type="search" name="q" class="form-control" placeholder="ค้นหาชื่อโครงการ, ทำเล...">
+        </div>
+        <div class="form-group">
+          <select name="district" class="form-control">
+            <option value="">ทุกอำเภอ</option>
+            <option value="เมืองสุราษฎร์ธานี">เมืองสุราษฎร์ธานี</option>
+            <option value="เกาะสมุย">เกาะสมุย</option>
+            <option value="กาญจนดิษฐ์">กาญจนดิษฐ์</option>
+          </select>
+        </div>
+        </form>
+
+      <div id="property-grid" class="grid property-grid">
+        <p>กำลังโหลดรายการ...</p>
+      </div>
+    </section>
+  </main>
+
+  <footer style="text-align: center; padding: 2rem; margin-top: 2rem; color: var(--text-light);">
+    <p>&copy; 2025 Praweena Property. All rights reserved.</p>
+  </footer>
+
+<script src="/js/env.js"></script> <script type="module" src="/js/pages/index.page.js"></script>
+  <script type="module" src="/js/pages/index.page.js"></script>
+</body>
+</html>

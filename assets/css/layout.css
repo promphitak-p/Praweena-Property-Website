@@ -1,0 +1,87 @@
+/* assets/css/layout.css */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+main {
+  padding: 2rem 0;
+}
+
+/* === Grid System === */
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid.cols-1 { grid-template-columns: 1fr; }
+.grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* Responsive Grid for property listings */
+.property-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+
+/* === Hero Section (Homepage) === */
+.hero {
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background-color: #f0f2f5; /* Fallback */
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0) 0%, var(--bg) 70%);
+  z-index: 1;
+}
+
+.hero .container {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-grad {
+  background: var(--grad);
+  color: white;
+  padding: 2.5rem;
+  border-radius: var(--radius);
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-md);
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.hero p {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  margin-bottom: 2rem;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .nav-links {
+    /* Basic mobile nav - can be improved with JS toggle */
+    display: none;
+  }
+  .grid.cols-3, .grid.cols-4 {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .hero h1 {
+    font-size: 2rem;
+  }
+}

@@ -1,0 +1,6 @@
+-- Sample data for properties
+insert into public.properties (title, slug, price, beds, baths, parking, district, province, address, published, cover_url, gallery)
+values
+  ('ทาวน์โฮมมินิมอล ใจกลางเมืองสุราษฎร์', 'minimal-townhome-surat', 1890000, 2, 2, 1, 'เมืองสุราษฎร์ธานี', 'สุราษฎร์ธานี', 'ใกล้โรงเรียน เทศบาล และตลาดสด', true, 'https://images.unsplash.com/photo-1613553423758-d7335272a716?q=80&w=1200&auto=format&fit=crop', '["https://images.unsplash.com/photo-1613553423758-d7335272a716?q=80&w=1200&auto=format&fit=crop"]'),
+  ('บ้านเดี่ยวเกาะสมุย สวยพร้อมอยู่', 'samui-detached-house', 4500000, 3, 2, 2, 'เกาะสมุย', 'สุราษฎร์ธานี', 'โซนบ่อผุด ใกล้แหล่งท่องเที่ยว', true, 'https://images.unsplash.com/photo-1570129477492-45c003edd2e7?q=80&w=1200&auto=format&fit=crop', '[]'),
+  ('บ้านเดี่ยวหลังใหญ่ ยังไม่เผยแพร่', 'large-house-unpublished', 8900000, 4, 4, 3, 'เมืองสุราษฎร์ธานี', 'สุราษฎร์ธานี', 'โครงการหมู่บ้านจัดสรร', false, 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1200&auto=format&fit=crop', '[]');

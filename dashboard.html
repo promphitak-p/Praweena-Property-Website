@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แดชบอร์ด - Praweena Property</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/layout.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">Praweena Property</a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="#" id="sign-out-btn" style="display: none;">ออกจากระบบ</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <h1>จัดการประกาศ</h1>
+      <button class="btn" id="add-property-btn">เพิ่มประกาศใหม่</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table id="properties-table">
+        <thead>
+          <tr>
+            <th>หัวข้อ</th>
+            <th>ราคา</th>
+            <th>สถานะ</th>
+            <th>อัปเดตล่าสุด</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          </tbody>
+      </table>
+    </div>
+  </main>
+  
+  <div id="property-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h3 id="modal-title">เพิ่มประกาศใหม่</h3>
+      <form id="property-form">
+        <input type="hidden" name="id">
+        <div class="grid grid-cols-2">
+          <div class="form-group"><label>หัวข้อ</label><input type="text" name="title" class="form-control" required></div>
+          <div class="form-group"><label>Slug</label><input type="text" name="slug" class="form-control" placeholder="จะสร้างให้อัตโนมัติถ้าเว้นว่าง"></div>
+          <div class="form-group"><label>ราคา</label><input type="number" name="price" class="form-control"></div>
+          <div class="form-group"><label>ขนาด (เช่น 120 ตร.ม.)</label><input type="text" name="size_text" class="form-control"></div>
+          <div class="form-group"><label>ห้องนอน</label><input type="number" name="beds" class="form-control"></div>
+          <div class="form-group"><label>ห้องน้ำ</label><input type="number" name="baths" class="form-control"></div>
+          <div class="form-group"><label>ที่จอดรถ</label><input type="number" name="parking" class="form-control"></div>
+          <div class="form-group"><label>อำเภอ</label><input type="text" name="district" class="form-control"></div>
+          <div class="form-group"><label>จังหวัด</label><input type="text" name="province" class="form-control" value="สุราษฎร์ธานี"></div>
+          <div class="form-group"><label>ที่อยู่</label><input type="text" name="address" class="form-control"></div>
+		  <div class="form-group"><label>ละติจูด</label><input type="number" step="any" name="latitude" class="form-control"></div>
+		  <div class="form-group"><label>ลองจิจูด</label><input type="number" step="any" name="longitude" class="form-control"></div>
+		  <div id="modal-map" style="height: 300px; margin: 1rem 0; border-radius: 8px; z-index: 10;"></div>
+
+			<div class="form-group col-span-2">
+			  <label>รูปภาพปก</label>
+			  <input type="file" id="cover-image-input" class="form-control" accept="image/png, image/jpeg">
+			  <input type="hidden" name="cover_url">
+			  <img id="image-preview" src="" alt="Image preview" style="max-width: 200px; margin-top: 1rem; border-radius: 8px; display: none;">
+			</div>
+			
+			<div class="form-group col-span-2">
+				<label>รูปภาพแกลเลอรี (เลือกได้หลายรูป)</label>
+				<input type="file" id="gallery-images-input" class="form-control" accept="image/png, image/jpeg" multiple>
+			</div>
+
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" name="published" style="margin-right: 8px;">เผยแพร่ทันที</label>
+        </div>
+        <div style="text-align: right;">
+          <button type="button" class="btn btn-secondary modal-cancel">ยกเลิก</button>
+          <button type="submit" class="btn">บันทึก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script src="/js/env.js"></script> <script type="module" src="/js/pages/index.page.js"></script>
+  <script type="module" src="/js/pages/dashboard.page.js"></script>
+</body>
+</html>

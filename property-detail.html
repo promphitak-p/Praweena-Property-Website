@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รายละเอียด - Praweena Property</title>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/layout.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">Praweena Property</a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="#" id="sign-out-btn" style="display: none;">ออกจากระบบ</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" id="property-detail-container">
+    <p>กำลังโหลดข้อมูล...</p>
+  </main>
+
+  <footer style="text-align: center; padding: 2rem; margin-top: 2rem; color: var(--text-light);">
+    <p>&copy; 2025 Praweena Property. All rights reserved.</p>
+  </footer>
+<script src="/js/env.js"></script> <script type="module" src="/js/pages/index.page.js"></script>
+  <script type="module" src="/js/pages/property-detail.page.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[build]
+  publish = "/" # Root of the repository is the publish directory
+  command = ""   # No build command needed for a static site
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
