@@ -10,34 +10,61 @@ import { signOutIfAny } from '../auth/auth.js';
 
 const container = $('#property-detail-container');
 
-// --- Lightbox Functionality ---
-function setupLightbox() {
-  // 1. สร้าง elements ของ Lightbox แค่ครั้งเดียว
-  const overlay = el('div', { className: 'lightbox-overlay' });
-  const closeBtn = el('span', { className: 'lightbox-close', textContent: '×' });
-  const lightboxImage = el('img', { className: 'lightbox-image' });
-  overlay.append(lightboxImage, closeBtn);
-  document.body.append(overlay);
-
-  // 2. ฟังก์ชันสำหรับเปิด Lightbox
-  function openLightbox(imageUrl) {
-    lightboxImage.src = imageUrl;
-    overlay.classList.add('show');
+// --- Upgraded Lightbox Functionality ---
+function setupLightbox(imageUrls) {
+  // 1. ตรวจสอบและสร้าง elements ของ Lightbox แค่ครั้งเดียว
+  let overlay = $('#lightbox-overlay');
+  if (!overlay) {
+    overlay = el('div', { id: 'lightbox-overlay', className: 'lightbox-overlay' });
+    const content = `
+      <span class="lightbox-close">&times;</span>
+      <button class="lightbox-nav lightbox-prev">&lsaquo;</button>
+      <img class="lightbox-image">
+      <button class="lightbox-nav lightbox-next">&rsaquo;</button>
+    `;
+    overlay.innerHTML = content;
+    document.body.append(overlay);
   }
 
-  // 3. ฟังก์ชันสำหรับปิด Lightbox
+  const lightboxImage = $('.lightbox-image');
+  const prevBtn = $('.lightbox-prev');
+  const nextBtn = $('.lightbox-next');
+  let currentIndex = 0;
+
+  // 2. ฟังก์ชันสำหรับแสดงรูปภาพ
+  function showImage(index) {
+    if (index < 0 || index >= imageUrls.length) return;
+    currentIndex = index;
+    lightboxImage.src = imageUrls[currentIndex];
+    // ซ่อน/แสดงปุ่มตามตำแหน่งรูป
+    prevBtn.style.display = (currentIndex === 0) ? 'none' : 'block';
+    nextBtn.style.display = (currentIndex === imageUrls.length - 1) ? 'none' : 'block';
+  }
+
+  // 3. ฟังก์ชันสำหรับเปิด/ปิด
+  function openLightbox(index) {
+    showImage(index);
+    overlay.classList.add('show');
+  }
   function closeLightbox() {
     overlay.classList.remove('show');
   }
 
-  // 4. เพิ่ม Event Listener ให้ปุ่มปิด และการคลิกที่พื้นหลัง
-  closeBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // ป้องกันไม่ให้ event ส่งไปถึง overlay
-    closeLightbox();
+  // 4. เพิ่ม Event Listeners ให้ปุ่มต่างๆ
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showImage(currentIndex - 1);
   });
-  overlay.addEventListener('click', closeLightbox);
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showImage(currentIndex + 1);
+  });
+  $('.lightbox-close').addEventListener('click', closeLightbox);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeLightbox();
+  });
 
-  return openLightbox; // ส่งฟังก์ชันเปิดออกไปให้ที่อื่นเรียกใช้
+  return openLightbox;
 }
 
 /**
@@ -65,23 +92,25 @@ function renderPropertyDetails(property) {
   const leftCol = el('div', { className: 'col-span-2' });
   const rightCol = el('div', { className: 'col-span-1' });
 
-  // --- 2. สร้าง Gallery ที่สมบูรณ์ ---
+// --- สร้าง Gallery ที่สมบูรณ์ ---
   const galleryWrapper = el('div', { className: 'gallery-wrapper' });
   const galleryContainer = el('div', { className: 'image-gallery' });
 
-  // รวมรูปทั้งหมด (รูปปก + รูปในแกลเลอรี) และกรองค่าที่ไม่มีออก
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
+  if (allImages.length === 0) { allImages.push('/assets/img/placeholder.jpg'); }
 
-  if (allImages.length === 0) {
-    allImages.push('/assets/img/placeholder.jpg'); // แสดง placeholder ถ้าไม่มีรูปเลย
-  }
+  // *** เรียกใช้ Lightbox โดยส่ง Array รูปภาพทั้งหมดเข้าไป ***
+  const openLightbox = setupLightbox(allImages);
 
-  allImages.forEach(imageUrl => {
+  allImages.forEach((imageUrl, index) => {
     const img = el('img', {
       className: 'gallery-image',
       attributes: { src: imageUrl, alt: 'Property image', loading: 'lazy' }
     });
-	img.addEventListener('click', () => openLightbox(imageUrl));
+
+    // เมื่อคลิก ให้เปิด Lightbox ที่รูปภาพลำดับ (index) นั้นๆ
+    img.addEventListener('click', () => openLightbox(index));
+
     galleryContainer.append(img);
   });
 

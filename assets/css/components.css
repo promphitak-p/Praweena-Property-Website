@@ -297,3 +297,38 @@ tbody tr:last-child td {
   font-weight: bold;
   cursor: pointer;
 }
+
+/* assets/css/components.css */
+
+/* Navigation arrows inside the lightbox */
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  font-size: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001; /* ให้อยู่เหนือรูปภาพ */
+  transition: background-color 0.2s;
+  user-select: none; /* ป้องกันการเผลอเลือกข้อความบนปุ่ม */
+}
+
+.lightbox-nav:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.lightbox-prev {
+  left: 15px;
+}
+
+.lightbox-next {
+  right: 15px;
+}
