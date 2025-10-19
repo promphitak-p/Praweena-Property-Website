@@ -10,6 +10,36 @@ import { signOutIfAny } from '../auth/auth.js';
 
 const container = $('#property-detail-container');
 
+// --- Lightbox Functionality ---
+function setupLightbox() {
+  // 1. สร้าง elements ของ Lightbox แค่ครั้งเดียว
+  const overlay = el('div', { className: 'lightbox-overlay' });
+  const closeBtn = el('span', { className: 'lightbox-close', textContent: '×' });
+  const lightboxImage = el('img', { className: 'lightbox-image' });
+  overlay.append(lightboxImage, closeBtn);
+  document.body.append(overlay);
+
+  // 2. ฟังก์ชันสำหรับเปิด Lightbox
+  function openLightbox(imageUrl) {
+    lightboxImage.src = imageUrl;
+    overlay.classList.add('show');
+  }
+
+  // 3. ฟังก์ชันสำหรับปิด Lightbox
+  function closeLightbox() {
+    overlay.classList.remove('show');
+  }
+
+  // 4. เพิ่ม Event Listener ให้ปุ่มปิด และการคลิกที่พื้นหลัง
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // ป้องกันไม่ให้ event ส่งไปถึง overlay
+    closeLightbox();
+  });
+  overlay.addEventListener('click', closeLightbox);
+
+  return openLightbox; // ส่งฟังก์ชันเปิดออกไปให้ที่อื่นเรียกใช้
+}
+
 /**
  * แสดงผลข้อมูลอสังหาฯ บนหน้าเว็บ (เวอร์ชันสมบูรณ์พร้อมปุ่มลูกศร)
  * @param {object} property - ข้อมูลอสังหาฯ
@@ -19,6 +49,7 @@ function renderPropertyDetails(property) {
   const pageTitle = `${property.title} - Praweena Property`;
   const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province} สนใจติดต่อ Praweena Property`;
   const keywords = `${property.title}, บ้าน${property.district}, อสังหาฯ ${property.province}`;
+  const openLightbox = setupLightbox();
 
   document.title = pageTitle;
   $('#meta-description').setAttribute('content', description);
@@ -50,6 +81,7 @@ function renderPropertyDetails(property) {
       className: 'gallery-image',
       attributes: { src: imageUrl, alt: 'Property image', loading: 'lazy' }
     });
+	img.addEventListener('click', () => openLightbox(imageUrl));
     galleryContainer.append(img);
   });
 

@@ -259,3 +259,41 @@ tbody tr:last-child td {
     transform: translateX(100%);
   }
 }
+
+/* assets/css/components.css */
+
+/* Full-screen Image Overlay (Lightbox) */
+.lightbox-overlay {
+  position: fixed; /* 1. ทำให้มันลอยทับทุกอย่าง */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85); /* 2. พื้นหลังสีดำโปร่งแสง */
+  z-index: 1000; /* 3. ให้แสดงอยู่ชั้นบนสุด */
+  display: none; /* 4. ซ่อนไว้เป็นค่าเริ่มต้น */
+  justify-content: center;
+  align-items: center;
+  cursor: pointer; /* ทำให้ดูเหมือนคลิกเพื่อปิดได้ */
+}
+
+.lightbox-overlay.show {
+  display: flex; /* เปลี่ยนเป็น flex เพื่อจัดให้อยู่กลางจอ */
+}
+
+.lightbox-image {
+  max-width: 90vw; /* 5. กว้างสุดไม่เกิน 90% ของความกว้างหน้าจอ */
+  max-height: 90vh; /* 6. สูงสุดไม่เกิน 90% ของความสูงหน้าจอ */
+  object-fit: contain; /* 7. ให้รูปแสดงเต็มขนาดโดยไม่ถูกตัด */
+  border-radius: 8px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  color: white;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+}
