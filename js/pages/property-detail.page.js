@@ -172,8 +172,48 @@ function renderPropertyDetails(property) {
       L.marker([lat, lon]).addTo(map).bindPopup(popupContent).openPopup();
     }, 100);
   }
+  
+  // --- 5. สร้างปุ่ม Social Share ---
+  const shareContainer = el('div', { className: 'share-buttons' });
+  shareContainer.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
 
-// --- 5. สร้างฟอร์ม ---
+  const currentPageUrl = window.location.href; // URL ของหน้านี้
+  const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
+
+  // Facebook Share Button
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
+  const facebookBtn = el('a', {
+    className: 'share-btn facebook',
+    attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook', innerHTML: 'f' } // ใช้ตัว 'f' แบบง่ายๆ หรือจะใช้ SVG icon ก็ได้
+  });
+  // เพิ่ม font-weight: bold; ให้กับ facebookBtn
+  facebookBtn.style.fontWeight = 'bold';
+
+
+  // LINE Share Button
+  const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
+  const lineBtn = el('a', {
+    className: 'share-btn line',
+    attributes: { href: lineShareUrl, target: '_blank', 'aria-label': 'Share on LINE', innerHTML: 'L' }
+  });
+    // เพิ่ม font-weight: bold; ให้กับ lineBtn
+    lineBtn.style.fontWeight = 'bold';
+
+  // Twitter Share Button
+  const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
+  const twitterBtn = el('a', {
+    className: 'share-btn twitter',
+    attributes: { href: twitterShareUrl, target: '_blank', 'aria-label': 'Share on Twitter', innerHTML: 'X' }
+  });
+    // เพิ่ม font-weight: bold; ให้กับ twitterBtn
+    twitterBtn.style.fontWeight = 'bold';
+
+  shareContainer.append(facebookBtn, lineBtn, twitterBtn);
+
+  // นำปุ่มแชร์ไปต่อท้ายคอลัมน์ซ้าย
+  leftCol.append(shareContainer);
+
+// --- 6. สร้างฟอร์ม ---
   const formCard = el('div', { style: 'background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow-md);' });
   const formHeader = el('h3');
   const form = el('form', { attributes: { id: 'lead-form' } });
@@ -193,7 +233,7 @@ function renderPropertyDetails(property) {
     form.addEventListener('submit', handleLeadSubmit);
   } // *** นี่คือ `}` ที่เพิ่มเข้ามา ***
 
-  // --- 6. ประกอบร่างทั้งหมด ---
+  // --- 7. ประกอบร่างทั้งหมด ---
   grid.append(leftCol, rightCol);
   container.append(grid);
 }

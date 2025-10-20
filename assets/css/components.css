@@ -421,3 +421,44 @@ tbody tr:last-child td {
   font-weight: 600;
   backdrop-filter: blur(4px); /* เพิ่มเอฟเฟคกระจกฝ้า */
 }
+
+/* assets/css/components.css */
+
+/* Container for social share buttons */
+.share-buttons {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.share-buttons p {
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%; /* ทำให้ปุ่มเป็นวงกลม */
+  border: none;
+  color: white;
+  text-decoration: none;
+  font-size: 1.2rem;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.share-btn:hover {
+  transform: scale(1.1);
+  opacity: 0.9;
+}
+
+/* Specific colors for each platform */
+.share-btn.facebook { background-color: #1877F2; }
+.share-btn.line { background-color: #06C755; }
+.share-btn.twitter { background-color: #1DA1F2; }
