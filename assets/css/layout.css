@@ -2,11 +2,11 @@
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 0rem;
+  padding: 0 1.5rem;
 }
 
 main {
-  padding: 0rem 0;
+  padding: 2rem 0;
 }
 
 /* === Grid System === */
