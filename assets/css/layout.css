@@ -7,8 +7,8 @@
 
 main {
   padding: 2rem 0;
-  /* เพิ่มบรรทัดนี้เพื่อดันเนื้อหาลงมาใต้ Header */
-  margin-top: 1rem;
+  /* เพิ่ม/แก้ไขบรรทัดนี้ เพื่อดันเนื้อหาลงมาใต้ Header */
+  margin-top: 2rem;
 }
 
 /* === Grid System === */

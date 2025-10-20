@@ -75,7 +75,9 @@ img {
 
 .nav-links {
   list-style: none;
-  display: flex;
+  /* --- เพิ่ม 2 บรรทัดนี้ --- */
+  display: flex;         /* 1. ทำให้รายการเมนูเรียงกันแบบ Flexbox */
+  align-items: center; /* 2. จัดให้ทุกรายการอยู่กึ่งกลางในแนวตั้ง */
   gap: 1.5rem;
 }
 
