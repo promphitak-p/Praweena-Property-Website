@@ -40,13 +40,15 @@ img {
 
 /* === Header & Navigation === */
 .header {
-	background-color: var(--brand); 
-  background-image: var(--grad); /* ไล่สีจะแสดงทับ background-color */
+  /* 1. การันตีพื้นหลังทึบด้วย background-color */
+  background-color: var(--brand); /* สีพื้นฐาน */
+  background-image: var(--grad); /* ไล่สีจะแสดงทับ */
   color: white;
   padding: 1rem 0;
   position: sticky;
   top: 0;
-  z-index: 10;
+  /* 2. ลองเพิ่ม z-index ให้สูงขึ้นเล็กน้อย */
+  z-index: 20; /* จากเดิม 10 */
   box-shadow: var(--shadow-md);
 }
 
@@ -140,17 +142,23 @@ img {
 
 /* สไตล์ของปุ่มแฮมเบอร์เกอร์ */
 .mobile-nav-toggle {
-  display: none; 
-  background: none;
-  /* เพิ่มเส้นขอบและ padding เพื่อให้ปุ่มดูเด่นขึ้น */
-  border: 2px solid rgba(255, 255, 255, 0.7);
+  display: none;
+  /* --- เปลี่ยน background --- */
+  background-color: rgba(0, 0, 0, 0.2); /* เพิ่มพื้นหลังสีเข้มโปร่งแสง */
+  border: 1px solid rgba(255, 255, 255, 0.5); /* ลดความหนาเส้นขอบลงเล็กน้อย */
   border-radius: 8px;
   padding: 0.25rem 0.5rem;
-  line-height: 1; /* ช่วยจัดให้อยู่กลางแนวตั้ง */
+  line-height: 1;
   color: white;
-  font-size: 1.5rem; /* ลดขนาดลงเล็กน้อยให้พอดีกับกรอบ */
+  font-size: 1.5rem;
   cursor: pointer;
   z-index: 999;
+  transition: background-color 0.2s; /* เพิ่ม transition */
+}
+
+/* ทำให้พื้นหลังเข้มขึ้นเมื่อ Hover (สำหรับอุปกรณ์ที่รองรับ) */
+.mobile-nav-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.4);
 }
 
 /* Media Query สำหรับมือถือ */
