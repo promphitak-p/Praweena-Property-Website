@@ -97,5 +97,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await protectPage(); // ** สำคัญ: ป้องกันหน้านี้ **
   setupNav();
   signOutIfAny();
+  setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadLeads();
 });
