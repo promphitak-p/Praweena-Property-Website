@@ -194,13 +194,15 @@ function renderPropertyDetails(property) {
   });
   facebookBtn.innerHTML = facebookIcon; // <-- ใช้ SVG icon
 
-  // LINE
-  const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
-  const lineBtn = el('a', {
+// LINE Share Button (Upgraded for Mobile App)
+// รูปแบบคือ: ข้อความ + ขึ้นบรรทัดใหม่ + URL
+const lineMessage = `${shareText}\n${currentPageUrl}`;
+const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(lineMessage)}`;
+const lineBtn = el('a', {
     className: 'share-btn line',
     attributes: { href: lineShareUrl, target: '_blank', 'aria-label': 'Share on LINE' }
-  });
-  lineBtn.innerHTML = lineIcon; // <-- ใช้ SVG icon
+});
+lineBtn.innerHTML = lineIcon;
 
   // Twitter (X)
   const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
