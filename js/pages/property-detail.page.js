@@ -78,9 +78,10 @@ function setupLightbox(imageUrls) {
  */
 function renderPropertyDetails(property) {
 	// --- เตรียมโค้ด SVG Icons ---
-	const facebookIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
-  const lineIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LINE</title><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 1.5c5.799 0 10.5 4.701 10.5 10.5S17.799 22.5 12 22.5 1.5 17.799 1.5 12 6.201 1.5 12 1.5zm-3.324 5.32c-.177 0-.324.148-.324.326v7.356c0 .178.147.324.324.324h.874V9.894c0-.18-.147-.324-.326-.324h-.548zm3.87 0c-.178 0-.324.148-.324.326v4.32h-.924V9.894c0-.18-.147-.324-.324-.324H9.98c-.18 0-.324.148-.324.326v7.356c0 .178.146.324.325.324h.874v.874c0 .178.147.324.324.324H15.1c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324h-2.55zm.874 1.748V13.5h.548c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324h-1.422c-.178 0-.324.148-.324.326v3.144h.874zM6.98 9.57c-.178 0-.324.148-.324.326v4.346c0 .178.146.324.324.324h.874c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324H6.98zM17.02 9.57c-.18 0-.324.148-.324.326v7.356c0 .178.147.324.325.324h.874c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324h-.875z"/></svg>`;
-  const xIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 7.184L18.901 1.153Zm-1.653 19.499h2.606L6.856 2.554H4.046l13.2 18.1z"/></svg>`;
+const facebookIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
+const lineIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LINE</title><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 1.5c5.799 0 10.5 4.701 10.5 10.5S17.799 22.5 12 22.5 1.5 17.799 1.5 12 6.201 1.5 12 1.5zm-3.324 5.32c-.177 0-.324.148-.324.326v7.356c0 .178.147.324.324.324h.874V9.894c0-.18-.147-.324-.326-.324h-.548zm3.87 0c-.178 0-.324.148-.324.326v4.32h-.924V9.894c0-.18-.147-.324-.324-.324H9.98c-.18 0-.324.148-.324.326v7.356c0 .178.146.324.325.324h.874v.874c0 .178.147.324.324.324H15.1c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324h-2.55zm.874 1.748V13.5h.548c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324h-1.422c-.178 0-.324.148-.324.326v3.144h.874zM6.98 9.57c-.178 0-.324.148-.324.326v4.346c0 .178.146.324.324.324h.874c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324H6.98zM17.02 9.57c-.18 0-.324.148-.324.326v7.356c0 .178.147.324.325.324h.874c.18 0 .324-.146.324-.324V9.894c0-.18-.147-.324-.324-.324h-.875z"/></svg>`;
+const xIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 7.184L18.901 1.153Zm-1.653 19.499h2.606L6.856 2.554H4.046l13.2 18.1z"/></svg>`;
+const messengerIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook Messenger</title><path d="M12 0C5.373 0 0 5.14 0 11.432c0 3.43.987 6.558 2.634 8.94.06.09.11.19.14.29l-1.07 4.267c-.12.48.33.93.81.81l4.267-1.07c.1.03.2.08.29.14a12.02 12.02 0 008.94 2.634C18.86 24 24 18.627 24 12S18.627 0 12 0zm1.14 15.192l-2.4-2.4-5.28 2.4c-.48.24-.96-.48-.6-.84l3.12-3.12-3.12-3.12c-.36-.36.12-.96.6-.84l5.28 2.4 2.4-2.4c.36-.36.96.12.84.6l-2.4 5.28 2.4 2.4c.36.36-.12.96-.84.6z"/></svg>`;
   // --------------------------------
 
   // --- อัปเดต Title และ Meta Tags ---
@@ -185,16 +186,20 @@ function renderPropertyDetails(property) {
 
   const currentPageUrl = window.location.href;
   const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
-
-  // Facebook
-  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
-  const facebookBtn = el('a', {
-    className: 'share-btn facebook',
-    attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook' }
+  
+  // *** สร้างปุ่ม Messenger ***
+  const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`;
+  const messengerBtn = el('a', {
+    className: 'share-btn messenger',
+    attributes: { href: messengerShareUrl, target: '_blank', 'aria-label': 'Share on Messenger' }
   });
-  facebookBtn.innerHTML = facebookIcon; // <-- ใช้ SVG icon
+  messengerBtn.innerHTML = messengerIcon;
 
-// LINE Share Button (Upgraded for Mobile App)
+  // เพิ่มปุ่ม Messenger เข้าไป
+  shareContainer.append(facebookBtn, messengerBtn, lineBtn, twitterBtn);
+  leftCol.append(shareContainer);
+  
+  // LINE Share Button (Upgraded for Mobile App)
 // รูปแบบคือ: ข้อความ + ขึ้นบรรทัดใหม่ + URL
 const lineMessage = `${shareText}\n${currentPageUrl}`;
 const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(lineMessage)}`;
@@ -203,6 +208,14 @@ const lineBtn = el('a', {
     attributes: { href: lineShareUrl, target: '_blank', 'aria-label': 'Share on LINE' }
 });
 lineBtn.innerHTML = lineIcon;
+
+  // Facebook
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
+  const facebookBtn = el('a', {
+    className: 'share-btn facebook',
+    attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook' }
+  });
+  facebookBtn.innerHTML = facebookIcon; // <-- ใช้ SVG icon
 
   // Twitter (X)
   const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
