@@ -68,9 +68,21 @@ img {
 }
 
 .nav .logo {
+  /* เปลี่ยนเป็น flex เพื่อจัดรูปภาพกับข้อความ */
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* ระยะห่างระหว่างโลโก้กับข้อความ */
+
   font-weight: bold;
   font-size: 1.5rem;
   color: white;
+  text-decoration: none; /* เพิ่มเพื่อให้แน่ใจว่าไม่มีเส้นใต้ */
+}
+
+/* สไตล์สำหรับรูปภาพโลโก้ */
+.logo-img {
+  height: 36px; /* กำหนดความสูงของโลโก้ (ปรับค่าได้ตามต้องการ) */
+  width: auto;
 }
 
 .nav-links {
@@ -177,6 +189,7 @@ img {
   /* 2. แสดงปุ่มแฮมเบอร์เกอร์บนมือถือ */
   .mobile-nav-toggle {
     display: block;
+	order: -1; /* <-- เพิ่มบรรทัดนี้: ทำให้ปุ่มถูกย้ายไปอยู่ข้างหน้าสุด */
   }
 
   /* 3. ซ่อนเมนูเดิมบน Desktop */
