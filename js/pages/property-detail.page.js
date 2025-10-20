@@ -173,28 +173,25 @@ function renderPropertyDetails(property) {
     }, 100);
   }
 
-  // --- 5. สร้างฟอร์ม ---
+// --- 5. สร้างฟอร์ม ---
   const formCard = el('div', { style: 'background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow-md);' });
-  const formHeader = el('h3', { textContent: 'สนใจนัดชม / สอบถามข้อมูล' });
+  const formHeader = el('h3');
   const form = el('form', { attributes: { id: 'lead-form' } });
-  
-  // *** ตรวจสอบสถานะของประกาศ ***
+
   if (property.status === 'sold') {
     formHeader.textContent = 'ประกาศนี้ขายแล้ว';
     form.innerHTML = `<p style="color: var(--text-light); text-align: center; padding: 2rem 0;">ขอขอบคุณที่ให้ความสนใจ</p>`;
   } else {
     formHeader.textContent = 'สนใจนัดชม / สอบถามข้อมูล';
-  
-  form.innerHTML = `
-    <input type="hidden" name="property_id" value="${property.id}">
-    <div class="form-group"><label for="name">ชื่อ</label><input type="text" id="name" name="name" class="form-control" required></div>
-    <div class="form-group"><label for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" name="phone" class="form-control" required pattern="^0\\d{8,9}$"></div>
-    <div class="form-group"><label for="note">ข้อความเพิ่มเติม</label><textarea id="note" name="note" class="form-control" rows="3"></textarea></div>
-    <button type="submit" class="btn" style="width: 100%;">ส่งข้อมูล</button>
-  `;
-  form.addEventListener('submit', handleLeadSubmit);
-  formCard.append(formHeader, form);
-  rightCol.append(formCard);
+    form.innerHTML = `
+      <input type="hidden" name="property_id" value="${property.id}">
+      <div class="form-group"><label for="name">ชื่อ</label><input type="text" id="name" name="name" class="form-control" required></div>
+      <div class="form-group"><label for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" name="phone" class="form-control" required pattern="^0\\d{8,9}$"></div>
+      <div class="form-group"><label for="note">ข้อความเพิ่มเติม</label><textarea id="note" name="note" class="form-control" rows="3"></textarea></div>
+      <button type="submit" class="btn" style="width: 100%;">ส่งข้อมูล</button>
+    `;
+    form.addEventListener('submit', handleLeadSubmit);
+  } // *** นี่คือ `}` ที่เพิ่มเข้ามา ***
 
   // --- 6. ประกอบร่างทั้งหมด ---
   grid.append(leftCol, rightCol);
