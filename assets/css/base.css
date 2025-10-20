@@ -65,29 +65,32 @@ img {
   align-items: center;            /* 2. จัดให้อยู่กึ่งกลางแนวตั้ง */
 }
 
+/* 1. ทำให้โลโก้และข้อความเป็นกลุ่มเดียวกัน และจัดให้อยู่กลางแนวตั้ง */
 .nav .logo {
-  /* เปลี่ยนเป็น flex เพื่อจัดรูปภาพกับข้อความ */
   display: flex;
   align-items: center;
-  gap: 0.75rem; /* ระยะห่างระหว่างโลโก้กับข้อความ */
-
-  font-weight: bold;
-  font-size: 1.5rem;
-  color: white;
-  text-decoration: none; /* เพิ่มเพื่อให้แน่ใจว่าไม่มีเส้นใต้ */
+  gap: 1rem; /* ระยะห่างระหว่างโลโก้กับข้อความ */
+  text-decoration: none;
 }
 
-/* สไตล์สำหรับรูปภาพโลโก้ */
+/* 2. กำหนดขนาดของรูปโลโก้ให้ใหญ่ขึ้นเกือบเต็ม Header */
 .logo-img {
-  height: 36px; /* กำหนดความสูงของโลโก้ (ปรับค่าได้ตามต้องการ) */
+  height: 48px; /* ปรับค่านี้ได้ตามความเหมาะสม */
   width: auto;
 }
 
+/* 3. สไตล์สำหรับข้อความ "Praweena Property" */
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* 4. จัดวางเมนูหลักให้อยู่กึ่งกลางแนวตั้งเช่นกัน */
 .nav-links {
   list-style: none;
-  /* --- เพิ่ม 2 บรรทัดนี้ --- */
-  display: flex;         /* 1. ทำให้รายการเมนูเรียงกันแบบ Flexbox */
-  align-items: center; /* 2. จัดให้ทุกรายการอยู่กึ่งกลางในแนวตั้ง */
+  display: flex;
+  align-items: center;
   gap: 1.5rem;
 }
 

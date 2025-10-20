@@ -16,15 +16,24 @@
   <link rel="stylesheet" href="/assets/css/layout.css">
   <link rel="stylesheet" href="/assets/css/components.css">
   
-  <nav class="nav">
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
 <a href="/index.html" class="logo">
   <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
-</a>  
-  <ul class="nav-links">
-    </ul>
-  
-  <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
-</nav>
+  <span class="logo-text">Praweena Property</span>
+</a>
+        <ul class="nav-links">
+
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="#" id="sign-out-btn" style="display: none;">ออกจากระบบ</a></li>
+        </ul>
+				  <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
   
   <style>
     .auth-container {
