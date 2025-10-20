@@ -1,4 +1,5 @@
 // js/pages/leads.page.js
+import { setupMobileNav } from '../ui/mobileNav.js'; // <-- 1. Import เข้ามา
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { listLeads, updateLead } from '../services/leadsService.js';
