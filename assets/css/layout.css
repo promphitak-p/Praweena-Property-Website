@@ -6,7 +6,7 @@
 }
 
 main {
-  padding: 2rem 0;
+  padding: 0rem 0;
 }
 
 /* === Grid System === */
@@ -28,7 +28,7 @@ main {
 
 /* === Hero Section (Homepage) === */
 .hero {
-  padding: 4rem 0;
+  padding: 0rem 0;
   text-align: center;
   position: relative;
   overflow: hidden;
