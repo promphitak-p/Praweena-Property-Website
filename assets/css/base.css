@@ -42,7 +42,6 @@ img {
 .header {
 	background-color: var(--brand); 
   background-image: var(--grad); /* ไล่สีจะแสดงทับ background-color */
-  background: var(--grad);
   color: white;
   padding: 1rem 0;
   position: sticky;
