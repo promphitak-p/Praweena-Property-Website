@@ -75,12 +75,14 @@ img {
 
 /* 2. กำหนดขนาดของรูปโลโก้ให้ใหญ่ขึ้นเกือบเต็ม Header */
 .logo-img {
+	align-items: center;
   height: 48px; /* ปรับค่านี้ได้ตามความเหมาะสม */
   width: auto;
 }
 
 /* 3. สไตล์สำหรับข้อความ "Praweena Property" */
 .logo-text {
+	align-items: center;
   font-size: 1.5rem;
   font-weight: bold;
   color: white;
