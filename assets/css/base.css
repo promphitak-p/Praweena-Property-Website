@@ -9,9 +9,15 @@
   --surface: #ffffff;
   --border-color: #e5e7eb;
   --radius: 16px;
---grad: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 40%, var(--brand-2) 60%, var(--brand) 100%);
+--grad: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 30%, var(--brand-2) 70%, var(--brand) 100%);
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+main {
+  padding: 2rem 0;
+  /* Add top margin to prevent content from hiding under the sticky header */
+  margin-top: 1rem;
 }
 
 * {
@@ -54,8 +60,11 @@ img {
 
 .header .nav {
   display: flex;
+  /* Use Flexbox for perfect alignment */
   justify-content: space-between;
   align-items: center;
+  /* Ensure consistent height */
+  min-height: 40px; 
 }
 
 .nav .logo {
@@ -142,23 +151,23 @@ img {
 
 /* สไตล์ของปุ่มแฮมเบอร์เกอร์ */
 .mobile-nav-toggle {
-  display: none;
-  /* --- เปลี่ยน background --- */
-  background-color: rgba(0, 0, 0, 0.2); /* เพิ่มพื้นหลังสีเข้มโปร่งแสง */
-  border: 1px solid rgba(255, 255, 255, 0.5); /* ลดความหนาเส้นขอบลงเล็กน้อย */
+  display: none; 
+  background-color: transparent; /* Remove background for a cleaner look */
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 8px;
-  padding: 0.25rem 0.5rem;
+  padding: 0.3rem 0.6rem;
   line-height: 1;
   color: white;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   cursor: pointer;
   z-index: 999;
-  transition: background-color 0.2s; /* เพิ่ม transition */
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 /* ทำให้พื้นหลังเข้มขึ้นเมื่อ Hover (สำหรับอุปกรณ์ที่รองรับ) */
 .mobile-nav-toggle:hover {
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: white;
 }
 
 /* Media Query สำหรับมือถือ */

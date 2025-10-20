@@ -115,9 +115,12 @@ th, td {
 
 thead th {
   font-weight: 600;
-  color: var(--text-light);
+  color: var(--brand); /* Change color to brand color */
   text-transform: uppercase;
   font-size: 0.875rem;
+  /* Add a bottom border for separation */
+  border-bottom: 2px solid var(--brand-2); 
+  background-color: #f9fafb; /* Add a subtle background color */
 }
 
 tbody tr:last-child td {
