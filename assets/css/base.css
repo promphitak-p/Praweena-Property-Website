@@ -9,7 +9,7 @@
   --surface: #ffffff;
   --border-color: #e5e7eb;
   --radius: 16px;
---grad: linear-gradient(180deg, var(--brand) 0%, var(--brand-2) 40%, var(--brand-2) 60%, var(--brand) 100%);
+--grad: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 40%, var(--brand-2) 60%, var(--brand) 100%);
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
@@ -40,6 +40,8 @@ img {
 
 /* === Header & Navigation === */
 .header {
+	background-color: var(--brand); 
+  background-image: var(--grad); /* ไล่สีจะแสดงทับ background-color */
   background: var(--grad);
   color: white;
   padding: 1rem 0;
@@ -139,11 +141,15 @@ img {
 
 /* สไตล์ของปุ่มแฮมเบอร์เกอร์ */
 .mobile-nav-toggle {
-  display: none; /* 1. ซ่อนไว้บน Desktop ก่อน */
+  display: none; 
   background: none;
-  border: none;
+  /* เพิ่มเส้นขอบและ padding เพื่อให้ปุ่มดูเด่นขึ้น */
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  line-height: 1; /* ช่วยจัดให้อยู่กลางแนวตั้ง */
   color: white;
-  font-size: 2rem;
+  font-size: 1.5rem; /* ลดขนาดลงเล็กน้อยให้พอดีกับกรอบ */
   cursor: pointer;
   z-index: 999;
 }
