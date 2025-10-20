@@ -1,4 +1,5 @@
 // js/pages/index.page.js
+import { setupMobileNav } from '../ui/mobileNav.js'; // <-- 1. Import เข้ามา
 import { listPublic } from '../services/propertiesService.js';
 import { el, $, clear } from '../ui/dom.js';
 import { formatPrice } from '../utils/format.js';
@@ -80,6 +81,7 @@ clear(grid);
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   signOutIfAny();
+  setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadProperties(); // โหลดครั้งแรกเมื่อหน้าเว็บพร้อม
 
   // เพิ่ม event listener ให้ฟอร์ม filter

@@ -1,4 +1,5 @@
 // js/pages/dashboard.page.js
+import { setupMobileNav } from '../ui/mobileNav.js'; // <-- 1. Import เข้ามา
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { listAll, upsertProperty, removeProperty } from '../services/propertiesService.js';
@@ -201,6 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await protectPage(); // ** สำคัญมาก: ป้องกันหน้านี้ **
   setupNav();
   signOutIfAny();
+  setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadProperties();
 });
 

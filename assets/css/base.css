@@ -134,3 +134,48 @@ img {
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(43, 93, 76, 0.2);
 }
+
+/* assets/css/base.css */
+
+/* สไตล์ของปุ่มแฮมเบอร์เกอร์ */
+.mobile-nav-toggle {
+  display: none; /* 1. ซ่อนไว้บน Desktop ก่อน */
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 999;
+}
+
+/* Media Query สำหรับมือถือ */
+@media (max-width: 768px) {
+  /* 2. แสดงปุ่มแฮมเบอร์เกอร์บนมือถือ */
+  .mobile-nav-toggle {
+    display: block;
+  }
+
+  /* 3. ซ่อนเมนูเดิมบน Desktop */
+  .nav-links {
+    display: none; /* ซ่อนเมนูหลักไว้ก่อน */
+    position: absolute;
+    top: 60px; /* ตำแหน่งใต้ Header */
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: var(--brand);
+    flex-direction: column; /* จัดเรียงเมนูเป็นแนวตั้ง */
+    padding: 1rem 0;
+    text-align: center;
+  }
+
+  .nav-links a {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  /* 4. คลาส .nav-open จะถูกเพิ่มโดย JavaScript เพื่อแสดงเมนู */
+  .nav-open .nav-links {
+    display: flex;
+  }
+}

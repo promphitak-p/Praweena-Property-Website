@@ -1,5 +1,5 @@
 // js/pages/property-detail.page.js
-
+import { setupMobileNav } from '../ui/mobileNav.js'; // <-- 1. Import เข้ามา
 import { getBySlug } from '../services/propertiesService.js';
 import { createLead } from '../services/leadsService.js';
 import { getFormData } from '../ui/forms.js';
@@ -265,5 +265,6 @@ async function handleLeadSubmit(event) {
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   signOutIfAny();
+  setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadProperty();
 });
