@@ -445,12 +445,17 @@ tbody tr:last-child td {
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 50%; /* ทำให้ปุ่มเป็นวงกลม */
+  border-radius: 50%;
   border: none;
-  color: white;
   text-decoration: none;
-  font-size: 1.2rem;
   transition: transform 0.2s, opacity 0.2s;
+}
+
+/* สไตล์สำหรับ SVG icon ที่อยู่ข้างในปุ่ม */
+.share-btn svg {
+  width: 24px; /* กำหนดขนาดของไอคอน */
+  height: 24px;
+  fill: white; /* กำหนดสีของไอคอนเป็นสีขาว */
 }
 
 .share-btn:hover {

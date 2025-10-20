@@ -173,45 +173,39 @@ function renderPropertyDetails(property) {
     }, 100);
   }
   
-  // --- 5. สร้างปุ่ม Social Share ---
+// --- 5. สร้างปุ่ม Social Share โดยใช้ SVG Icons ---
   const shareContainer = el('div', { className: 'share-buttons' });
   shareContainer.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
 
-  const currentPageUrl = window.location.href; // URL ของหน้านี้
+  const currentPageUrl = window.location.href;
   const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
 
-  // Facebook Share Button
+  // Facebook
   const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
   const facebookBtn = el('a', {
     className: 'share-btn facebook',
-    attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook', innerHTML: 'f' } // ใช้ตัว 'f' แบบง่ายๆ หรือจะใช้ SVG icon ก็ได้
+    attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook' }
   });
-  // เพิ่ม font-weight: bold; ให้กับ facebookBtn
-  facebookBtn.style.fontWeight = 'bold';
+  facebookBtn.innerHTML = facebookIcon; // <-- ใช้ SVG icon
 
-
-  // LINE Share Button
+  // LINE
   const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
   const lineBtn = el('a', {
     className: 'share-btn line',
-    attributes: { href: lineShareUrl, target: '_blank', 'aria-label': 'Share on LINE', innerHTML: 'L' }
+    attributes: { href: lineShareUrl, target: '_blank', 'aria-label': 'Share on LINE' }
   });
-    // เพิ่ม font-weight: bold; ให้กับ lineBtn
-    lineBtn.style.fontWeight = 'bold';
+  lineBtn.innerHTML = lineIcon; // <-- ใช้ SVG icon
 
-  // Twitter Share Button
+  // Twitter (X)
   const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
   const twitterBtn = el('a', {
     className: 'share-btn twitter',
-    attributes: { href: twitterShareUrl, target: '_blank', 'aria-label': 'Share on Twitter', innerHTML: 'X' }
+    attributes: { href: twitterShareUrl, target: '_blank', 'aria-label': 'Share on Twitter' }
   });
-    // เพิ่ม font-weight: bold; ให้กับ twitterBtn
-    twitterBtn.style.fontWeight = 'bold';
+  twitterBtn.innerHTML = xIcon; // <-- ใช้ SVG icon
 
   shareContainer.append(facebookBtn, lineBtn, twitterBtn);
-
-  // นำปุ่มแชร์ไปต่อท้ายคอลัมน์ซ้าย
-  leftCol.append(shareContainer);
+  leftCol.append(shareContainer); // นำไปต่อท้ายคอลัมน์ซ้าย
 
 // --- 6. สร้างฟอร์ม ---
   const formCard = el('div', { style: 'background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow-md);' });
