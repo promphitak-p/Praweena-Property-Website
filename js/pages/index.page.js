@@ -31,6 +31,16 @@ function renderPropertyCard(property) {
   const address = el('p', { className: 'property-card__address', textContent: `${property.district}, ${property.province}` });
   const price = el('div', { className: 'property-card__price', textContent: formatPrice(property.price) });
 
+// *** เพิ่มโค้ดส่วนนี้เข้าไป ***
+  // ถ้าสถานะเป็น 'sold' ให้สร้างป้ายแล้วแปะทับ
+  if (property.status === 'sold') {
+    const soldBadge = el('div', { className: 'sold-badge', textContent: 'ขายแล้ว' });
+    cardLink.append(soldBadge);
+
+    // (ทางเลือก) ทำให้การ์ดดูจางลงเล็กน้อย
+    cardLink.style.opacity = '0.7';
+  }
+
   body.append(title, address, price);
   cardLink.append(image, body);
 

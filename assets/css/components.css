@@ -400,3 +400,24 @@ tbody tr:last-child td {
 .dot.active, .dot:hover {
   background-color: var(--brand);
 }
+
+/* assets/css/components.css */
+
+/* ทำให้การ์ดเป็นกรอบอ้างอิงสำหรับป้าย */
+.property-card {
+  position: relative;
+}
+
+/* สไตล์ของป้าย "ขายแล้ว" */
+.sold-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: rgba(20, 20, 20, 0.75);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px); /* เพิ่มเอฟเฟคกระจกฝ้า */
+}

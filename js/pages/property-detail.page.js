@@ -177,6 +177,14 @@ function renderPropertyDetails(property) {
   const formCard = el('div', { style: 'background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow-md);' });
   const formHeader = el('h3', { textContent: 'สนใจนัดชม / สอบถามข้อมูล' });
   const form = el('form', { attributes: { id: 'lead-form' } });
+  
+  // *** ตรวจสอบสถานะของประกาศ ***
+  if (property.status === 'sold') {
+    formHeader.textContent = 'ประกาศนี้ขายแล้ว';
+    form.innerHTML = `<p style="color: var(--text-light); text-align: center; padding: 2rem 0;">ขอขอบคุณที่ให้ความสนใจ</p>`;
+  } else {
+    formHeader.textContent = 'สนใจนัดชม / สอบถามข้อมูล';
+  
   form.innerHTML = `
     <input type="hidden" name="property_id" value="${property.id}">
     <div class="form-group"><label for="name">ชื่อ</label><input type="text" id="name" name="name" class="form-control" required></div>
