@@ -60,11 +60,9 @@ img {
 
 .header .nav {
   display: flex;
-  /* Use Flexbox for perfect alignment */
-  justify-content: space-between;
-  align-items: center;
-  /* Ensure consistent height */
-  min-height: 40px; 
+  /* --- คำสั่งสำคัญ --- */
+  justify-content: space-between; /* 1. ดันกลุ่มซ้ายสุดและขวาสุดให้ไปชิดขอบ */
+  align-items: center;            /* 2. จัดให้อยู่กึ่งกลางแนวตั้ง */
 }
 
 .nav .logo {
@@ -189,7 +187,6 @@ img {
   /* 2. แสดงปุ่มแฮมเบอร์เกอร์บนมือถือ */
   .mobile-nav-toggle {
     display: block;
-	order: -1; /* <-- เพิ่มบรรทัดนี้: ทำให้ปุ่มถูกย้ายไปอยู่ข้างหน้าสุด */
   }
 
   /* 3. ซ่อนเมนูเดิมบน Desktop */
