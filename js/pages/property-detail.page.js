@@ -188,14 +188,6 @@ const messengerIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.
   const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
 
   // --- สร้างปุ่มทุกอันให้เสร็จก่อน ---
-  // Facebook
-  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
-  const facebookBtn = el('a', {
-    className: 'share-btn facebook',
-    attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook' }
-  });
-  facebookBtn.innerHTML = facebookIcon;
-
   // Messenger
   const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`;
   const messengerBtn = el('a', {
@@ -212,6 +204,14 @@ const messengerIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.
     attributes: { href: lineShareUrl, target: '_blank', 'aria-label': 'Share on LINE' }
   });
   lineBtn.innerHTML = lineIcon;
+  
+    // Facebook
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
+  const facebookBtn = el('a', {
+    className: 'share-btn facebook',
+    attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook' }
+  });
+  facebookBtn.innerHTML = facebookIcon;
 
   // Twitter (X)
   const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
@@ -222,7 +222,7 @@ const messengerIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.
   twitterBtn.innerHTML = xIcon;
 
   // --- ประกอบร่างปุ่มทั้งหมดในตอนท้าย ---
-  shareContainer.append(facebookBtn, messengerBtn, lineBtn, twitterBtn);
+  shareContainer.append(messengerBtn, lineBtn, facebookBtn, twitterBtn);
   leftCol.append(shareContainer); // นำไปต่อท้ายคอลัมน์ซ้าย
 
 // --- 6. สร้างฟอร์ม ---
