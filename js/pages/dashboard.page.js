@@ -181,6 +181,7 @@ propertyForm.addEventListener('submit', async (e) => {
         renovationItems.push({
           date: date || null,
           description: description || null,
+		  paint_color: paintColor || null, // <-- เพิ่ม paint_color เข้าไป
           cost: cost ? parseFloat(cost) : null
         });
       }
@@ -316,6 +317,7 @@ function openRenovationModal(property) {
       itemDiv.innerHTML = `
         <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
         <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
+		<strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br> <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'}
         <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'}
       `;
       renovationListDiv.append(itemDiv);
@@ -334,7 +336,7 @@ window.addEventListener('click', e => { if (e.target === renovationModal) closeR
 
 // --- Renovation Form Item Function ---
 function createRenovationItemInputs(item = {}, index) {
-  const itemDiv = el('div', { className: 'renovation-form-item grid grid-cols-3', style: 'gap: 1rem; align-items: center; margin-bottom: 1rem;' });
+  const itemDiv = el('div', { className: 'renovation-form-item grid grid-cols-4', style: 'gap: 1rem; align-items: flex-end; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 1rem;' }); // Changed grid to cols-4
 
   itemDiv.innerHTML = `
     <div class="form-group col-span-1">
@@ -345,17 +347,23 @@ function createRenovationItemInputs(item = {}, index) {
       <label>รายละเอียด</label>
       <input type="text" class="form-control renovation-desc" value="${item.description || ''}">
     </div>
+
+    <div class="form-group col-span-1">
+      <label>สีที่ใช้ (เบอร์/ยี่ห้อ)</label>
+      <input type="text" class="form-control renovation-paint-color" value="${item.paint_color || ''}"> 
+    </div>
+
     <div class="form-group col-span-1 grid grid-cols-2" style="gap: 0.5rem;">
       <div>
           <label>ค่าใช้จ่าย</label>
           <input type="number" class="form-control renovation-cost" value="${item.cost || ''}">
       </div>
-      <button type="button" class="btn btn-secondary remove-renovation-item-btn" style="align-self: end; background: #fee2e2; color: #ef4444; border: none;">ลบ</button>
+      <button type="button" class="btn btn-secondary remove-renovation-item-btn" style="background: #fee2e2; color: #ef4444; border: none;">ลบ</button>
     </div>
   `;
 
   itemDiv.querySelector('.remove-renovation-item-btn').addEventListener('click', () => {
-    itemDiv.remove(); // ลบ element นี้ทิ้งเมื่อกดปุ่มลบ
+    itemDiv.remove();
   });
 
   return itemDiv;
