@@ -306,30 +306,27 @@ function setupModalMap(lat, lng) {
 
 // --- Renovation Modal Functions ---
 // js/pages/dashboard.page.js
+// js/pages/dashboard.page.js
 
-// --- Renovation Modal Functions (with Debugging) ---
 function openRenovationModal(property) {
-  // --- เพิ่ม Console Logs ---
-  console.log("Attempting to open renovation modal for:", property.title);
+  console.log("Attempting to open renovation modal for:", property.title); // Keep logs for now
   console.log("Received property data:", property);
-  // ------------------------
 
   $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title}`;
   clear(renovationListDiv);
 
-  // --- เพิ่มการตรวจสอบ Array ที่รัดกุมขึ้น ---
   const renovations = Array.isArray(property.renovations) ? property.renovations : [];
   console.log("Processed renovations array:", renovations);
-  // ------------------------------------
 
   if (renovations.length === 0) {
-    console.log("No renovations found. Displaying empty message.");
+    console.log("No renovations found.");
     renovationListDiv.append(el('p', { textContent: 'ยังไม่มีข้อมูลการปรับปรุง', style: 'color: var(--text-light); text-align: center;' }));
   } else {
     console.log(`Found ${renovations.length} items. Rendering...`);
-    try { // เพิ่ม try...catch เพื่อดักจับ Error ที่อาจเกิดขึ้น
+    try {
       renovations.forEach((item, index) => {
-        console.log(`Rendering item ${index}:`, item); // Log ข้อมูลแต่ละ item
+        console.log(`Rendering item ${index}:`, item);
+        // *** ตรวจสอบบรรทัดนี้ ***
         const itemDiv = el('div', { style: 'border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem;' });
         itemDiv.innerHTML = `
           <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
@@ -339,10 +336,10 @@ function openRenovationModal(property) {
         `;
         renovationListDiv.append(itemDiv);
       });
-      console.log("Finished rendering renovation list.");
+      console.log("Finished rendering.");
     } catch (error) {
-      console.error("Error occurred while rendering renovation item:", error);
-      renovationListDiv.append(el('p', { textContent: 'เกิดข้อผิดพลาดในการแสดงรายการ', style: 'color: red; text-align: center;' }));
+      console.error("Error rendering item:", error);
+      // ... error message ...
     }
   }
   renovationModal.classList.add('open');
