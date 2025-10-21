@@ -305,26 +305,45 @@ function setupModalMap(lat, lng) {
 }
 
 // --- Renovation Modal Functions ---
-function openRenovationModal(property) {
-  $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title}`;
-  clear(renovationListDiv); // เคลียร์รายการเก่า
+// js/pages/dashboard.page.js
 
-  const renovations = property.renovations || []; // ดึงข้อมูล ถ้าไม่มีให้เป็น array ว่าง
+// --- Renovation Modal Functions (with Debugging) ---
+function openRenovationModal(property) {
+  // --- เพิ่ม Console Logs ---
+  console.log("Attempting to open renovation modal for:", property.title);
+  console.log("Received property data:", property);
+  // ------------------------
+
+  $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title}`;
+  clear(renovationListDiv);
+
+  // --- เพิ่มการตรวจสอบ Array ที่รัดกุมขึ้น ---
+  const renovations = Array.isArray(property.renovations) ? property.renovations : [];
+  console.log("Processed renovations array:", renovations);
+  // ------------------------------------
 
   if (renovations.length === 0) {
+    console.log("No renovations found. Displaying empty message.");
     renovationListDiv.append(el('p', { textContent: 'ยังไม่มีข้อมูลการปรับปรุง', style: 'color: var(--text-light); text-align: center;' }));
   } else {
-    // สร้างรายการปรับปรุง
-    renovations.forEach((item, index) => {
-      const itemDiv = el('div', { style: 'border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem;' });
-		itemDiv.innerHTML = `
-		  <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
-		  <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
-		  <strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br>
-		  <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'} 
-		`;
-      renovationListDiv.append(itemDiv);
-    });
+    console.log(`Found ${renovations.length} items. Rendering...`);
+    try { // เพิ่ม try...catch เพื่อดักจับ Error ที่อาจเกิดขึ้น
+      renovations.forEach((item, index) => {
+        console.log(`Rendering item ${index}:`, item); // Log ข้อมูลแต่ละ item
+        const itemDiv = el('div', { style: 'border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem;' });
+        itemDiv.innerHTML = `
+          <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
+          <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
+          <strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br>
+          <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'}
+        `;
+        renovationListDiv.append(itemDiv);
+      });
+      console.log("Finished rendering renovation list.");
+    } catch (error) {
+      console.error("Error occurred while rendering renovation item:", error);
+      renovationListDiv.append(el('p', { textContent: 'เกิดข้อผิดพลาดในการแสดงรายการ', style: 'color: red; text-align: center;' }));
+    }
   }
   renovationModal.classList.add('open');
 }
