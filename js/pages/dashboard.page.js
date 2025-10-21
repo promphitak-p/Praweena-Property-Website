@@ -67,6 +67,7 @@ function renderPropertyRow(prop) {
       <button class="btn btn-secondary edit-btn">แก้ไข</button>
       <button class="btn btn-secondary delete-btn" style="background: #fee2e2; color: #ef4444; border: none;">ลบ</button>
     </td>
+	<td>${prop.private_notes || '-'}</td>
   `;
 
   // Event Listeners for buttons in this row
