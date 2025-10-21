@@ -176,6 +176,7 @@ propertyForm.addEventListener('submit', async (e) => {
     $$('#renovation-items-container .renovation-form-item').forEach(itemDiv => {
       const date = itemDiv.querySelector('.renovation-date').value;
       const description = itemDiv.querySelector('.renovation-desc').value;
+	  const paintColor = itemDiv.querySelector('.renovation-paint-color').value;
       const cost = itemDiv.querySelector('.renovation-cost').value;
       if (date || description || cost) {
         renovationItems.push({
