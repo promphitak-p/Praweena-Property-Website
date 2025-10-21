@@ -18,6 +18,14 @@ const closeModalBtn = $('.modal-close');
 const cancelModalBtn = $('.modal-cancel');
 const coverImageInput = $('#cover-image-input');
 const imagePreview = $('#image-preview');
+
+// --- เพิ่มตัวแปรใหม่ ---
+const renovationModal = $('#renovation-modal');
+const closeRenovationModalBtn = $('.renovation-close');
+const renovationListDiv = $('#renovation-list');
+const renovationItemsContainer = $('#renovation-items-container');
+const addRenovationItemBtn = $('#add-renovation-item-btn');
+
 let modalMap = null;       // ตัวแปรสำหรับเก็บ instance ของแผนที่
 let draggableMarker = null; // ตัวแปรสำหรับเก็บ instance ของหมุด
 const galleryImagesInput = $('#gallery-images-input'); // <-- เพิ่มตัวแปรนี้
@@ -34,7 +42,7 @@ async function loadProperties() {
   clear(tableBody);
   tableBody.append(el('tr', {}).appendChild(el('td', {
     textContent: 'กำลังโหลด...',
-    attributes: { colspan: 6, style: 'text-align: center;' }
+    attributes: { colspan: 5, style: 'text-align: center;' }
   })));
 
   const { data, error } = await listAll();
@@ -45,7 +53,7 @@ async function loadProperties() {
   if (data.length === 0) {
     tableBody.append(el('tr', {}).appendChild(el('td', {
       textContent: 'ยังไม่มีประกาศ',
-      attributes: { colspan: 6, style: 'text-align: center;' }
+      attributes: { colspan: 5, style: 'text-align: center;' }
     })));
   }
 
@@ -65,13 +73,14 @@ function renderPropertyRow(prop) {
     <td>${new Date(prop.updated_at).toLocaleDateString('th-TH')}</td>
     <td>
       <button class="btn btn-secondary edit-btn">แก้ไข</button>
+	  <button class="btn btn-secondary view-renovations-btn">ดูการปรับปรุง</button>
       <button class="btn btn-secondary delete-btn" style="background: #fee2e2; color: #ef4444; border: none;">ลบ</button>
     </td>
-	<td>${prop.private_notes || '-'}</td>
   `;
 
   // Event Listeners for buttons in this row
   tr.querySelector('.edit-btn').addEventListener('click', () => handleEdit(prop));
+  tr.querySelector('.view-renovations-btn').addEventListener('click', () => openRenovationModal(prop));
   tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(prop.id, prop.title));
 
   tableBody.append(tr);
@@ -113,6 +122,19 @@ function handleEdit(prop) {
         propertyForm.elements[key].value = prop[key] || '';
       }
     }
+	
+	// --- Populate Renovation Items ---
+  clear(renovationItemsContainer); // เคลียร์ของเก่า
+  const renovations = prop.renovations || [];
+  renovations.forEach((item, index) => {
+    renovationItemsContainer.append(createRenovationItemInputs(item, index));
+  });
+  // -------------------------------
+  
+  addRenovationItemBtn.addEventListener('click', () => {
+  renovationItemsContainer.append(createRenovationItemInputs({}, renovationItemsContainer.children.length));
+});
+	
 	openModal();
   // เรียกแผนที่โดยใช้ตำแหน่งเดิมของประกาศ
   setTimeout(() => setupModalMap(prop.latitude, prop.longitude), 100);
@@ -148,6 +170,25 @@ propertyForm.addEventListener('submit', async (e) => {
 
   const payload = getFormData(propertyForm);
   // ... (ส่วนตรวจสอบ title และ published ยังเหมือนเดิม) ...
+
+try {
+    // --- Collect Renovation Data ---
+    const renovationItems = [];
+    $$('#renovation-items-container .renovation-form-item').forEach(itemDiv => {
+      const date = itemDiv.querySelector('.renovation-date').value;
+      const description = itemDiv.querySelector('.renovation-desc').value;
+      const cost = itemDiv.querySelector('.renovation-cost').value;
+      // เพิ่มเฉพาะรายการที่มีข้อมูลอย่างน้อย 1 ช่อง
+      if (date || description || cost) {
+        renovationItems.push({
+          date: date || null,
+          description: description || null,
+          cost: cost ? parseFloat(cost) : null
+        });
+      }
+    });
+    payload.renovations = renovationItems; // ใส่ Array ลงใน payload
+    // --------------------------------
 
   try {
     // --- 1. UPLOAD COVER IMAGE (ถ้ามี) ---
@@ -256,4 +297,65 @@ function setupModalMap(lat, lng) {
       lngInput.value = position.lng.toFixed(6);
     });
   }
+}
+
+// --- Renovation Modal Functions ---
+function openRenovationModal(property) {
+  $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title}`;
+  clear(renovationListDiv); // เคลียร์รายการเก่า
+
+  const renovations = property.renovations || []; // ดึงข้อมูล ถ้าไม่มีให้เป็น array ว่าง
+
+  if (renovations.length === 0) {
+    renovationListDiv.append(el('p', { textContent: 'ยังไม่มีข้อมูลการปรับปรุง', style: 'color: var(--text-light); text-align: center;' }));
+  } else {
+    // สร้างรายการปรับปรุง
+    renovations.forEach((item, index) => {
+      const itemDiv = el('div', { style: 'border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem;' });
+      itemDiv.innerHTML = `
+        <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
+        <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
+        <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'}
+      `;
+      renovationListDiv.append(itemDiv);
+    });
+  }
+  renovationModal.classList.add('open');
+}
+
+function closeRenovationModal() {
+  renovationModal.classList.remove('open');
+}
+
+// Event listeners for renovation modal
+closeRenovationModalBtn.addEventListener('click', closeRenovationModal);
+window.addEventListener('click', e => { if (e.target === renovationModal) closeRenovationModal(); });
+
+// --- Renovation Form Item Function ---
+function createRenovationItemInputs(item = {}, index) {
+  const itemDiv = el('div', { className: 'renovation-form-item grid grid-cols-3', style: 'gap: 1rem; align-items: center; margin-bottom: 1rem;' });
+
+  itemDiv.innerHTML = `
+    <div class="form-group col-span-1">
+      <label>วันที่ปรับปรุง</label>
+      <input type="date" class="form-control renovation-date" value="${item.date || ''}">
+    </div>
+    <div class="form-group col-span-1">
+      <label>รายละเอียด</label>
+      <input type="text" class="form-control renovation-desc" value="${item.description || ''}">
+    </div>
+    <div class="form-group col-span-1 grid grid-cols-2" style="gap: 0.5rem;">
+      <div>
+          <label>ค่าใช้จ่าย</label>
+          <input type="number" class="form-control renovation-cost" value="${item.cost || ''}">
+      </div>
+      <button type="button" class="btn btn-secondary remove-renovation-item-btn" style="align-self: end; background: #fee2e2; color: #ef4444; border: none;">ลบ</button>
+    </div>
+  `;
+
+  itemDiv.querySelector('.remove-renovation-item-btn').addEventListener('click', () => {
+    itemDiv.remove(); // ลบ element นี้ทิ้งเมื่อกดปุ่มลบ
+  });
+
+  return itemDiv;
 }
