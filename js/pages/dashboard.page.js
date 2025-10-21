@@ -131,9 +131,6 @@ function handleEdit(prop) {
   });
   // -------------------------------
   
-  addRenovationItemBtn.addEventListener('click', () => {
-  renovationItemsContainer.append(createRenovationItemInputs({}, renovationItemsContainer.children.length));
-});
 	
 	openModal();
   // เรียกแผนที่โดยใช้ตำแหน่งเดิมของประกาศ
@@ -245,6 +242,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadProperties();
 });
+
+// *** ย้าย Event Listener มาวางตรงนี้ ***
+  addRenovationItemBtn.addEventListener('click', () => {
+    renovationItemsContainer.append(createRenovationItemInputs({}, renovationItemsContainer.children.length));
+  });
+  // ------------------------------------
 
 // --- Image Preview Handler ---
 coverImageInput.addEventListener('change', () => {
