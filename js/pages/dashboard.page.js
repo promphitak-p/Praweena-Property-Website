@@ -169,16 +169,17 @@ propertyForm.addEventListener('submit', async (e) => {
   submitBtn.textContent = 'กำลังบันทึก...';
 
   const payload = getFormData(propertyForm);
-  // ... (ส่วนตรวจสอบ title และ published ยังเหมือนเดิม) ...
+  payload.published = !!payload.published; // Handle checkbox
 
-try {
+  // *** ไม่ต้องมี try { ตรงนี้แล้ว ***
+
+  try { // <--- เริ่ม try block หลักตรงนี้
     // --- Collect Renovation Data ---
     const renovationItems = [];
     $$('#renovation-items-container .renovation-form-item').forEach(itemDiv => {
       const date = itemDiv.querySelector('.renovation-date').value;
       const description = itemDiv.querySelector('.renovation-desc').value;
       const cost = itemDiv.querySelector('.renovation-cost').value;
-      // เพิ่มเฉพาะรายการที่มีข้อมูลอย่างน้อย 1 ช่อง
       if (date || description || cost) {
         renovationItems.push({
           date: date || null,
@@ -187,41 +188,38 @@ try {
         });
       }
     });
-    payload.renovations = renovationItems; // ใส่ Array ลงใน payload
+    payload.renovations = renovationItems;
     // --------------------------------
 
-  try {
-    // --- 1. UPLOAD COVER IMAGE (ถ้ามี) ---
+    // --- Upload Images (Cloudinary) ---
     const coverFile = coverImageInput.files[0];
     if (coverFile) {
       const formData = new FormData();
       formData.append('file', coverFile);
       formData.append('upload_preset', UPLOAD_PRESET);
       const response = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Cover image upload failed');
       const imageData = await response.json();
       payload.cover_url = imageData.secure_url;
     }
 
-    // --- 2. UPLOAD GALLERY IMAGES (ถ้ามี) ---
     const galleryFiles = galleryImagesInput.files;
     if (galleryFiles.length > 0) {
       submitBtn.textContent = `กำลังอัปโหลดแกลเลอรี (0/${galleryFiles.length})...`;
-      const uploadPromises = [];
-
-      for (const file of galleryFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', UPLOAD_PRESET);
-        uploadPromises.push(fetch(CLOUDINARY_URL, { method: 'POST', body: formData }).then(res => res.json()));
-      }
-
-      // รอให้ทุกไฟล์อัปโหลดเสร็จ
+      const uploadPromises = Array.from(galleryFiles).map(file => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', UPLOAD_PRESET);
+          return fetch(CLOUDINARY_URL, { method: 'POST', body: formData }).then(res => {
+              if (!res.ok) throw new Error(`Gallery image upload failed for ${file.name}`);
+              return res.json();
+          });
+      });
       const uploadedImages = await Promise.all(uploadPromises);
-      // ดึงเฉพาะ URL ออกมาเก็บเป็น Array
       payload.gallery = uploadedImages.map(img => img.secure_url);
     }
 
-    // --- 3. SAVE TO SUPABASE ---
+    // --- Save to Supabase ---
     const { data, error } = await upsertProperty(payload);
     if (error) throw error;
 
@@ -229,10 +227,10 @@ try {
     closeModal();
     loadProperties();
 
-  } catch (error) {
+  } catch (error) { // <--- catch สำหรับ try block หลัก
     console.error('Failed to save property:', error);
     toast('เกิดข้อผิดพลาด: ' + error.message, 4000, 'error');
-  } finally {
+  } finally { // <--- finally สำหรับ try block หลัก
     submitBtn.disabled = false;
     submitBtn.textContent = 'บันทึก';
   }
