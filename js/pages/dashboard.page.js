@@ -34,7 +34,7 @@ async function loadProperties() {
   clear(tableBody);
   tableBody.append(el('tr', {}).appendChild(el('td', {
     textContent: 'กำลังโหลด...',
-    attributes: { colspan: 5, style: 'text-align: center;' }
+    attributes: { colspan: 6, style: 'text-align: center;' }
   })));
 
   const { data, error } = await listAll();
@@ -45,7 +45,7 @@ async function loadProperties() {
   if (data.length === 0) {
     tableBody.append(el('tr', {}).appendChild(el('td', {
       textContent: 'ยังไม่มีประกาศ',
-      attributes: { colspan: 5, style: 'text-align: center;' }
+      attributes: { colspan: 6, style: 'text-align: center;' }
     })));
   }
 
