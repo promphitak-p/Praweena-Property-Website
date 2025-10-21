@@ -111,8 +111,10 @@ cancelModalBtn.addEventListener('click', closeModal);
 window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
 // --- CRUD Handlers ---
+
 function handleEdit(prop) {
   modalTitle.textContent = `แก้ไข: ${prop.title}`;
+
   // Populate form with existing data
   for (const key in prop) {
     if (propertyForm.elements[key]) {
@@ -122,30 +124,30 @@ function handleEdit(prop) {
         propertyForm.elements[key].value = prop[key] || '';
       }
     }
-	
-	// --- Populate Renovation Items ---
-  clear(renovationItemsContainer); // เคลียร์ของเก่า
+  }
+
+  // Populate Renovation Items
+  clear(renovationItemsContainer);
   const renovations = prop.renovations || [];
   renovations.forEach((item, index) => {
     renovationItemsContainer.append(createRenovationItemInputs(item, index));
   });
-  // -------------------------------
-  
-	
-	openModal();
-  // เรียกแผนที่โดยใช้ตำแหน่งเดิมของประกาศ
-  setTimeout(() => setupModalMap(prop.latitude, prop.longitude), 100);
-  }
-  
+
+  // *** ย้ายโค้ดแสดงรูปภาพตัวอย่างมาไว้ตรงนี้ ***
   if (prop.cover_url) {
     imagePreview.src = prop.cover_url;
     imagePreview.style.display = 'block';
   } else {
     imagePreview.style.display = 'none';
   }
-  
-  openModal();
-}
+
+  // *** เรียก openModal() แค่ครั้งเดียวพอ ***
+  openModal(); 
+
+  // เรียกแผนที่โดยใช้ตำแหน่งเดิมของประกาศ
+  setTimeout(() => setupModalMap(prop.latitude, prop.longitude), 100);
+
+} 
 
 async function handleDelete(id, title) {
   if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${title}"?`)) {
@@ -315,12 +317,12 @@ function openRenovationModal(property) {
     // สร้างรายการปรับปรุง
     renovations.forEach((item, index) => {
       const itemDiv = el('div', { style: 'border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem;' });
-      itemDiv.innerHTML = `
-        <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
-        <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
-		<strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br> <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'}
-        <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'}
-      `;
+		itemDiv.innerHTML = `
+		  <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
+		  <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
+		  <strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br>
+		  <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'} 
+		`;
       renovationListDiv.append(itemDiv);
     });
   }
