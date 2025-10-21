@@ -6,7 +6,7 @@ import { listAll, upsertProperty, removeProperty } from '../services/propertiesS
 import { setupNav } from '../utils/config.js';
 import { formatPrice } from '../utils/format.js';
 import { getFormData } from '../ui/forms.js';
-import { el, $, clear } from '../ui/dom.js';
+import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 
 const tableBody = $('#properties-table tbody');
