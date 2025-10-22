@@ -6,7 +6,9 @@
 }
 
 main {
-  padding: 0rem 0;
+  /* Removed top padding/margin to allow hero section to touch header */
+  /* May need adjustments for non-homepage content */
+  padding: 0rem 0; 
 }
 
 /* === Grid System === */
@@ -25,14 +27,19 @@ main {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
-
 /* === Hero Section (Homepage) === */
 .hero {
-  padding: 0rem 0;
+  /* Removed top/bottom padding */
+  padding: 0rem 0; 
   text-align: center;
   position: relative;
   overflow: hidden;
   background-color: #f0f2f5; /* Fallback */
+}
+
+/* Optional: Add some bottom padding back to the hero if needed */
+.hero .container {
+    padding-bottom: 2rem; /* Example: Add space below the hero content */
 }
 
 .hero::before {
@@ -57,8 +64,9 @@ main {
   padding: 2.5rem;
   border-radius: var(--radius);
   max-width: 800px;
-  margin: 0 auto;
+  margin: 0 auto; /* Keep this for centering */
   box-shadow: var(--shadow-md);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); /* Keep text shadow */
 }
 
 .hero h1 {
@@ -72,34 +80,29 @@ main {
   margin-bottom: 2rem;
 }
 
-/* === Responsive === */
+/* === Combined Responsive Styles === */
 @media (max-width: 768px) {
-  .grid.cols-3, .grid.cols-4 {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-  .hero h1 {
-    font-size: 2rem;
-  }
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  /* ลด padding ด้านข้างบนมือถือ */
+  /* General container padding for mobile */
   .container {
     padding: 0 1rem;
   }
 
-  /* ทำให้ Grid ในหน้ารายละเอียดเรียงเป็น 1 คอลัมน์ */
+  /* Stack 3-column grids vertically (e.g., property detail page) */
   .grid.grid-cols-3 {
     grid-template-columns: 1fr;
   }
+  
+  /* Ensure 4-column grids also become responsive */
+   .grid.cols-4 {
+     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Or repeat(2, 1fr) if preferred */
+   }
 
-  /* ลดขนาดตัวอักษรของ Hero */
-  .hero-grad h1 {
+  /* Adjust hero text size */
+  .hero h1, .hero-grad h1 { /* Target both possibilities */
     font-size: 1.8rem;
   }
 
-  /* ทำให้ Filter ในหน้าแรกเรียงเป็น 2 คอลัมน์ */
+  /* Make filter form 2 columns */
   #filter-form.grid.grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
   }

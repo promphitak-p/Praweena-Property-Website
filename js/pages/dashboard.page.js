@@ -40,51 +40,70 @@ const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/uplo
  */
 async function loadProperties() {
   clear(tableBody);
-  tableBody.append(el('tr', {}).appendChild(el('td', {
-    textContent: 'กำลังโหลด...',
-    attributes: { colspan: 5, style: 'text-align: center;' }
-  })));
+
+  // แถว "กำลังโหลด..."
+  {
+    const tr = el('tr', {});
+    const td = el('td', {
+      textContent: 'กำลังโหลด...',
+      attributes: { colspan: 5, style: 'text-align:center;' }
+    });
+    tr.appendChild(td);
+    tableBody.appendChild(tr);
+  }
 
   const { data, error } = await listAll();
 
   clear(tableBody);
-  if (error) return toast('Error: ' + error.message, 4000, 'error');
+  if (error) {
+    return toast('Error: ' + error.message, 4000, 'error');
+  }
 
-  if (data.length === 0) {
-    tableBody.append(el('tr', {}).appendChild(el('td', {
+  if (!data || data.length === 0) {
+    const tr = el('tr', {});
+    const td = el('td', {
       textContent: 'ยังไม่มีประกาศ',
-      attributes: { colspan: 5, style: 'text-align: center;' }
-    })));
+      attributes: { colspan: 5, style: 'text-align:center;' }
+    });
+    tr.appendChild(td);
+    tableBody.appendChild(tr);
+    return; // ออกเลย
   }
 
   data.forEach(renderPropertyRow);
 }
+
 
 /**
  * สร้างแถวในตารางสำหรับแต่ละประกาศ
  */
 function renderPropertyRow(prop) {
   const tr = el('tr', { attributes: { 'data-id': prop.id } });
-  
+
+  const updatedAt = prop.updated_at ? new Date(prop.updated_at) : null;
+  const updatedAtText = updatedAt && !isNaN(updatedAt) 
+    ? updatedAt.toLocaleDateString('th-TH') 
+    : '-';
+
   tr.innerHTML = `
-    <td>${prop.title}</td>
-    <td>${formatPrice(prop.price)}</td>
+    <td>${prop.title || '-'}</td>
+    <td>${typeof prop.price === 'number' ? formatPrice(prop.price) : '-'}</td>
     <td>${prop.published ? '✅ เผยแพร่' : '🚫 ฉบับร่าง'}</td>
-    <td>${new Date(prop.updated_at).toLocaleDateString('th-TH')}</td>
+    <td>${updatedAtText}</td>
     <td>
       <button class="btn btn-secondary edit-btn">แก้ไข</button>
-	  <button class="btn btn-secondary view-renovations-btn">ดูการปรับปรุง</button>
-      <button class="btn btn-secondary delete-btn" style="background: #fee2e2; color: #ef4444; border: none;">ลบ</button>
+      <button class="btn btn-secondary view-renovations-btn">ดูการปรับปรุง</button>
+      <button class="btn btn-secondary delete-btn" style="background:#fee2e2;color:#ef4444;border:none;">ลบ</button>
     </td>
   `;
 
-  // Event Listeners for buttons in this row
   tr.querySelector('.edit-btn').addEventListener('click', () => handleEdit(prop));
   tr.querySelector('.view-renovations-btn').addEventListener('click', () => openRenovationModal(prop));
   tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(prop.id, prop.title));
 
-  tableBody.append(tr);
+  tableBody.appendChild(tr);
 }
+
 
 // --- Modal Handling ---
 function openModal() { modal.classList.add('open'); }
@@ -92,13 +111,15 @@ function closeModal() {
   modal.classList.remove('open');
   propertyForm.reset();
   propertyForm.elements.id.value = '';
-  // ซ่อนรูปตัวอย่าง
+
   imagePreview.src = '';
   imagePreview.style.display = 'none';
-  // ซ่อนแผนที่
+
   const mapContainer = $('#modal-map');
   if (mapContainer) mapContainer.style.display = 'none';
+  // ไม่ต้อง destroy แผนที่ เพื่อเปิดเร็ว แต่ถ้าอยากล้างจริงจังค่อยเพิ่ม modalMap.remove()
 }
+
 
 addPropertyBtn.addEventListener('click', () => {
   modalTitle.textContent = 'เพิ่มประกาศใหม่';
@@ -273,77 +294,67 @@ function setupModalMap(lat, lng) {
   const latInput = propertyForm.elements.latitude;
   const lngInput = propertyForm.elements.longitude;
 
-  // ตำแหน่งเริ่มต้น (ใจกลางเมืองสุราษฎร์) ถ้าไม่มีค่าส่งมา
-  const startLat = lat || 9.1337;
-  const startLng = lng || 99.3325;
+  const startLat = (typeof lat === 'number' ? lat : parseFloat(lat)) || 9.1337;
+  const startLng = (typeof lng === 'number' ? lng : parseFloat(lng)) || 99.3325;
+
+  // sync ค่าเริ่มต้นเข้าฟอร์มทันที
+  if (latInput) latInput.value = startLat.toFixed(6);
+  if (lngInput) lngInput.value = startLng.toFixed(6);
 
   const mapContainer = $('#modal-map');
-  mapContainer.style.display = 'block'; // แสดงแผนที่
+  if (!mapContainer) return;
+  mapContainer.style.display = 'block';
 
   if (modalMap) {
-    // ถ้าแผนที่มีอยู่แล้ว แค่ตั้งค่าตำแหน่งใหม่
     modalMap.setView([startLat, startLng], 15);
-    draggableMarker.setLatLng([startLat, startLng]);
-  } else {
-    // ถ้ายังไม่มี ให้สร้างแผนที่และหมุดขึ้นมาใหม่
-    modalMap = L.map('modal-map').setView([startLat, startLng], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
-
-    draggableMarker = L.marker([startLat, startLng], {
-      draggable: true // *** ทำให้หมุดลากได้ ***
-    }).addTo(modalMap);
-
-    // Event Listener: ทำงานเมื่อผู้ใช้ลากหมุดแล้วปล่อย
-    draggableMarker.on('dragend', function(event) {
-      const marker = event.target;
-      const position = marker.getLatLng();
-      // อัปเดตค่าในฟอร์มให้อัตโนมัติ
-      latInput.value = position.lat.toFixed(6);
-      lngInput.value = position.lng.toFixed(6);
-    });
+    if (draggableMarker) draggableMarker.setLatLng([startLat, startLng]);
+    return;
   }
+
+  modalMap = L.map('modal-map').setView([startLat, startLng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
+
+  draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
+
+  draggableMarker.on('dragend', (event) => {
+    const position = event.target.getLatLng();
+    if (latInput) latInput.value = position.lat.toFixed(6);
+    if (lngInput) lngInput.value = position.lng.toFixed(6);
+  });
 }
 
+
 // --- Renovation Modal Functions ---
-// js/pages/dashboard.page.js
-// js/pages/dashboard.page.js
-
 function openRenovationModal(property) {
-  console.log("Attempting to open renovation modal for:", property.title); // Keep logs for now
-  console.log("Received property data:", property);
-
-  $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title}`;
+  $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title || '-'}`;
   clear(renovationListDiv);
 
   const renovations = Array.isArray(property.renovations) ? property.renovations : [];
-  console.log("Processed renovations array:", renovations);
 
   if (renovations.length === 0) {
-    console.log("No renovations found.");
-    renovationListDiv.append(el('p', { textContent: 'ยังไม่มีข้อมูลการปรับปรุง', style: 'color: var(--text-light); text-align: center;' }));
+    renovationListDiv.append(
+      el('p', {
+        textContent: 'ยังไม่มีข้อมูลการปรับปรุง',
+        attributes: { style: 'color:var(--text-light);text-align:center;' }
+      })
+    );
   } else {
-    console.log(`Found ${renovations.length} items. Rendering...`);
-    try {
-      renovations.forEach((item, index) => {
-        console.log(`Rendering item ${index}:`, item);
-        // *** ตรวจสอบบรรทัดนี้ ***
-        const itemDiv = el('div', { style: 'border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem;' });
-        itemDiv.innerHTML = `
-          <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
-          <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
-          <strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br>
-          <strong>ค่าใช้จ่าย:</strong> ${item.cost ? formatPrice(item.cost) : '-'}
-        `;
-        renovationListDiv.append(itemDiv);
+    renovations.forEach((item, index) => {
+      const itemDiv = el('div', {
+        attributes: { style: 'border-bottom:1px solid var(--border-color);padding-bottom:.5rem;margin-bottom:.5rem;' }
       });
-      console.log("Finished rendering.");
-    } catch (error) {
-      console.error("Error rendering item:", error);
-      // ... error message ...
-    }
+      itemDiv.innerHTML = `
+        <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
+        <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
+        <strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br>
+        <strong>ค่าใช้จ่าย:</strong> ${typeof item.cost === 'number' ? formatPrice(item.cost) : '-'}
+      `;
+      renovationListDiv.append(itemDiv);
+    });
   }
   renovationModal.classList.add('open');
 }
+
 
 function closeRenovationModal() {
   renovationModal.classList.remove('open');
