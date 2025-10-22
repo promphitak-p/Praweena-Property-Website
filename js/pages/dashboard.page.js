@@ -21,7 +21,8 @@ const imagePreview = $('#image-preview');
 
 // --- เพิ่มตัวแปรใหม่ ---
 const renovationModal = $('#renovation-modal');
-const closeRenovationModalBtn = $('.renovation-close');
+// เดิม: const closeRenovationModalBtn = $('.renovation-close');
+const closeRenovationModalBtn = $('.renovation-close') || $('.modal-close');
 const renovationListDiv = $('#renovation-list');
 const renovationItemsContainer = $('#renovation-items-container');
 const addRenovationItemBtn = $('#add-renovation-item-btn');
