@@ -341,7 +341,7 @@ function closeRenovationModal() {
 
 // Event listeners for renovation modal
 if (closeRenovationModalBtn) {
-  closeRenovationModalBtn.addEventListener('click', closeRenovationModal);
+  closeRenovationModalBtn.addEventListener('click', closeRenovationModal); // <-- Corrected
 }
 window.addEventListener('click', e => { if (e.target === renovationModal) closeRenovationModal(); });
 
