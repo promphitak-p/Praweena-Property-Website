@@ -191,9 +191,8 @@ propertyForm.addEventListener('submit', async (e) => {
   const payload = getFormData(propertyForm);
   payload.published = !!payload.published; // Handle checkbox
 
-  // *** ไม่ต้องมี try { ตรงนี้แล้ว ***
-
-  try { // <--- เริ่ม try block หลักตรงนี้
+  // *** เริ่ม try block สำหรับการบันทึกข้อมูล ***
+  try {
     // --- Collect Renovation Data ---
     const renovationItems = [];
     $$('#renovation-items-container .renovation-form-item').forEach(itemDiv => {

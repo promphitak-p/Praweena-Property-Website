@@ -15,10 +15,13 @@ const leadStatuses = ['new', 'contacted', 'qualified', 'won', 'lost'];
  */
 async function loadLeads() {
   clear(tableBody);
-  tableBody.append(el('tr', {}).appendChild(el('td', {
-    textContent: 'กำลังโหลด...',
+  const loadingRow = el('tr', {});
+  const loadingCell = el('td', {
+	  textContent: 'กำลังโหลด...',
     attributes: { colspan: 6, style: 'text-align: center;' }
-  })));
+  });
+  loadingRow.append(loadingCell);
+  tableBody.append(loadingRow);
 
   const { data, error } = await listLeads();
 
@@ -30,10 +33,13 @@ async function loadLeads() {
   }
 
   if (data.length === 0) {
-    tableBody.append(el('tr', {}).appendChild(el('td', {
-      textContent: 'ยังไม่มีผู้สนใจติดต่อเข้ามา',
+    const emptyRow = el('tr', {});
+    const emptyCell = el('td', {
+		textContent: 'ยังไม่มีผู้สนใจติดต่อเข้ามา',
       attributes: { colspan: 6, style: 'text-align: center;' }
-    })));
+    });
+    emptyRow.append(emptyCell);
+    tableBody.append(emptyRow);
     return;
   }
 
