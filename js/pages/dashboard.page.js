@@ -323,36 +323,54 @@ function setupModalMap(lat, lng) {
   });
 }
 
+// --- Renovation Modal Functions (Improved Rendering) ---
 
-// --- Renovation Modal Functions ---
 function openRenovationModal(property) {
   $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title || '-'}`;
-  clear(renovationListDiv);
+  clear(renovationListDiv); // เคลียร์ของเก่าก่อนเสมอ
+
+  console.log("Opening modal. Renovations:", property.renovations); // Log ข้อมูลดิบ
 
   const renovations = Array.isArray(property.renovations) ? property.renovations : [];
 
-if (renovations.length === 0) {
-  renovationListDiv.append(
-    el('p', {
-      textContent: 'ยังไม่มีข้อมูลการปรับปรุง',
-      attributes: { style: 'color:var(--text-light);text-align:center;' }
-    })
-  );
-}
-
-  else {
+  if (renovations.length === 0) {
+    renovationListDiv.append(
+      el('p', {
+        textContent: 'ยังไม่มีข้อมูลการปรับปรุง',
+        attributes: { style: 'color:var(--text-light); text-align:center; padding: 1rem 0;' }
+      })
+    );
+  } else {
+    // สร้าง container ใหม่ทุกครั้งที่เปิด เพื่อความแน่นอน
+    const listContainer = el('div'); 
     renovations.forEach((item, index) => {
       const itemDiv = el('div', {
-        attributes: { style: 'border-bottom:1px solid var(--border-color);padding-bottom:.5rem;margin-bottom:.5rem;' }
+        // กำหนด style ที่จำเป็นโดยตรง เผื่อ CSS ภายนอกมีปัญหา
+        attributes: { 
+          style: `border-bottom: 1px solid var(--border-color); 
+                  padding-bottom: 0.75rem; 
+                  margin-bottom: 0.75rem; 
+                  color: var(--text); /* กำหนดสีตัวอักษรหลัก */
+                  opacity: 1; /* ทำให้มองเห็น */
+                  display: block; /* ให้แสดงผล */
+                 `
+        }
       });
-      itemDiv.innerHTML = `
-        <strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}<br>
-        <strong>รายละเอียด:</strong> ${item.description || '-'}<br>
-        <strong>สีที่ใช้:</strong> ${item.paint_color || '-'}<br>
-        <strong>ค่าใช้จ่าย:</strong> ${typeof item.cost === 'number' ? formatPrice(item.cost) : '-'}
-      `;
-      renovationListDiv.append(itemDiv);
+
+      // ใช้ el() สร้างแต่ละบรรทัด เพื่อความปลอดภัย
+      itemDiv.append(
+        el('p', { innerHTML: `<strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}` }),
+        el('p', { innerHTML: `<strong>รายละเอียด:</strong> ${item.description || '-'}` }),
+        el('p', { innerHTML: `<strong>สีที่ใช้:</strong> ${item.paint_color || '-'}` }),
+        el('p', { innerHTML: `<strong>ค่าใช้จ่าย:</strong> ${typeof item.cost === 'number' ? formatPrice(item.cost) : '-'}` })
+      );
+
+      listContainer.append(itemDiv);
+      console.log(`Appended rendered item ${index}:`, itemDiv); // Log element ที่สร้างเสร็จ
     });
+
+    renovationListDiv.append(listContainer);
+    console.log("Appended list container to DOM.");
   }
   renovationModal.classList.add('open');
 }
