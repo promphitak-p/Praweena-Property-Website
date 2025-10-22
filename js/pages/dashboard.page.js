@@ -1,5 +1,5 @@
 // js/pages/dashboard.page.js
-import { setupMobileNav } from '../ui/mobileNav.js'; // <-- 1. Import เข้ามา
+import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { listAll, upsertProperty, removeProperty } from '../services/propertiesService.js';
@@ -19,28 +19,21 @@ const cancelModalBtn = $('.modal-cancel');
 const coverImageInput = $('#cover-image-input');
 const imagePreview = $('#image-preview');
 
-let modalMap = null;       // ตัวแปรสำหรับเก็บ instance ของแผนที่
-let draggableMarker = null; // ตัวแปรสำหรับเก็บ instance ของหมุด
-const galleryImagesInput = $('#gallery-images-input'); // <-- เพิ่มตัวแปรนี้
+let modalMap = null;
+let draggableMarker = null;
+const galleryImagesInput = $('#gallery-images-input');
 
-// -- ADD YOUR CLOUDINARY DETAILS HERE --
-const CLOUD_NAME = 'dupwjm8q2'; // << Replace with your Cloud Name
-const UPLOAD_PRESET = 'praweena_property_preset'; // << Replace with your Upload Preset Name
+// Cloudinary
+const CLOUD_NAME = 'dupwjm8q2';
+const UPLOAD_PRESET = 'praweena_property_preset';
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
-/**
- * โหลดและแสดงรายการประกาศทั้งหมด
- */
+// โหลดรายการ
 async function loadProperties() {
   clear(tableBody);
-
-  // แถว "กำลังโหลด..."
   {
     const tr = el('tr', {});
-    const td = el('td', {
-      textContent: 'กำลังโหลด...',
-      attributes: { colspan: 5, style: 'text-align:center;' }
-    });
+    const td = el('td', { textContent: 'กำลังโหลด...', attributes: { colspan: 5, style: 'text-align:center;' } });
     tr.appendChild(td);
     tableBody.appendChild(tr);
   }
@@ -48,35 +41,25 @@ async function loadProperties() {
   const { data, error } = await listAll();
 
   clear(tableBody);
-  if (error) {
-    return toast('Error: ' + error.message, 4000, 'error');
-  }
+  if (error) return toast('Error: ' + error.message, 4000, 'error');
 
   if (!data || data.length === 0) {
     const tr = el('tr', {});
-    const td = el('td', {
-      textContent: 'ยังไม่มีประกาศ',
-      attributes: { colspan: 5, style: 'text-align:center;' }
-    });
+    const td = el('td', { textContent: 'ยังไม่มีประกาศ', attributes: { colspan: 5, style: 'text-align:center;' } });
     tr.appendChild(td);
     tableBody.appendChild(tr);
-    return; // ออกเลย
+    return;
   }
 
   data.forEach(renderPropertyRow);
 }
 
-
-/**
- * สร้างแถวในตารางสำหรับแต่ละประกาศ
- */
+// แสดงแต่ละแถว
 function renderPropertyRow(prop) {
   const tr = el('tr', { attributes: { 'data-id': prop.id } });
 
   const updatedAt = prop.updated_at ? new Date(prop.updated_at) : null;
-  const updatedAtText = updatedAt && !isNaN(updatedAt) 
-    ? updatedAt.toLocaleDateString('th-TH') 
-    : '-';
+  const updatedAtText = updatedAt && !isNaN(updatedAt) ? updatedAt.toLocaleDateString('th-TH') : '-';
 
   tr.innerHTML = `
     <td>${prop.title || '-'}</td>
@@ -95,50 +78,43 @@ function renderPropertyRow(prop) {
   tableBody.appendChild(tr);
 }
 
-
-// --- Modal Handling ---
+// Modal หลัก
 function openModal() { modal.classList.add('open'); }
 function closeModal() {
   modal.classList.remove('open');
   propertyForm.reset();
-  propertyForm.elements.id.value = '';
+  if (propertyForm.elements.id) propertyForm.elements.id.value = '';
 
   imagePreview.src = '';
   imagePreview.style.display = 'none';
 
   const mapContainer = $('#modal-map');
   if (mapContainer) mapContainer.style.display = 'none';
-  // ไม่ต้อง destroy แผนที่ เพื่อเปิดเร็ว แต่ถ้าอยากล้างจริงจังค่อยเพิ่ม modalMap.remove()
 }
-
 
 addPropertyBtn.addEventListener('click', () => {
   modalTitle.textContent = 'เพิ่มประกาศใหม่';
   openModal();
-  // เรียกแผนที่โดยใช้ตำแหน่งเริ่มต้น
-  setTimeout(() => setupModalMap(), 100); // หน่วงเวลาเล็กน้อยเพื่อให้ Modal แสดงผลเสร็จก่อน
+  setTimeout(() => setupModalMap(), 100);
 });
-closeModalBtn.addEventListener('click', closeModal);
-cancelModalBtn.addEventListener('click', closeModal);
+if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
 window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
-// --- CRUD Handlers ---
-
+// CRUD
 function handleEdit(prop) {
   modalTitle.textContent = `แก้ไข: ${prop.title}`;
 
-  // Populate form with existing data
   for (const key in prop) {
     if (propertyForm.elements[key]) {
       if (propertyForm.elements[key].type === 'checkbox') {
-        propertyForm.elements[key].checked = prop[key];
+        propertyForm.elements[key].checked = !!prop[key];
       } else {
-        propertyForm.elements[key].value = prop[key] || '';
+        propertyForm.elements[key].value = prop[key] ?? '';
       }
     }
   }
 
-  // *** ย้ายโค้ดแสดงรูปภาพตัวอย่างมาไว้ตรงนี้ ***
   if (prop.cover_url) {
     imagePreview.src = prop.cover_url;
     imagePreview.style.display = 'block';
@@ -146,22 +122,17 @@ function handleEdit(prop) {
     imagePreview.style.display = 'none';
   }
 
-  // *** เรียก openModal() แค่ครั้งเดียวพอ ***
-  openModal(); 
-
-  // เรียกแผนที่โดยใช้ตำแหน่งเดิมของประกาศ
+  openModal();
   setTimeout(() => setupModalMap(prop.latitude, prop.longitude), 100);
-
-} 
+}
 
 async function handleDelete(id, title) {
   if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${title}"?`)) {
     const { error } = await removeProperty(id);
-    if (error) {
-      toast('ลบไม่สำเร็จ: ' + error.message, 4000, 'error');
-    } else {
+    if (error) toast('ลบไม่สำเร็จ: ' + error.message, 4000, 'error');
+    else {
       toast('ลบประกาศสำเร็จแล้ว', 2000, 'success');
-      loadProperties(); // Refresh the list
+      loadProperties();
     }
   }
 }
@@ -173,12 +144,10 @@ propertyForm.addEventListener('submit', async (e) => {
   submitBtn.textContent = 'กำลังบันทึก...';
 
   const payload = getFormData(propertyForm);
-  payload.published = !!payload.published; // Handle checkbox
+  payload.published = !!payload.published;
 
-  // *** เริ่ม try block สำหรับการบันทึกข้อมูล ***
   try {
-
-    // --- Upload Images (Cloudinary) ---
+    // อัปโหลดรูปหน้าปก
     const coverFile = coverImageInput.files[0];
     if (coverFile) {
       const formData = new FormData();
@@ -190,50 +159,48 @@ propertyForm.addEventListener('submit', async (e) => {
       payload.cover_url = imageData.secure_url;
     }
 
+    // อัปโหลดแกลเลอรี
     const galleryFiles = galleryImagesInput.files;
-    if (galleryFiles.length > 0) {
+    if (galleryFiles && galleryFiles.length > 0) {
       submitBtn.textContent = `กำลังอัปโหลดแกลเลอรี (0/${galleryFiles.length})...`;
-      const uploadPromises = Array.from(galleryFiles).map(file => {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('upload_preset', UPLOAD_PRESET);
-          return fetch(CLOUDINARY_URL, { method: 'POST', body: formData }).then(res => {
-              if (!res.ok) throw new Error(`Gallery image upload failed for ${file.name}`);
-              return res.json();
-          });
-      });
-      const uploadedImages = await Promise.all(uploadPromises);
+      const uploadedImages = await Promise.all(
+        Array.from(galleryFiles).map(async (file) => {
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('upload_preset', UPLOAD_PRESET);
+          const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
+          if (!res.ok) throw new Error(`Gallery image upload failed for ${file.name}`);
+          return res.json();
+        })
+      );
       payload.gallery = uploadedImages.map(img => img.secure_url);
     }
 
-    // --- Save to Supabase ---
-    const { data, error } = await upsertProperty(payload);
+    const { error } = await upsertProperty(payload);
     if (error) throw error;
 
     toast('บันทึกข้อมูลสำเร็จ!', 2000, 'success');
     closeModal();
     loadProperties();
-
-  } catch (error) { // <--- catch สำหรับ try block หลัก
+  } catch (error) {
     console.error('Failed to save property:', error);
     toast('เกิดข้อผิดพลาด: ' + error.message, 4000, 'error');
-  } finally { // <--- finally สำหรับ try block หลัก
+  } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = 'บันทึก';
   }
 });
 
-
-// --- Main execution ---
+// Main
 document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage(); // ** สำคัญมาก: ป้องกันหน้านี้ **
+  await protectPage();
   setupNav();
   signOutIfAny();
-  setupMobileNav(); // <-- 2. เรียกใช้งาน
+  setupMobileNav();
   loadProperties();
 });
 
-// --- Image Preview Handler ---
+// Preview รูป
 coverImageInput.addEventListener('change', () => {
   const file = coverImageInput.files[0];
   if (file) {
@@ -248,7 +215,7 @@ coverImageInput.addEventListener('change', () => {
   }
 });
 
-// --- Map Handling Function ---
+// แผนที่
 function setupModalMap(lat, lng) {
   const latInput = propertyForm.elements.latitude;
   const lngInput = propertyForm.elements.longitude;
@@ -256,7 +223,6 @@ function setupModalMap(lat, lng) {
   const startLat = (typeof lat === 'number' ? lat : parseFloat(lat)) || 9.1337;
   const startLng = (typeof lng === 'number' ? lng : parseFloat(lng)) || 99.3325;
 
-  // sync ค่าเริ่มต้นเข้าฟอร์มทันที
   if (latInput) latInput.value = startLat.toFixed(6);
   if (lngInput) lngInput.value = startLng.toFixed(6);
 
@@ -270,11 +236,11 @@ function setupModalMap(lat, lng) {
     return;
   }
 
+  // ใช้ Leaflet จาก global L
   modalMap = L.map('modal-map').setView([startLat, startLng], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
 
   draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
-
   draggableMarker.on('dragend', (event) => {
     const position = event.target.getLatLng();
     if (latInput) latInput.value = position.lat.toFixed(6);
@@ -282,74 +248,10 @@ function setupModalMap(lat, lng) {
   });
 }
 
-// --- Renovation Modal Functions (Improved Rendering) ---
-
-function openRenovationModal(property) {
-  $('#renovation-modal-title').textContent = `ประวัติการปรับปรุง: ${property.title || '-'}`;
-  clear(renovationListDiv); // เคลียร์ของเก่าก่อนเสมอ
-
-  console.log("Opening modal. Renovations:", property.renovations); // Log ข้อมูลดิบ
-
-  const renovations = Array.isArray(property.renovations) ? property.renovations : [];
-
-  if (renovations.length === 0) {
-    renovationListDiv.append(
-      el('p', {
-        textContent: 'ยังไม่มีข้อมูลการปรับปรุง',
-        attributes: { style: 'color:var(--text-light); text-align:center; padding: 1rem 0;' }
-      })
-    );
-  } else {
-    // สร้าง container ใหม่ทุกครั้งที่เปิด เพื่อความแน่นอน
-    const listContainer = el('div'); 
-    renovations.forEach((item, index) => {
-      const itemDiv = el('div', {
-        // กำหนด style ที่จำเป็นโดยตรง เผื่อ CSS ภายนอกมีปัญหา
-        attributes: { 
-          style: `border-bottom: 1px solid var(--border-color); 
-                  padding-bottom: 0.75rem; 
-                  margin-bottom: 0.75rem; 
-                  color: var(--text); /* กำหนดสีตัวอักษรหลัก */
-                  opacity: 1; /* ทำให้มองเห็น */
-                  display: block; /* ให้แสดงผล */
-                 `
-        }
-      });
-
-      // ใช้ el() สร้างแต่ละบรรทัด เพื่อความปลอดภัย
-      itemDiv.append(
-        el('p', { innerHTML: `<strong>${index + 1}. วันที่:</strong> ${item.date || 'N/A'}` }),
-        el('p', { innerHTML: `<strong>รายละเอียด:</strong> ${item.description || '-'}` }),
-        el('p', { innerHTML: `<strong>สีที่ใช้:</strong> ${item.paint_color || '-'}` }),
-        el('p', { innerHTML: `<strong>ค่าใช้จ่าย:</strong> ${typeof item.cost === 'number' ? formatPrice(item.cost) : '-'}` })
-      );
-
-      listContainer.append(itemDiv);
-      console.log(`Appended rendered item ${index}:`, itemDiv); // Log element ที่สร้างเสร็จ
-    });
-
-    renovationListDiv.append(listContainer);
-    console.log("Appended list container to DOM.");
-  }
-  renovationModal.classList.add('open');
-}
-
-
-function closeRenovationModal() {
-  renovationModal.classList.remove('open');
-}
-
-// Event listeners for renovation modal
-// Corrected code
-if (closeRenovationModalBtn) {
-  closeRenovationModalBtn.addEventListener('click', closeRenovationModal); // <-- CORRECTED
-}
-window.addEventListener('click', e => { if (e.target === renovationModal) closeRenovationModal(); });
-
-// --- Renovation Form Item Function ---
+// --- (ถ้าจะใช้ต่อ) ฟังก์ชันสร้างแถวฟอร์มรีโนเวทในหน้าแก้ไข ---
+// ปล่อยไว้ได้ ไม่ผูกกับโมดัลใด ๆ
 function createRenovationItemInputs(item = {}, index) {
-  const itemDiv = el('div', { className: 'renovation-form-item grid grid-cols-4', style: 'gap: 1rem; align-items: flex-end; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 1rem;' }); // Changed grid to cols-4
-
+  const itemDiv = el('div', { className: 'renovation-form-item grid grid-cols-4', style: 'gap:1rem;align-items:flex-end;margin-bottom:1rem;border-bottom:1px solid #eee;padding-bottom:1rem;' });
   itemDiv.innerHTML = `
     <div class="form-group col-span-1">
       <label>วันที่ปรับปรุง</label>
@@ -359,24 +261,18 @@ function createRenovationItemInputs(item = {}, index) {
       <label>รายละเอียด</label>
       <input type="text" class="form-control renovation-desc" value="${item.description || ''}">
     </div>
-
     <div class="form-group col-span-1">
       <label>สีที่ใช้ (เบอร์/ยี่ห้อ)</label>
-      <input type="text" class="form-control renovation-paint-color" value="${item.paint_color || ''}"> 
+      <input type="text" class="form-control renovation-paint-color" value="${item.paint_color || ''}">
     </div>
-
-    <div class="form-group col-span-1 grid grid-cols-2" style="gap: 0.5rem;">
+    <div class="form-group col-span-1 grid grid-cols-2" style="gap:0.5rem;">
       <div>
-          <label>ค่าใช้จ่าย</label>
-          <input type="number" class="form-control renovation-cost" value="${item.cost || ''}">
+        <label>ค่าใช้จ่าย</label>
+        <input type="number" class="form-control renovation-cost" value="${item.cost || ''}">
       </div>
-      <button type="button" class="btn btn-secondary remove-renovation-item-btn" style="background: #fee2e2; color: #ef4444; border: none;">ลบ</button>
+      <button type="button" class="btn btn-secondary remove-renovation-item-btn" style="background:#fee2e2;color:#ef4444;border:none;">ลบ</button>
     </div>
   `;
-
-  itemDiv.querySelector('.remove-renovation-item-btn').addEventListener('click', () => {
-    itemDiv.remove();
-  });
-
+  itemDiv.querySelector('.remove-renovation-item-btn').addEventListener('click', () => itemDiv.remove());
   return itemDiv;
 }
