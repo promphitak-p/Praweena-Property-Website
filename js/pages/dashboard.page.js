@@ -340,6 +340,7 @@ function closeRenovationModal() {
 }
 
 // Event listeners for renovation modal
+// Correct code
 if (closeRenovationModalBtn) {
   closeRenovationModalBtn.addEventListener('click', closeRenovationModal); // <-- Corrected
 }
