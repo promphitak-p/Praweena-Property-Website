@@ -330,14 +330,16 @@ function openRenovationModal(property) {
 
   const renovations = Array.isArray(property.renovations) ? property.renovations : [];
 
-  if (renovations.length === 0) {
-    renovationListDiv.append(
-      el('p', {
-        textContent: 'ยังไม่มีข้อมูลการปรับปรุง',
-        attributes: { style: 'color:var(--text-light);text-align:center;' }
-      })
-    );
-  } else {
+if (renovations.length === 0) {
+  renovationListDiv.append(
+    el('p', {
+      textContent: 'ยังไม่มีข้อมูลการปรับปรุง',
+      attributes: { style: 'color:var(--text-light);text-align:center;' }
+    })
+  );
+}
+
+  else {
     renovations.forEach((item, index) => {
       const itemDiv = el('div', {
         attributes: { style: 'border-bottom:1px solid var(--border-color);padding-bottom:.5rem;margin-bottom:.5rem;' }
@@ -360,7 +362,9 @@ function closeRenovationModal() {
 }
 
 // Event listeners for renovation modal
-closeRenovationModalBtn.addEventListener('click', closeRenovationModal);
+if (closeRenovationModalBtn) {
+  closeRenovationModalBtn.addEventListener('click', closeRenovationModal);
+}
 window.addEventListener('click', e => { if (e.target === renovationModal) closeRenovationModal(); });
 
 // --- Renovation Form Item Function ---

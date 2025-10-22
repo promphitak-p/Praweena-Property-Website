@@ -101,14 +101,19 @@
   <button type="button" id="add-renovation-item-btn" class="btn btn-secondary" style="margin-top: 0.5rem;">+ เพิ่มรายการปรับปรุง</button>
 </div>
 
-			<div id="renovation-modal" class="modal">
-			  <div class="modal-content">
-				<span class="modal-close renovation-close">&times;</span>
-				<h3 id="renovation-modal-title">ประวัติการปรับปรุง</h3>
-				<div id="renovation-list" style="margin-top: 1.5rem; max-height: 400px; overflow-y: auto;">
-				  </div>
-			  </div>
-			</div>
+<!-- Renovation Modal -->
+<div id="renovation-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="renovation-modal-title">ประวัติการปรับปรุง</h3>
+      <button type="button" class="renovation-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="renovation-list"></div>
+    </div>
+  </div>
+</div>
+
 
 			<div class="form-group col-span-2">
 			  <label>รูปภาพปก</label>
