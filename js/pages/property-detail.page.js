@@ -163,6 +163,26 @@ function renderPropertyDetails(property) {
   const details = el('p', { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
   
   leftCol.append(galleryWrapper, title, price, address, details);
+  
+  // --- 3.5 (ใหม่) สร้างส่วนแสดงผล YouTube Video (ถ้ามี ID) ---
+  if (property.youtube_video_id) {
+    const videoContainer = el('div', { className: 'video-container' });
+    const youtubeIframe = el('iframe', {
+      attributes: {
+        // ใช้ youtube-nocookie เพื่อความเป็นส่วนตัวที่ดีกว่า
+        src: `https://www.youtube-nocookie.com/embed/${property.youtube_video_id}`, 
+        width: '100%',
+        height: '315', // ความสูงเริ่มต้น (ปรับได้ด้วย CSS)
+        frameborder: '0',
+        allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+        allowfullscreen: true,
+        title: `วิดีโอ YouTube: ${property.title}`
+      }
+    });
+    videoContainer.append(youtubeIframe);
+    // นำไปต่อท้ายรายละเอียด แต่ก่อนแผนที่
+    leftCol.append(videoContainer); 
+  }
 
   // --- 4. สร้างแผนที่ ---
   if (property.latitude && property.longitude) {
