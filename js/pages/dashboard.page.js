@@ -19,14 +19,6 @@ const cancelModalBtn = $('.modal-cancel');
 const coverImageInput = $('#cover-image-input');
 const imagePreview = $('#image-preview');
 
-// --- เพิ่มตัวแปรใหม่ ---
-const renovationModal = $('#renovation-modal');
-// เดิม: const closeRenovationModalBtn = $('.renovation-close');
-const closeRenovationModalBtn = $('.renovation-close') || $('.modal-close');
-const renovationListDiv = $('#renovation-list');
-const renovationItemsContainer = $('#renovation-items-container');
-const addRenovationItemBtn = $('#add-renovation-item-btn');
-
 let modalMap = null;       // ตัวแปรสำหรับเก็บ instance ของแผนที่
 let draggableMarker = null; // ตัวแปรสำหรับเก็บ instance ของหมุด
 const galleryImagesInput = $('#gallery-images-input'); // <-- เพิ่มตัวแปรนี้
@@ -93,13 +85,11 @@ function renderPropertyRow(prop) {
     <td>${updatedAtText}</td>
     <td>
       <button class="btn btn-secondary edit-btn">แก้ไข</button>
-      <button class="btn btn-secondary view-renovations-btn">ดูการปรับปรุง</button>
       <button class="btn btn-secondary delete-btn" style="background:#fee2e2;color:#ef4444;border:none;">ลบ</button>
     </td>
   `;
 
   tr.querySelector('.edit-btn').addEventListener('click', () => handleEdit(prop));
-  tr.querySelector('.view-renovations-btn').addEventListener('click', () => openRenovationModal(prop));
   tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(prop.id, prop.title));
 
   tableBody.appendChild(tr);
@@ -148,13 +138,6 @@ function handleEdit(prop) {
     }
   }
 
-  // Populate Renovation Items
-  clear(renovationItemsContainer);
-  const renovations = prop.renovations || [];
-  renovations.forEach((item, index) => {
-    renovationItemsContainer.append(createRenovationItemInputs(item, index));
-  });
-
   // *** ย้ายโค้ดแสดงรูปภาพตัวอย่างมาไว้ตรงนี้ ***
   if (prop.cover_url) {
     imagePreview.src = prop.cover_url;
@@ -194,24 +177,6 @@ propertyForm.addEventListener('submit', async (e) => {
 
   // *** เริ่ม try block สำหรับการบันทึกข้อมูล ***
   try {
-    // --- Collect Renovation Data ---
-    const renovationItems = [];
-    $$('#renovation-items-container .renovation-form-item').forEach(itemDiv => {
-      const date = itemDiv.querySelector('.renovation-date').value;
-      const description = itemDiv.querySelector('.renovation-desc').value;
-	  const paintColor = itemDiv.querySelector('.renovation-paint-color').value;
-      const cost = itemDiv.querySelector('.renovation-cost').value;
-      if (date || description || cost) {
-        renovationItems.push({
-          date: date || null,
-          description: description || null,
-		  paint_color: paintColor || null, // <-- เพิ่ม paint_color เข้าไป
-          cost: cost ? parseFloat(cost) : null
-        });
-      }
-    });
-    payload.renovations = renovationItems;
-    // --------------------------------
 
     // --- Upload Images (Cloudinary) ---
     const coverFile = coverImageInput.files[0];
@@ -267,12 +232,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadProperties();
 });
-
-// *** ย้าย Event Listener มาวางตรงนี้ ***
-  addRenovationItemBtn.addEventListener('click', () => {
-    renovationItemsContainer.append(createRenovationItemInputs({}, renovationItemsContainer.children.length));
-  });
-  // ------------------------------------
 
 // --- Image Preview Handler ---
 coverImageInput.addEventListener('change', () => {
