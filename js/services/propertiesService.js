@@ -1,22 +1,15 @@
 // js/services/propertiesService.js
 import { supabase } from '../lib/supabaseClient.js';
 
-// ฟังก์ชันสร้าง slug จาก title ภาษาไทย/อังกฤษ
 function generateSlug(title) {
   if (!title) return '';
-  return title
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-') // แทนที่ช่องว่างด้วย -
-    .replace(/[^\w\u0e00-\u0e7f-]+/g, '') // ลบอักขระพิเศษที่ไม่ใช่ตัวอักษร, ตัวเลข, หรือภาษาไทย
-    .replace(/--+/g, '-'); // แทนที่ -- ด้วย -
+  return title.toString().toLowerCase().trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\u0e00-\u0e7f-]+/g, '')
+    .replace(/--+/g, '-');
 }
 
-/**
- * ดึงรายการประกาศ (เฉพาะที่ published) พร้อมตัวกรอง
- * @param {object} filters - ตัวกรอง { q, district, beds, price }
- */
+/** ดึง public list (ok) */
 export async function listPublic(filters = {}) {
   let query = supabase
     .from('properties')
@@ -24,85 +17,102 @@ export async function listPublic(filters = {}) {
     .eq('published', true)
     .order('updated_at', { ascending: false });
 
-  if (filters.q) {
-    query = query.ilike('title', `%${filters.q}%`);
-  }
-  if (filters.district) {
-    query = query.eq('district', filters.district);
-  }
-  // สามารถเพิ่ม filter อื่นๆ ได้ตามต้องการ
-
+  if (filters.q) query = query.ilike('title', `%${filters.q}%`);
+  if (filters.district) query = query.eq('district', filters.district);
   return await query;
 }
 
-/**
- * ดึงข้อมูลประกาศชิ้นเดียวด้วย slug
- * @param {string} slug - slug ของประกาศ
- */
+/** ดึงด้วย slug (ok เพราะ select('*') จะได้ youtube_video_ids ถ้ามีคอลัมน์) */
 export async function getBySlug(slug) {
   return await supabase
     .from('properties')
     .select('*')
     .eq('slug', slug)
-    .single(); // .single() เพื่อให้ได้ผลลัพธ์เป็น object เดียว
+    .single();
 }
 
-/**
- * (สำหรับ Admin) ดึงรายการประกาศทั้งหมด
- * @param {object} filters - ตัวกรอง { q }
- */
+/** admin list (ok) */
 export async function listAll(filters = {}) {
   let query = supabase
     .from('properties')
     .select('*')
     .order('updated_at', { ascending: false });
-    
-  if (filters.q) {
-    query = query.ilike('title', `%${filters.q}%`);
-  }
 
+  if (filters.q) query = query.ilike('title', `%${filters.q}%`);
   return await query;
 }
 
-/**
- * สร้างหรืออัปเดตข้อมูลประกาศ (Upsert)
- * @param {object} payload - ข้อมูลประกาศที่จะบันทึก
- */
-// js/services/propertiesService.js
-
-/**
- * สร้างหรืออัปเดตข้อมูลประกาศ (Upsert) - **เวอร์ชันสมบูรณ์**
- * @param {object} payload - ข้อมูลประกาศที่จะบันทึก
- */
+/** Upsert (เวอร์ชัน normalize ครบ) */
 export async function upsertProperty(payload) {
-  // --- จัดการ ID ก่อน: ถ้าไม่มี ID (กำลังสร้างใหม่) ให้ลบทิ้ง ---
-  // เพื่อให้ฐานข้อมูลสร้าง UUID ใหม่ให้โดยอัตโนมัติ
-  if (!payload.id) {
-    delete payload.id;
+  const body = { ...payload };
+
+  // id: ให้ DB สร้างเองถ้าไม่ส่งมา
+  if (!body.id) delete body.id;
+
+  // slug: auto ถ้าไม่มี แต่มี title
+  if (body.title && !body.slug) {
+    body.slug = generateSlug(body.title);
   }
 
-  // สร้าง Slug ถ้าจำเป็น
-  if (payload.title && !payload.slug) {
-    payload.slug = generateSlug(payload.title);
-  }
-
-  // แปลงค่าว่างอื่นๆ ที่เหลือให้เป็น null
-  Object.keys(payload).forEach(key => {
-    if (key !== 'slug' && payload[key] === '') {
-      payload[key] = null;
-    }
+  // ค่าที่เป็น '' เปลี่ยนเป็น null (ยกเว้น slug)
+  Object.keys(body).forEach((key) => {
+    if (key !== 'slug' && body[key] === '') body[key] = null;
   });
 
-  // ส่งข้อมูลที่สมบูรณ์แล้วไปบันทึก
-  return await supabase.from('properties').upsert(payload).select().single();
+  // --- Normalize ชนิดข้อมูลสำคัญ ๆ ---
+  // price → number
+  if (body.price !== undefined) {
+    const n = Number(body.price);
+    body.price = Number.isFinite(n) ? n : null;
+  }
+
+  // gallery → array<string>
+  if (body.gallery != null) {
+    if (typeof body.gallery === 'string') {
+      // เผื่อส่งมาเป็น JSON string
+      try { body.gallery = JSON.parse(body.gallery); } catch { body.gallery = []; }
+    }
+    if (!Array.isArray(body.gallery)) body.gallery = [];
+  }
+
+  // youtube_video_ids → array<string> (คอลัมน์ jsonb)
+  if (body.youtube_video_ids != null) {
+    if (typeof body.youtube_video_ids === 'string') {
+      // กัน dev คนอื่น stringify มา
+      try { body.youtube_video_ids = JSON.parse(body.youtube_video_ids); } catch { body.youtube_video_ids = []; }
+    }
+    if (!Array.isArray(body.youtube_video_ids)) body.youtube_video_ids = [];
+    // กรองให้เหลือเฉพาะค่า string 11 ตัว (ID YouTube)
+    body.youtube_video_ids = body.youtube_video_ids
+      .map(x => (typeof x === 'string' ? x.trim() : ''))
+      .filter(x => /^[a-zA-Z0-9_-]{11}$/.test(x));
+  }
+
+  // renovations → array<any> (ถ้ามี)
+  if (body.renovations != null && typeof body.renovations === 'string') {
+    try { body.renovations = JSON.parse(body.renovations); } catch { body.renovations = []; }
+  }
+
+  // latitude/longitude → number
+  if (body.latitude !== undefined) {
+    const lat = parseFloat(body.latitude);
+    body.latitude = Number.isFinite(lat) ? lat : null;
+  }
+  if (body.longitude !== undefined) {
+    const lng = parseFloat(body.longitude);
+    body.longitude = Number.isFinite(lng) ? lng : null;
+  }
+
+  // ยิงขึ้น Supabase
+  const { data, error } = await supabase
+    .from('properties')
+    .upsert(body)
+    .select()
+    .single();
+
+  return { data, error };
 }
 
-
-
-/**
- * ลบประกาศ
- * @param {string} id - UUID ของประกาศ
- */
 export async function removeProperty(id) {
   return await supabase.from('properties').delete().eq('id', id);
 }
