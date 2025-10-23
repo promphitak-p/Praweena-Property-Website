@@ -358,26 +358,31 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // ปุ่ม "เพิ่มประกาศใหม่"
-    if (addPropertyBtn) {
-      addPropertyBtn.addEventListener('click', () => {
-        if (modalTitle) modalTitle.textContent = 'เพิ่มประกาศใหม่';
-        if (youtubeIdsContainer) {
-          clear(youtubeIdsContainer);
-          youtubeIdsContainer.append(createYoutubeIdInput()); // ให้มี 1 ช่องเริ่มต้น (ถ้าไม่อยากก็ตัดบรรทัดนี้ได้)
-        }
-        openModal();
-        setTimeout(() => setupModalMap(), 100);
-      });
+// ตอนกด "เพิ่มประกาศใหม่"
+if (addPropertyBtn) {
+  addPropertyBtn.addEventListener('click', () => {
+    if (youtubeIdsContainer) {
+      clear(youtubeIdsContainer);
+      youtubeIdsContainer.append(createYoutubeIdInput()); // เริ่มด้วย 1 ช่อง
     }
+    openModal();
+    setTimeout(() => setupModalMap(), 100);
+  });
+}
 
-    await loadProperties();
-  } catch (initError) {
-    console.error('Initialization error:', initError);
-    if (tableBody) {
-      tableBody.innerHTML = `<tr><td colspan="5" style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ</td></tr>`;
+// จำกัดสูงสุด 5 คลิป
+const MAX_YT = 5;
+if (addYoutubeIdBtn && youtubeIdsContainer) {
+  addYoutubeIdBtn.addEventListener('click', () => {
+    const count = $$('#youtube-ids-container .youtube-id-input').length;
+    if (count >= MAX_YT) {
+      toast(`ใส่ได้สูงสุด ${MAX_YT} คลิป`, 3000, 'error');
+      return;
     }
-  }
+    youtubeIdsContainer.append(createYoutubeIdInput());
+  });
+}
+
 
   // ปุ่มปิดโมดัล
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
