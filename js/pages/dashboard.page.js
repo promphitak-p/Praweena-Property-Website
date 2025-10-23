@@ -101,37 +101,40 @@ function closeModal() {
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
 }
 
-// --- CRUD Operations ---
 function handleEdit(prop) {
   modalTitle.textContent = `แก้ไข: ${prop.title || 'ประกาศ'}`;
 
-  // Populate form fields, excluding youtube_video_ids
+  // --- Populate form fields (Corrected Loop) ---
   for (const key in prop) {
-    if (key !== 'youtube_video_ids' && propertyForm.elements[key]) {
-      const element = propertyForm.elements[key];
+    // ข้ามฟิลด์ youtube_video_ids หลัก (ที่เป็น array) เราจะจัดการมันแยกต่างหาก
+    if (key === 'youtube_video_ids') continue; 
+
+    const element = propertyForm.elements[key];
+    if (element) { // ตรวจสอบว่ามี input field ชื่อนี้ในฟอร์มหรือไม่
       if (element.type === 'checkbox') {
-        element.checked = !!prop[key];
+        element.checked = !!prop[key]; // ตั้งค่า checked สำหรับ checkbox
+      } else if (element.name === 'youtube_video_ids_text') {
+         // ข้าม textarea นี้ไปก่อน เพราะเราจะ populate มันทีหลัง
+         continue; 
       } else {
-        element.value = prop[key] ?? '';
+        // ตั้งค่า value สำหรับ input ประเภทอื่นๆ (text, number, etc.)
+        element.value = prop[key] ?? ''; 
       }
     }
   }
+  // --- End Corrected Loop ---
 
-  // Populate Dynamic YouTube ID Inputs
+  // --- Populate Dynamic YouTube ID Inputs ---
   if (youtubeIdsContainer) {
-      clear(youtubeIdsContainer);
-      const videoIds = Array.isArray(prop.youtube_video_ids) ? prop.youtube_video_ids : [];
-      if (videoIds.length > 0) {
-          videoIds.forEach(id => {
-              if (id) youtubeIdsContainer.append(createYoutubeIdInput(id));
-          });
-      }
-      // Optionally add one empty field if none exist when editing
-      // else {
-      //    youtubeIdsContainer.append(createYoutubeIdInput());
-      // }
+    clear(youtubeIdsContainer);
+    const videoIds = Array.isArray(prop.youtube_video_ids) ? prop.youtube_video_ids : [];
+    if (videoIds.length > 0) {
+      videoIds.forEach(id => {
+        if (id) youtubeIdsContainer.append(createYoutubeIdInput(id));
+      });
+    }
   }
-
+  // ------------------------------------
 
   // Populate Image Preview
   if (prop.cover_url) {
