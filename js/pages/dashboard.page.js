@@ -205,10 +205,18 @@ propertyForm.addEventListener('submit', async (e) => {
   if (payload.price !== undefined) payload.price = Number(payload.price) || 0;
 
   // --- YouTube IDs: เก็บจาก DOM เท่านั้น ---
-  const ytInputs = $$('#youtube-ids-container .youtube-id-input');
-  const collectedIds = Array.from(ytInputs)
-    .map(i => parseYouTubeId(i.value))
-    .filter(Boolean);
+const ytInputs = $$('#youtube-ids-container .youtube-id-input');
+const collectedIds = Array.from(ytInputs)
+  .map(input => {
+    // ถ้าผู้ใช้พิมพ์ใหม่ → ใช้ค่าที่ parse ได้
+    const parsed = parseYouTubeId(input.value);
+    if (parsed) return parsed;
+    // ถ้าพิมพ์ว่าง/พิมพ์แล้ว parse ไม่ได้ แต่เป็นช่องที่มาจากของเดิม → ใช้ค่าเดิม
+    if (input.dataset.originalId) return input.dataset.originalId;
+    // ช่องใหม่ที่ยังไม่กรอกอะไร → ตัดทิ้ง
+    return '';
+  })
+  .filter(Boolean);
   const isEditing = !!propertyForm.elements.id?.value;
 
   // ป้องกันการเผลอล้างทั้งหมดโดยไม่ได้ตั้งใจ
@@ -286,6 +294,8 @@ function createYoutubeIdInput(videoId = '') {
     value: videoId,
     placeholder: 'เช่น dQw4w9WgXcQ หรือ URL YouTube'
   });
+  // 👇 เก็บค่าเดิมไว้เพื่อกันเคลียร์พลาด
+  if (videoId) input.dataset.originalId = videoId;
 
   // กล่องพรีวิว + overlay ปุ่มลบ
   const previewWrap = el('div', { className: 'yt-preview' });
@@ -295,7 +305,6 @@ function createYoutubeIdInput(videoId = '') {
     className: 'yt-remove-btn',
     attributes: { 'aria-label': 'ลบวิดีโอนี้', title: 'ลบวิดีโอนี้' }
   });
-  // icon ถังขยะ (สีขาวโปร่ง) — hover fade คุมใน CSS ด้วยคลาส .yt-remove-btn
   removeBtn.innerHTML = `
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M3 6h18" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -306,34 +315,29 @@ function createYoutubeIdInput(videoId = '') {
   `;
   removeBtn.addEventListener('click', () => itemDiv.remove());
 
-  // อัปเดตพรีวิวเมื่อผู้ใช้กรอก
   function updatePreview(value) {
     const id = parseYouTubeId(value);
     previewWrap.innerHTML = '';
     if (id) {
       const thumb = el('img', {
         className: 'yt-thumb',
-        attributes: {
-          src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
-          alt: `Preview ${id}`
-        }
+        attributes: { src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, alt: `Preview ${id}` }
       });
       previewWrap.append(thumb);
     } else {
-      // คงกล่องไว้เพื่อแสดง overlay ปุ่มลบ
       const msg = el('div', { className: 'yt-thumb yt-thumb--empty', textContent: 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง' });
       previewWrap.append(msg);
     }
-    // ให้ปุ่มลบลอยทับอยู่เสมอ
     previewWrap.append(removeBtn);
   }
 
   input.addEventListener('input', (e) => updatePreview(e.target.value));
-  updatePreview(videoId); // มีค่าเดิม ให้พรีวิวทันที
+  updatePreview(videoId);
 
   itemDiv.append(input, previewWrap);
   return itemDiv;
 }
+
 
 if (coverImageInput) {
   coverImageInput.addEventListener('change', () => {
