@@ -66,6 +66,22 @@ function parseYouTubeId(input) {
   return '';
 }
 
+function normalizeYoutubeIds(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(Boolean);
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    } catch {
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+
 function renderYouTubeGallery(videoIds = []) {
   const wrap = el('section', { style: 'margin-top:1.5rem;' });
   const heading = el('h3', { textContent: 'วิดีโอแนะนำ', style: 'margin-bottom:.75rem;' });
@@ -174,7 +190,7 @@ function renderPropertyDetails(property) {
   leftCol.append(galleryWrapper, thumbnailContainer, title, price, address, details);
 
   // YouTube Section (ใช้ youtube_video_ids แบบอาร์เรย์)
-  const ytSection = renderYouTubeGallery(Array.isArray(property.youtube_video_ids) ? property.youtube_video_ids : []);
+ const ytSection = renderYouTubeGallery(normalizeYoutubeIds(property.youtube_video_ids));
   if (ytSection) leftCol.append(ytSection);
 
   // Map

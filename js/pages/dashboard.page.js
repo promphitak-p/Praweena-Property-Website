@@ -118,6 +118,23 @@ function closeModal() {
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
 }
 
+function normalizeYoutubeIds(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(Boolean);
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      // กรณีเป็นสตริงคั่นด้วย comma ล้วน ๆ
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    } catch {
+      // ไม่ใช่ JSON valid → ลอง split แบบ comma
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 function handleEdit(prop) {
   if (modalTitle) modalTitle.textContent = `แก้ไข: ${prop.title || 'ประกาศ'}`;
 
@@ -137,13 +154,11 @@ function handleEdit(prop) {
   }
 
   // เติม YouTube IDs แบบไดนามิก
-if (youtubeIdsContainer) {
-  clear(youtubeIdsContainer);
-  const ids = Array.isArray(prop.youtube_video_ids) ? prop.youtube_video_ids : [];
-  ids.forEach(id => {
-    if (id) youtubeIdsContainer.append(createYoutubeIdInput(id));
-  });
-}
+ if (youtubeIdsContainer) {
+   clear(youtubeIdsContainer);
+   const ids = normalizeYoutubeIds(prop.youtube_video_ids);
+   ids.forEach(id => youtubeIdsContainer.append(createYoutubeIdInput(id)));
+ }
 
   // Preview รูป
   if (imagePreview) {
@@ -191,7 +206,6 @@ const newIds = Array.from(videoIdInputs)
   .map(i => parseYouTubeId(i.value))
   .filter(Boolean);
 payload.youtube_video_ids = Array.from(new Set(newIds));
-   delete payload.youtube_video_ids_text;
 
 
   try {
