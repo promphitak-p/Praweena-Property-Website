@@ -358,31 +358,51 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-// ตอนกด "เพิ่มประกาศใหม่"
-if (addPropertyBtn) {
-  addPropertyBtn.addEventListener('click', () => {
-    if (youtubeIdsContainer) {
-      clear(youtubeIdsContainer);
-      youtubeIdsContainer.append(createYoutubeIdInput()); // เริ่มด้วย 1 ช่อง
-    }
-    openModal();
-    setTimeout(() => setupModalMap(), 100);
-  });
-}
+// =====================================================
+// Init
+// =====================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await protectPage();
+    setupNav();
+    signOutIfAny();
+    setupMobileNav();
 
-// จำกัดสูงสุด 5 คลิป
-const MAX_YT = 5;
-if (addYoutubeIdBtn && youtubeIdsContainer) {
-  addYoutubeIdBtn.addEventListener('click', () => {
-    const count = $$('#youtube-ids-container .youtube-id-input').length;
-    if (count >= MAX_YT) {
-      toast(`ใส่ได้สูงสุด ${MAX_YT} คลิป`, 3000, 'error');
-      return;
+    // ปุ่ม "เพิ่มประกาศใหม่"
+    if (addPropertyBtn) {
+      addPropertyBtn.addEventListener('click', () => {
+        if (youtubeIdsContainer) {
+          clear(youtubeIdsContainer);
+          youtubeIdsContainer.append(createYoutubeIdInput()); // เริ่มด้วย 1 ช่อง
+        }
+        openModal();
+        setTimeout(() => setupModalMap(), 100);
+      });
     }
-    youtubeIdsContainer.append(createYoutubeIdInput());
-  });
-}
 
+    // ปุ่ม + YouTube (จำกัดสูงสุด 5 คลิป) — ผูกครั้งเดียว ไม่ซ้ำ
+    const MAX_YT = 5;
+    if (addYoutubeIdBtn && youtubeIdsContainer) {
+      addYoutubeIdBtn.addEventListener('click', () => {
+        const count = $$('#youtube-ids-container .youtube-id-input').length;
+        if (count >= MAX_YT) {
+          toast(`ใส่ได้สูงสุด ${MAX_YT} คลิป`, 3000, 'error');
+          return;
+        }
+        youtubeIdsContainer.append(createYoutubeIdInput());
+      });
+    }
+
+    // โหลดรายการประกาศ
+    await loadProperties();
+
+  } catch (initError) {
+    console.error('Initialization error:', initError);
+    if (tableBody) {
+      tableBody.innerHTML =
+        `<tr><td colspan="5" style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ</td></tr>`;
+    }
+  }
 
   // ปุ่มปิดโมดัล
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
