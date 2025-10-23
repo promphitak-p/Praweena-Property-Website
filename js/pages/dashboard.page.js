@@ -261,19 +261,13 @@ if (propertyForm.elements.id?.value) {
   }
 });
 
-// =====================================================
-// Helpers
-// =====================================================
 function createYoutubeIdInput(videoId = '') {
   const itemDiv = el('div', {
     className: 'youtube-id-item',
-    style: 'display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;'
+    style: 'display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem;position:relative;'
   });
 
-  const row = el('div', {
-    style: 'display:flex;align-items:center;gap:.5rem;'
-  });
-
+  // กล่อง input สำหรับกรอกหรือแก้ไขลิงก์
   const input = el('input', {
     type: 'text',
     className: 'form-control youtube-id-input',
@@ -282,61 +276,76 @@ function createYoutubeIdInput(videoId = '') {
     placeholder: 'เช่น dQw4w9WgXcQ หรือ URL YouTube'
   });
 
+  // กล่อง preview (แสดงรูปหรือ iframe)
+  const previewWrap = el('div', {
+    style: `
+      width:100%;
+      aspect-ratio:16/9;
+      border-radius:12px;
+      overflow:hidden;
+      position:relative;
+      background:#f9f9f9;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    `
+  });
+
+  // ปุ่มลบแบบ overlay
   const removeBtn = el('button', {
     type: 'button',
-    className: 'btn btn-secondary remove-youtube-id-btn',
-    textContent: 'ลบ',
-    style: 'padding:.5rem .75rem;background:#fee2e2;color:#ef4444;border:none;flex-shrink:0;'
+    innerHTML: '✕',
+    style: `
+      position:absolute;
+      top:8px;
+      right:8px;
+      background:rgba(0,0,0,0.6);
+      color:#fff;
+      border:none;
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      cursor:pointer;
+      font-size:16px;
+      line-height:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:2;
+      transition:background 0.2s ease;
+    `
   });
+  removeBtn.addEventListener('mouseenter', () => removeBtn.style.background = 'rgba(255,0,0,0.75)');
+  removeBtn.addEventListener('mouseleave', () => removeBtn.style.background = 'rgba(0,0,0,0.6)');
   removeBtn.addEventListener('click', () => itemDiv.remove());
 
-  const preview = el('div', {
-    style: 'width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#f9f9f9;display:flex;align-items:center;justify-content:center;'
-  });
-
-  // ถ้ามี videoId แล้ว ให้โชว์ thumbnail
-  if (videoId) {
-    const id = parseYouTubeId(videoId);
+  // ฟังก์ชันอัปเดต preview เมื่อกรอก YouTube link
+  function updatePreview(value) {
+    const id = parseYouTubeId(value);
+    previewWrap.innerHTML = '';
     if (id) {
       const thumb = el('img', {
         attributes: {
           src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
           alt: `Preview ${id}`
         },
-        style: 'width:100%;object-fit:cover;display:block;'
+        style: 'width:100%;height:100%;object-fit:cover;display:block;'
       });
-      preview.innerHTML = '';
-      preview.append(thumb);
+      previewWrap.append(thumb, removeBtn);
     } else {
-      preview.textContent = 'ลิงก์ไม่ถูกต้อง';
+      previewWrap.textContent = 'ลิงก์ไม่ถูกต้อง';
     }
-  } else {
-    preview.textContent = 'ยังไม่มีลิงก์ YouTube';
   }
 
-  // เมื่อพิมพ์หรือเปลี่ยนค่าในช่อง input ให้เปลี่ยน preview ทันที
-  input.addEventListener('input', (e) => {
-    const id = parseYouTubeId(e.target.value);
-    preview.innerHTML = '';
-    if (id) {
-      const thumb = el('img', {
-        attributes: {
-          src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
-          alt: `Preview ${id}`
-        },
-        style: 'width:100%;object-fit:cover;display:block;'
-      });
-      preview.append(thumb);
-    } else {
-      preview.textContent = 'ลิงก์ไม่ถูกต้อง';
-    }
-  });
+  // เมื่อพิมพ์เปลี่ยนค่า → อัปเดต preview
+  input.addEventListener('input', (e) => updatePreview(e.target.value));
 
-  row.append(input, removeBtn);
-  itemDiv.append(row, preview);
+  // ถ้ามีค่าอยู่แล้ว → แสดงทันที
+  updatePreview(videoId);
+
+  itemDiv.append(input, previewWrap);
   return itemDiv;
 }
-
 
 if (coverImageInput) {
   coverImageInput.addEventListener('change', () => {
