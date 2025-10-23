@@ -245,7 +245,7 @@ function renderPropertyDetails(property) {
 
   // Assemble
   grid.append(leftCol, rightCol);
-  leftCol.append(shareContainer, formCard); // share + form เข้าคอลัมน์ซ้าย (ถ้าต้องการย้ายไปขวา ย้ายเองได้)
+  rightCol.append(shareContainer, formCard);
   formCard.prepend(formHeader);
   formCard.append(form);
   container.append(grid);

@@ -32,6 +32,8 @@ const CLOUD_NAME = 'dupwjm8q2';
 const UPLOAD_PRESET = 'praweena_property_preset';
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
+let existingYoutubeIds = [];
+
 // =====================================================
 // Core
 // =====================================================
@@ -116,6 +118,8 @@ function closeModal() {
   if (mapContainer) mapContainer.style.display = 'none';
 
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
+    existingYoutubeIds = []; // <-- เพิ่มบรรทัดนี้
+
 }
 
 function handleEdit(prop) {
@@ -137,11 +141,17 @@ function handleEdit(prop) {
   }
 
   // เติม YouTube IDs แบบไดนามิก
-  if (youtubeIdsContainer) {
-    clear(youtubeIdsContainer);
-    const ids = Array.isArray(prop.youtube_video_ids) ? prop.youtube_video_ids : [];
-    ids.forEach(id => id && youtubeIdsContainer.append(createYoutubeIdInput(id)));
-  }
+if (youtubeIdsContainer) {
+  clear(youtubeIdsContainer);
+  const ids = Array.isArray(prop.youtube_video_ids) ? prop.youtube_video_ids : [];
+  ids.forEach(id => {
+    if (id) youtubeIdsContainer.append(createYoutubeIdInput(id));
+  });
+}
+
+existingYoutubeIds = Array.isArray(prop.youtube_video_ids) ? [...prop.youtube_video_ids] : [];
+
+
 
   // Preview รูป
   if (imagePreview) {
@@ -185,12 +195,19 @@ propertyForm.addEventListener('submit', async (e) => {
   if (payload.price !== undefined) payload.price = Number(payload.price) || 0;
 
   // เก็บ YouTube IDs จากอินพุตไดนามิก
-  const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
-  const videoIdsArray = Array.from(videoIdInputs)
-    .map(i => parseYouTubeId(i.value))
-    .filter(id => id);
-  payload.youtube_video_ids = videoIdsArray;
-  delete payload.youtube_video_ids_text;
+const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
+const newIds = Array.from(videoIdInputs)
+  .map(i => parseYouTubeId(i.value))
+  .filter(Boolean);
+
+if (propertyForm.elements.id?.value) {
+  // โหมดแก้ไข → รวมของเก่ากับของใหม่แบบไม่ซ้ำ
+  const merged = Array.from(new Set([...existingYoutubeIds, ...newIds]));
+  payload.youtube_video_ids = merged;
+} else {
+  // โหมดเพิ่มใหม่
+  payload.youtube_video_ids = newIds;
+}
 
   try {
     // อัปโหลด Cover
