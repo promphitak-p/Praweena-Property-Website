@@ -267,7 +267,7 @@ function createYoutubeIdInput(videoId = '') {
     style: 'display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem;position:relative;'
   });
 
-  // กล่อง input สำหรับกรอกหรือแก้ไขลิงก์
+  // ช่องกรอกลิงก์/ID
   const input = el('input', {
     type: 'text',
     className: 'form-control youtube-id-input',
@@ -276,7 +276,7 @@ function createYoutubeIdInput(videoId = '') {
     placeholder: 'เช่น dQw4w9WgXcQ หรือ URL YouTube'
   });
 
-  // กล่อง preview (แสดงรูปหรือ iframe)
+  // พื้นที่พรีวิวรูป
   const previewWrap = el('div', {
     style: `
       width:100%;
@@ -284,68 +284,82 @@ function createYoutubeIdInput(videoId = '') {
       border-radius:12px;
       overflow:hidden;
       position:relative;
-      background:#f9f9f9;
+      background:#f4f6f8;
       display:flex;
       align-items:center;
       justify-content:center;
+      color:#94a3b8;
+      font-size:.95rem;
     `
   });
 
-  // ปุ่มลบแบบ overlay
+  // ปุ่มลบ overlay (ไอคอนถังขยะสีขาวโปร่ง + hover fade)
   const removeBtn = el('button', {
     type: 'button',
-    innerHTML: '✕',
+    className: 'yt-remove-btn',
+    attributes: { 'aria-label': 'ลบวิดีโอนี้', title: 'ลบวิดีโอนี้' },
     style: `
       position:absolute;
       top:8px;
       right:8px;
-      background:rgba(0,0,0,0.6);
+      background:rgba(0,0,0,.45);
       color:#fff;
       border:none;
-      width:28px;
-      height:28px;
+      width:34px;
+      height:34px;
       border-radius:50%;
       cursor:pointer;
-      font-size:16px;
-      line-height:1;
       display:flex;
       align-items:center;
       justify-content:center;
       z-index:2;
-      transition:background 0.2s ease;
+      opacity:.85;
+      transition:opacity .18s ease, background .18s ease, transform .08s ease;
+      backdrop-filter: blur(2px);
     `
   });
-  removeBtn.addEventListener('mouseenter', () => removeBtn.style.background = 'rgba(255,0,0,0.75)');
-  removeBtn.addEventListener('mouseleave', () => removeBtn.style.background = 'rgba(0,0,0,0.6)');
+  removeBtn.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <path d="M8 6v-.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V6" stroke="white" stroke-width="2"/>
+      <path d="M8 10v8M12 10v8M16 10v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <rect x="6" y="6" width="12" height="14" rx="2" stroke="white" stroke-width="2"/>
+    </svg>
+  `;
+  removeBtn.addEventListener('mouseenter', () => { removeBtn.style.opacity = '1'; removeBtn.style.background = 'rgba(0,0,0,.6)'; });
+  removeBtn.addEventListener('mouseleave', () => { removeBtn.style.opacity = '.85'; removeBtn.style.background = 'rgba(0,0,0,.45)'; });
+  removeBtn.addEventListener('mousedown',   () => { removeBtn.style.transform = 'scale(.95)'; });
+  removeBtn.addEventListener('mouseup',     () => { removeBtn.style.transform = 'scale(1)'; });
   removeBtn.addEventListener('click', () => itemDiv.remove());
 
-  // ฟังก์ชันอัปเดต preview เมื่อกรอก YouTube link
+  // อัปเดตพรีวิวเมื่อกรอกลิงก์/ID
   function updatePreview(value) {
     const id = parseYouTubeId(value);
     previewWrap.innerHTML = '';
     if (id) {
       const thumb = el('img', {
-        attributes: {
-          src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
-          alt: `Preview ${id}`
-        },
+        attributes: { src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, alt: `Preview ${id}` },
         style: 'width:100%;height:100%;object-fit:cover;display:block;'
       });
-      previewWrap.append(thumb, removeBtn);
+      previewWrap.append(thumb);
     } else {
-      previewWrap.textContent = 'ลิงก์ไม่ถูกต้อง';
+      // กรณีไม่ใช่ลิงก์/ID ที่ถูกต้อง
+      previewWrap.textContent = 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง';
     }
+    // ปุ่มลบต้องอยู่ทับเสมอ
+    previewWrap.append(removeBtn);
   }
 
-  // เมื่อพิมพ์เปลี่ยนค่า → อัปเดต preview
+  // พิมพ์แล้วอัปเดตแบบเรียลไทม์
   input.addEventListener('input', (e) => updatePreview(e.target.value));
 
-  // ถ้ามีค่าอยู่แล้ว → แสดงทันที
+  // ถ้ามีค่าเริ่มต้นอยู่แล้ว ให้พรีวิวทันที
   updatePreview(videoId);
 
   itemDiv.append(input, previewWrap);
   return itemDiv;
 }
+
 
 if (coverImageInput) {
   coverImageInput.addEventListener('change', () => {
