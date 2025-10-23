@@ -107,13 +107,22 @@ function handleEdit(prop) {
 
   for (const key in prop) {
     if (propertyForm.elements[key]) {
-      if (propertyForm.elements[key].type === 'checkbox') {
-        propertyForm.elements[key].checked = !!prop[key];
-      } else {
-        propertyForm.elements[key].value = prop[key] ?? '';
-      }
-    }
+		if (key !== 'youtube_video_ids' && propertyForm.elements[key]) {
+			propertyForm.elements[key].checked = !!prop[key];
+			} else {
+				propertyForm.elements[key].value = prop[key] ?? '';
+				}
+			}
+		}
+
+// --- *** เพิ่มโค้ดส่วนนี้: Populate YouTube IDs Textarea *** ---
+  if (Array.isArray(prop.youtube_video_ids) && propertyForm.elements.youtube_video_ids_text) {
+    // Join the array back into a string with newlines for editing
+    propertyForm.elements.youtube_video_ids_text.value = prop.youtube_video_ids.join('\n');
+  } else if (propertyForm.elements.youtube_video_ids_text) {
+    propertyForm.elements.youtube_video_ids_text.value = ''; // Clear if no data or not an array
   }
+  // ---------------------------------------------------------
 
   if (prop.cover_url) {
     imagePreview.src = prop.cover_url;
@@ -145,6 +154,23 @@ propertyForm.addEventListener('submit', async (e) => {
 
   const payload = getFormData(propertyForm);
   payload.published = !!payload.published;
+  
+  // --- Process YouTube Video IDs ---
+  const videoIdsText = payload.youtube_video_ids_text || ''; // Get text from textarea
+  if (videoIdsText.trim()) {
+      // Split by comma or newline, trim whitespace, filter out empty strings
+      const videoIdsArray = videoIdsText
+          .split(/[\n,]+/) // Split by newline or comma
+          .map(id => id.trim()) // Remove extra spaces
+          .filter(id => id); // Remove empty entries
+      // Store the clean array as JSON in the real payload field
+      payload.youtube_video_ids = JSON.stringify(videoIdsArray); 
+  } else {
+      payload.youtube_video_ids = '[]'; // Save an empty JSON array if input is empty
+  }
+  // Remove the temporary text field from the payload
+  delete payload.youtube_video_ids_text;
+  // ---------------------------------
 
   try {
     // อัปโหลดรูปหน้าปก
@@ -246,33 +272,4 @@ function setupModalMap(lat, lng) {
     if (latInput) latInput.value = position.lat.toFixed(6);
     if (lngInput) lngInput.value = position.lng.toFixed(6);
   });
-}
-
-// --- (ถ้าจะใช้ต่อ) ฟังก์ชันสร้างแถวฟอร์มรีโนเวทในหน้าแก้ไข ---
-// ปล่อยไว้ได้ ไม่ผูกกับโมดัลใด ๆ
-function createRenovationItemInputs(item = {}, index) {
-  const itemDiv = el('div', { className: 'renovation-form-item grid grid-cols-4', style: 'gap:1rem;align-items:flex-end;margin-bottom:1rem;border-bottom:1px solid #eee;padding-bottom:1rem;' });
-  itemDiv.innerHTML = `
-    <div class="form-group col-span-1">
-      <label>วันที่ปรับปรุง</label>
-      <input type="date" class="form-control renovation-date" value="${item.date || ''}">
-    </div>
-    <div class="form-group col-span-1">
-      <label>รายละเอียด</label>
-      <input type="text" class="form-control renovation-desc" value="${item.description || ''}">
-    </div>
-    <div class="form-group col-span-1">
-      <label>สีที่ใช้ (เบอร์/ยี่ห้อ)</label>
-      <input type="text" class="form-control renovation-paint-color" value="${item.paint_color || ''}">
-    </div>
-    <div class="form-group col-span-1 grid grid-cols-2" style="gap:0.5rem;">
-      <div>
-        <label>ค่าใช้จ่าย</label>
-        <input type="number" class="form-control renovation-cost" value="${item.cost || ''}">
-      </div>
-      <button type="button" class="btn btn-secondary remove-renovation-item-btn" style="background:#fee2e2;color:#ef4444;border:none;">ลบ</button>
-    </div>
-  `;
-  itemDiv.querySelector('.remove-renovation-item-btn').addEventListener('click', () => itemDiv.remove());
-  return itemDiv;
 }
