@@ -488,3 +488,81 @@ tbody tr:last-child td {
   height: 100%;
   border: 0; /* เอาเส้นขอบออก */
 }
+
+/* assets/css/components.css */
+
+/* === Gallery Thumbnails === */
+.thumbnail-container {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto; /* ทำให้เลื่อนได้ถ้า thumbnails เยอะ */
+  padding: 0.75rem 0;
+  margin-top: 0.5rem;
+}
+/* ซ่อน Scrollbar ของ thumbnails */
+.thumbnail-container::-webkit-scrollbar { display: none; }
+.thumbnail-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+.thumbnail-image {
+  flex: 0 0 100px; /* กำหนดความกว้างคงที่ */
+  width: 100px;
+  height: 75px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: border-color 0.2s, opacity 0.2s;
+  opacity: 0.6; /* ทำให้รูปที่ไม่ active ดูจางลง */
+}
+
+.thumbnail-image.active,
+.thumbnail-image:hover {
+  border-color: var(--brand);
+  opacity: 1; /* ทำให้รูป active/hover ชัดเจน */
+}
+
+/* === YouTube Thumbnail === */
+.youtube-thumbnail-container {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden; /* สำหรับ border-radius */
+  border-radius: var(--radius);
+  margin-top: 1.5rem;
+  background-color: #eee;
+}
+
+.youtube-thumbnail-container img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 0.3s ease;
+}
+
+.youtube-thumbnail-container:hover img {
+  transform: scale(1.05); /* Zoom effect on hover */
+}
+
+/* Play button overlay */
+.youtube-thumbnail-container::before {
+  content: '▶'; /* Play symbol */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 50px;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 80px; /* Vertically center the play symbol */
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
+  transition: background-color 0.3s ease;
+}
+
+.youtube-thumbnail-container:hover::before {
+  background-color: rgba(0, 0, 0, 0.8);
+}

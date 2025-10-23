@@ -104,12 +104,13 @@ function renderPropertyDetails(property) {
   // --- 2. สร้าง Gallery ---
   const galleryWrapper = el('div', { className: 'gallery-wrapper' });
   const galleryContainer = el('div', { className: 'image-gallery' });
-  const dotsContainer = el('div', { className: 'gallery-dots' }); // Container สำหรับ Dots
+  const thumbnailContainer = el('div', { className: 'thumbnail-container' }); // Container สำหรับ Thumbnails
   
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
   if (allImages.length === 0) { allImages.push('/assets/img/placeholder.jpg'); }
 
   const openLightbox = setupLightbox(allImages);
+  const thumbnailElements = []; // เก็บ Thumbnails elements ไว้
 
 // สร้างรูปภาพและ Dots
   allImages.forEach((imageUrl, index) => {
@@ -120,30 +121,31 @@ function renderPropertyDetails(property) {
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
 
-    // สร้าง Dot สำหรับแต่ละรูป
-    const dot = el('span', { className: 'dot', attributes: { 'data-index': index } });
-    dot.addEventListener('click', () => {
-      // เมื่อคลิกที่ Dot ให้เลื่อน Gallery ไปยังรูปนั้นๆ
+// สร้าง Thumbnail
+    const thumb = el('img', {
+      className: 'thumbnail-image',
+      attributes: { src: imageUrl, alt: `Thumbnail ${index + 1}` }
+    });
+    thumb.addEventListener('click', () => {
+      // เลื่อน Gallery หลักเมื่อคลิก Thumbnail
       galleryContainer.scrollTo({
         left: galleryContainer.offsetWidth * index,
         behavior: 'smooth'
       });
     });
-    dotsContainer.append(dot);
+    thumbnailContainer.append(thumb);
+    thumbnailElements.push(thumb); // เก็บ element ไว้
   });
-  
-  // --- ตรรกะสำหรับอัปเดต Active Dot เมื่อผู้ใช้ปัด ---
-  const dots = dotsContainer.querySelectorAll('.dot');
-  if (dots.length > 0) {
-      dots[0].classList.add('active'); // ให้ Dot แรก Active ไว้ก่อน
+
+  // --- ตรรกะอัปเดต Active Thumbnail ---
+  if (thumbnailElements.length > 0) {
+    thumbnailElements[0].classList.add('active'); // เริ่มต้น
   }
 
-  galleryContainer.addEventListener('scroll', () => {
-    // คำนวณว่ารูปไหนกำลังแสดงอยู่ตรงกลาง
+galleryContainer.addEventListener('scroll', () => {
     const scrollIndex = Math.round(galleryContainer.scrollLeft / galleryContainer.offsetWidth);
-    // อัปเดตคลาส active
-    dots.forEach((dot, index) => {
-      dot.classList.toggle('active', index === scrollIndex);
+    thumbnailElements.forEach((thumb, index) => {
+      thumb.classList.toggle('active', index === scrollIndex);
     });
   });
 
@@ -162,26 +164,37 @@ function renderPropertyDetails(property) {
   const address = el('p', { textContent: `ที่อยู่: ${property.address || 'N/A'}, ${property.district}, ${property.province}` });
   const details = el('p', { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
   
-  leftCol.append(galleryWrapper, title, price, address, details);
+leftCol.append(galleryWrapper, thumbnailContainer, title, price, address, details); // เพิ่ม thumbnailContainer
   
-  // --- 3.5 (ใหม่) สร้างส่วนแสดงผล YouTube Video (ถ้ามี ID) ---
+// --- สร้าง YouTube Thumbnail/Player ---
   if (property.youtube_video_id) {
-    const videoContainer = el('div', { className: 'video-container' });
-    const youtubeIframe = el('iframe', {
-      attributes: {
-        // ใช้ youtube-nocookie เพื่อความเป็นส่วนตัวที่ดีกว่า
-        src: `https://www.youtube-nocookie.com/embed/${property.youtube_video_id}`, 
-        width: '100%',
-        height: '315', // ความสูงเริ่มต้น (ปรับได้ด้วย CSS)
-        frameborder: '0',
-        allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
-        allowfullscreen: true,
-        title: `วิดีโอ YouTube: ${property.title}`
-      }
-    });
-    videoContainer.append(youtubeIframe);
-    // นำไปต่อท้ายรายละเอียด แต่ก่อนแผนที่
-    leftCol.append(videoContainer); 
+    const videoId = property.youtube_video_id;
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+    const youtubeContainer = el('div', { className: 'youtube-thumbnail-container' });
+    const youtubeThumb = el('img', { attributes: { src: thumbnailUrl, alt: `Thumbnail วิดีโอ: ${property.title}` } });
+    youtubeContainer.append(youtubeThumb);
+
+    // Event listener: เมื่อคลิก ให้แทนที่ด้วย Iframe
+    youtubeContainer.addEventListener('click', () => {
+      const iframe = el('iframe', {
+        attributes: {
+          src: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`, // เพิ่ม autoplay=1
+          width: '100%',
+          height: '100%', // ให้ iframe สูงเต็ม container
+          frameborder: '0',
+          allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+          allowfullscreen: true,
+          title: `วิดีโอ YouTube: ${property.title}`
+        }
+      });
+      // สร้าง container ใหม่สำหรับ iframe เพื่อรักษาอัตราส่วน
+      const videoPlayerContainer = el('div', { className: 'video-container' }); // ใช้คลาสเดิมที่เรามี
+      videoPlayerContainer.append(iframe);
+      youtubeContainer.replaceWith(videoPlayerContainer); // แทนที่ thumbnail ด้วย player
+    }, { once: true }); // ให้ทำงานแค่ครั้งเดียว
+
+    leftCol.append(youtubeContainer); // เพิ่ม Thumbnail เข้าไป
   }
 
   // --- 4. สร้างแผนที่ ---
