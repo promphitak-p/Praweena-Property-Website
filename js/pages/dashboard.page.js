@@ -118,6 +118,7 @@ function closeModal() {
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
 }
 
+// รับค่าที่อาจเป็น array/json-string/สตริงคั่นด้วย comma → คืน array ของ string (ไม่ว่าง)
 function normalizeYoutubeIds(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val.filter(Boolean);
@@ -125,10 +126,8 @@ function normalizeYoutubeIds(val) {
     try {
       const parsed = JSON.parse(val);
       if (Array.isArray(parsed)) return parsed.filter(Boolean);
-      // กรณีเป็นสตริงคั่นด้วย comma ล้วน ๆ
       return val.split(',').map(s => s.trim()).filter(Boolean);
     } catch {
-      // ไม่ใช่ JSON valid → ลอง split แบบ comma
       return val.split(',').map(s => s.trim()).filter(Boolean);
     }
   }
@@ -153,12 +152,16 @@ function handleEdit(prop) {
     }
   }
 
-  // เติม YouTube IDs แบบไดนามิก
- if (youtubeIdsContainer) {
-   clear(youtubeIdsContainer);
-   const ids = normalizeYoutubeIds(prop.youtube_video_ids);
-   ids.forEach(id => youtubeIdsContainer.append(createYoutubeIdInput(id)));
- }
+  // เติม YouTube IDs แบบไดนามิก (อย่างน้อย 1 ช่อง)
+  if (youtubeIdsContainer) {
+    clear(youtubeIdsContainer);
+    const ids = normalizeYoutubeIds(prop.youtube_video_ids);
+    if (ids.length === 0) {
+      youtubeIdsContainer.append(createYoutubeIdInput(''));
+    } else {
+      ids.forEach(id => youtubeIdsContainer.append(createYoutubeIdInput(id)));
+    }
+  }
 
   // Preview รูป
   if (imagePreview) {
@@ -201,12 +204,22 @@ propertyForm.addEventListener('submit', async (e) => {
   payload.published = !!payload.published;
   if (payload.price !== undefined) payload.price = Number(payload.price) || 0;
 
-const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
-const newIds = Array.from(videoIdInputs)
-  .map(i => parseYouTubeId(i.value))
-  .filter(Boolean);
-payload.youtube_video_ids = Array.from(new Set(newIds));
+  // --- YouTube IDs: เก็บจาก DOM เท่านั้น ---
+  const ytInputs = $$('#youtube-ids-container .youtube-id-input');
+  const collectedIds = Array.from(ytInputs)
+    .map(i => parseYouTubeId(i.value))
+    .filter(Boolean);
+  const isEditing = !!propertyForm.elements.id?.value;
 
+  // ป้องกันการเผลอล้างทั้งหมดโดยไม่ได้ตั้งใจ
+  if (ytInputs.length === 0 && isEditing) {
+    // ไม่มี element ช่องเหลือเลย (เช่น DOM หาย) → อย่าทับค่าเดิม
+    delete payload.youtube_video_ids;
+  } else {
+    // มีช่องอยู่ → เคารพค่าที่ผู้ใช้ตั้งใจ (อาจว่าง = ล้างทั้งหมด)
+    payload.youtube_video_ids = Array.from(new Set(collectedIds));
+  }
+  delete payload.youtube_video_ids_text; // ไม่ใช้แล้ว
 
   try {
     // อัปโหลด Cover
@@ -260,6 +273,9 @@ payload.youtube_video_ids = Array.from(new Set(newIds));
   }
 });
 
+// =====================================================
+// Helpers
+// =====================================================
 function createYoutubeIdInput(videoId = '') {
   const itemDiv = el('div', { className: 'youtube-id-item' });
 
@@ -279,6 +295,7 @@ function createYoutubeIdInput(videoId = '') {
     className: 'yt-remove-btn',
     attributes: { 'aria-label': 'ลบวิดีโอนี้', title: 'ลบวิดีโอนี้' }
   });
+  // icon ถังขยะ (สีขาวโปร่ง) — hover fade คุมใน CSS ด้วยคลาส .yt-remove-btn
   removeBtn.innerHTML = `
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M3 6h18" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -303,7 +320,9 @@ function createYoutubeIdInput(videoId = '') {
       });
       previewWrap.append(thumb);
     } else {
-      previewWrap.textContent = 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง';
+      // คงกล่องไว้เพื่อแสดง overlay ปุ่มลบ
+      const msg = el('div', { className: 'yt-thumb yt-thumb--empty', textContent: 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง' });
+      previewWrap.append(msg);
     }
     // ให้ปุ่มลบลอยทับอยู่เสมอ
     previewWrap.append(removeBtn);
