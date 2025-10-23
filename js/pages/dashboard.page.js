@@ -116,8 +116,6 @@ function closeModal() {
   if (mapContainer) mapContainer.style.display = 'none';
 
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
-    existingYoutubeIds = []; // <-- เพิ่มบรรทัดนี้
-
 }
 
 function handleEdit(prop) {
@@ -188,14 +186,11 @@ propertyForm.addEventListener('submit', async (e) => {
   payload.published = !!payload.published;
   if (payload.price !== undefined) payload.price = Number(payload.price) || 0;
 
-  // เก็บ YouTube IDs จากอินพุตไดนามิก
-  const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
-  const newIds = Array.from(videoIdInputs)
+const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
+const newIds = Array.from(videoIdInputs)
   .map(i => parseYouTubeId(i.value))
-
   .filter(Boolean);
- // บันทึกตามที่เหลืออยู่ในฟอร์มจริง ๆ (ลบคือการเอาออกจาก DOM)
- payload.youtube_video_ids = Array.from(new Set(newIds)); // กันค่าซ้ำ
+payload.youtube_video_ids = Array.from(new Set(newIds));
    delete payload.youtube_video_ids_text;
 
 
