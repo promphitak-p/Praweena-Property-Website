@@ -171,14 +171,28 @@ propertyForm.addEventListener('submit', async (e) => {
   const payload = getFormData(propertyForm);
   payload.published = !!payload.published;
 
-  // --- Collect YouTube Video IDs from Dynamic Inputs (Corrected) ---
-  const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
-  const videoIdsArray = Array.from(videoIdInputs)
-      .map(input => input.value.trim())
-      .filter(id => id); // Filter out empty strings
-  payload.youtube_video_ids = JSON.stringify(videoIdsArray);
-  delete payload.youtube_video_ids_text; // Ensure temporary field is removed
-  // -----------------------------------------------------------------
+// --- Collect YouTube Video IDs from Dynamic Inputs (Improved) ---
+const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
+const videoIdsArray = Array.from(videoIdInputs)
+    .map(input => {
+        let value = input.value.trim();
+        // พยายามดึง ID จาก URL ถ้าผู้ใช้ใส่ URL เต็มมา
+        try {
+            const urlParams = new URLSearchParams(new URL(value).search);
+            const idFromUrl = urlParams.get('v');
+            if (idFromUrl) {
+                value = idFromUrl; // ถ้าเจอ v=... ให้ใช้ค่านั้นแทน
+            }
+        } catch (e) {
+            // ไม่ใช่ URL ที่ถูกต้อง หรือไม่มี v=... ก็ให้ใช้ค่าเดิมที่ผู้ใช้กรอก
+        }
+        return value;
+    })
+    .filter(id => id && /^[a-zA-Z0-9_-]{11}$/.test(id)); // กรองค่าว่าง และเช็ครูปแบบ ID มาตรฐาน (11 ตัวอักษร/ตัวเลข/ขีด)
+
+payload.youtube_video_ids = JSON.stringify(videoIdsArray);
+delete payload.youtube_video_ids_text;
+// ---------------------------------------------------------
 
   try {
     // Upload Cover Image
