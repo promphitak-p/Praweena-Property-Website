@@ -262,61 +262,23 @@ if (propertyForm.elements.id?.value) {
 });
 
 function createYoutubeIdInput(videoId = '') {
-  const itemDiv = el('div', {
-    className: 'youtube-id-item',
-    style: 'display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem;position:relative;'
-  });
+  const itemDiv = el('div', { className: 'youtube-id-item' });
 
-  // ช่องกรอกลิงก์/ID
+  // ช่องกรอก ID/URL
   const input = el('input', {
     type: 'text',
     className: 'form-control youtube-id-input',
-    style: 'flex-grow:1;',
     value: videoId,
     placeholder: 'เช่น dQw4w9WgXcQ หรือ URL YouTube'
   });
 
-  // พื้นที่พรีวิวรูป
-  const previewWrap = el('div', {
-    style: `
-      width:100%;
-      aspect-ratio:16/9;
-      border-radius:12px;
-      overflow:hidden;
-      position:relative;
-      background:#f4f6f8;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#94a3b8;
-      font-size:.95rem;
-    `
-  });
+  // กล่องพรีวิว + overlay ปุ่มลบ
+  const previewWrap = el('div', { className: 'yt-preview' });
 
-  // ปุ่มลบ overlay (ไอคอนถังขยะสีขาวโปร่ง + hover fade)
   const removeBtn = el('button', {
     type: 'button',
     className: 'yt-remove-btn',
-    attributes: { 'aria-label': 'ลบวิดีโอนี้', title: 'ลบวิดีโอนี้' },
-    style: `
-      position:absolute;
-      top:8px;
-      right:8px;
-      background:rgba(0,0,0,.45);
-      color:#fff;
-      border:none;
-      width:34px;
-      height:34px;
-      border-radius:50%;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:2;
-      opacity:.85;
-      transition:opacity .18s ease, background .18s ease, transform .08s ease;
-      backdrop-filter: blur(2px);
-    `
+    attributes: { 'aria-label': 'ลบวิดีโอนี้', title: 'ลบวิดีโอนี้' }
   });
   removeBtn.innerHTML = `
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -326,40 +288,34 @@ function createYoutubeIdInput(videoId = '') {
       <rect x="6" y="6" width="12" height="14" rx="2" stroke="white" stroke-width="2"/>
     </svg>
   `;
-  removeBtn.addEventListener('mouseenter', () => { removeBtn.style.opacity = '1'; removeBtn.style.background = 'rgba(0,0,0,.6)'; });
-  removeBtn.addEventListener('mouseleave', () => { removeBtn.style.opacity = '.85'; removeBtn.style.background = 'rgba(0,0,0,.45)'; });
-  removeBtn.addEventListener('mousedown',   () => { removeBtn.style.transform = 'scale(.95)'; });
-  removeBtn.addEventListener('mouseup',     () => { removeBtn.style.transform = 'scale(1)'; });
   removeBtn.addEventListener('click', () => itemDiv.remove());
 
-  // อัปเดตพรีวิวเมื่อกรอกลิงก์/ID
+  // อัปเดตพรีวิวเมื่อผู้ใช้กรอก
   function updatePreview(value) {
     const id = parseYouTubeId(value);
     previewWrap.innerHTML = '';
     if (id) {
       const thumb = el('img', {
-        attributes: { src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, alt: `Preview ${id}` },
-        style: 'width:100%;height:100%;object-fit:cover;display:block;'
+        className: 'yt-thumb',
+        attributes: {
+          src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+          alt: `Preview ${id}`
+        }
       });
       previewWrap.append(thumb);
     } else {
-      // กรณีไม่ใช่ลิงก์/ID ที่ถูกต้อง
       previewWrap.textContent = 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง';
     }
-    // ปุ่มลบต้องอยู่ทับเสมอ
+    // ให้ปุ่มลบลอยทับอยู่เสมอ
     previewWrap.append(removeBtn);
   }
 
-  // พิมพ์แล้วอัปเดตแบบเรียลไทม์
   input.addEventListener('input', (e) => updatePreview(e.target.value));
-
-  // ถ้ามีค่าเริ่มต้นอยู่แล้ว ให้พรีวิวทันที
-  updatePreview(videoId);
+  updatePreview(videoId); // มีค่าเดิม ให้พรีวิวทันที
 
   itemDiv.append(input, previewWrap);
   return itemDiv;
 }
-
 
 if (coverImageInput) {
   coverImageInput.addEventListener('change', () => {
