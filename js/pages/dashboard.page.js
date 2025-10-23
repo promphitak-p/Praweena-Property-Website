@@ -245,7 +245,7 @@ propertyForm.addEventListener('submit', async (e) => {
 });
 
 // =====================================================
-/** Helpers */
+// Helpers
 // =====================================================
 function createYoutubeIdInput(videoId = '') {
   const itemDiv = el('div', {
@@ -324,7 +324,7 @@ function setupModalMap(lat, lng) {
   }
 }
 
-// แยก parser YouTube ID ให้ครอบคลุม watch?v=, youtu.be/, /shorts/
+// ครอบคลุม watch?v=, youtu.be/, /shorts/
 function parseYouTubeId(input) {
   const raw = (input || '').trim();
   if (!raw) return '';
@@ -342,24 +342,7 @@ function parseYouTubeId(input) {
 }
 
 // =====================================================
-// Init
-// =====================================================
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    await protectPage();
-    setupNav();
-    signOutIfAny();
-    setupMobileNav();
-
-    // ปุ่ม + YouTube (ผูกครั้งเดียว)
-    if (addYoutubeIdBtn && youtubeIdsContainer) {
-      addYoutubeIdBtn.addEventListener('click', () => {
-        youtubeIdsContainer.append(createYoutubeIdInput());
-      });
-    }
-
-// =====================================================
-// Init
+// Init (ONE block only)
 // =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
   try {
@@ -380,7 +363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // ปุ่ม + YouTube (จำกัดสูงสุด 5 คลิป) — ผูกครั้งเดียว ไม่ซ้ำ
+    // ปุ่ม + YouTube (จำกัดสูงสุด 5 คลิป)
     const MAX_YT = 5;
     if (addYoutubeIdBtn && youtubeIdsContainer) {
       addYoutubeIdBtn.addEventListener('click', () => {
