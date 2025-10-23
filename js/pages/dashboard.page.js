@@ -267,8 +267,13 @@ if (propertyForm.elements.id?.value) {
 function createYoutubeIdInput(videoId = '') {
   const itemDiv = el('div', {
     className: 'youtube-id-item',
-    style: 'display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;'
+    style: 'display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;'
   });
+
+  const row = el('div', {
+    style: 'display:flex;align-items:center;gap:.5rem;'
+  });
+
   const input = el('input', {
     type: 'text',
     className: 'form-control youtube-id-input',
@@ -276,6 +281,7 @@ function createYoutubeIdInput(videoId = '') {
     value: videoId,
     placeholder: 'เช่น dQw4w9WgXcQ หรือ URL YouTube'
   });
+
   const removeBtn = el('button', {
     type: 'button',
     className: 'btn btn-secondary remove-youtube-id-btn',
@@ -283,9 +289,54 @@ function createYoutubeIdInput(videoId = '') {
     style: 'padding:.5rem .75rem;background:#fee2e2;color:#ef4444;border:none;flex-shrink:0;'
   });
   removeBtn.addEventListener('click', () => itemDiv.remove());
-  itemDiv.append(input, removeBtn);
+
+  const preview = el('div', {
+    style: 'width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#f9f9f9;display:flex;align-items:center;justify-content:center;'
+  });
+
+  // ถ้ามี videoId แล้ว ให้โชว์ thumbnail
+  if (videoId) {
+    const id = parseYouTubeId(videoId);
+    if (id) {
+      const thumb = el('img', {
+        attributes: {
+          src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+          alt: `Preview ${id}`
+        },
+        style: 'width:100%;object-fit:cover;display:block;'
+      });
+      preview.innerHTML = '';
+      preview.append(thumb);
+    } else {
+      preview.textContent = 'ลิงก์ไม่ถูกต้อง';
+    }
+  } else {
+    preview.textContent = 'ยังไม่มีลิงก์ YouTube';
+  }
+
+  // เมื่อพิมพ์หรือเปลี่ยนค่าในช่อง input ให้เปลี่ยน preview ทันที
+  input.addEventListener('input', (e) => {
+    const id = parseYouTubeId(e.target.value);
+    preview.innerHTML = '';
+    if (id) {
+      const thumb = el('img', {
+        attributes: {
+          src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+          alt: `Preview ${id}`
+        },
+        style: 'width:100%;object-fit:cover;display:block;'
+      });
+      preview.append(thumb);
+    } else {
+      preview.textContent = 'ลิงก์ไม่ถูกต้อง';
+    }
+  });
+
+  row.append(input, removeBtn);
+  itemDiv.append(row, preview);
   return itemDiv;
 }
+
 
 if (coverImageInput) {
   coverImageInput.addEventListener('change', () => {
