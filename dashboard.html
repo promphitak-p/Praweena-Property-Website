@@ -106,12 +106,14 @@
 				<input type="file" id="gallery-images-input" class="form-control" accept="image/png, image/jpeg" multiple>
 			</div>
 			
-			<div class="form-group col-span-2">
-			  <label>YouTube Video IDs (ถ้ามี)</label>
-			  <textarea name="youtube_video_ids_text" class="form-control" rows="3" placeholder="ใส่รหัสวิดีโอ YouTube หลายอัน คั่นด้วยลูกน้ำ (,) หรือขึ้นบรรทัดใหม่ เช่น dQw4w9WgXcQ,dQw4w9WgXcQ"></textarea>
-			  <small style="color: var(--text-light);">*ใส่เฉพาะส่วนรหัสท้าย URL คั่นด้วยลูกน้ำ (,) หรือขึ้นบรรทัดใหม่*</small>
-			  <input type="hidden" name="youtube_video_ids">
-			</div>
+<div class="form-group col-span-2">
+  <label>YouTube Video IDs (ถ้ามี)</label>
+  <div id="youtube-ids-container">
+    </div>
+  <button type="button" id="add-youtube-id-btn" class="btn btn-secondary" style="margin-top: 0.5rem;">+ เพิ่มวิดีโอ YouTube</button>
+  <small style="color: var(--text-light); display: block;">*ใส่เฉพาะส่วนรหัสท้าย URL ของวิดีโอ*</small>
+  <input type="hidden" name="youtube_video_ids">
+</div>
 
         </div>
         <div class="form-group">

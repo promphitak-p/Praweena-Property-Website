@@ -9,6 +9,7 @@ import { getFormData } from '../ui/forms.js';
 import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 
+// DOM Elements
 const tableBody = $('#properties-table tbody');
 const modal = $('#property-modal');
 const modalTitle = $('#modal-title');
@@ -18,46 +19,51 @@ const closeModalBtn = $('.modal-close');
 const cancelModalBtn = $('.modal-cancel');
 const coverImageInput = $('#cover-image-input');
 const imagePreview = $('#image-preview');
+const galleryImagesInput = $('#gallery-images-input');
+const youtubeIdsContainer = $('#youtube-ids-container');
+const addYoutubeIdBtn = $('#add-youtube-id-btn');
 
+// Map Variables
 let modalMap = null;
 let draggableMarker = null;
-const galleryImagesInput = $('#gallery-images-input');
 
-// Cloudinary
+// Cloudinary Config
 const CLOUD_NAME = 'dupwjm8q2';
 const UPLOAD_PRESET = 'praweena_property_preset';
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
-// โหลดรายการ
+// --- Core Functions ---
+
 async function loadProperties() {
   clear(tableBody);
-  {
-    const tr = el('tr', {});
-    const td = el('td', { textContent: 'กำลังโหลด...', attributes: { colspan: 5, style: 'text-align:center;' } });
-    tr.appendChild(td);
-    tableBody.appendChild(tr);
+  // Loading Row
+  const loadingRow = el('tr', {});
+  const loadingCell = el('td', { textContent: 'กำลังโหลด...', attributes: { colspan: 5, style: 'text-align:center;' } });
+  loadingRow.appendChild(loadingCell);
+  tableBody.appendChild(loadingRow);
+
+  try {
+      const { data, error } = await listAll();
+      clear(tableBody); // Clear loading row
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+          const emptyRow = el('tr', {});
+          const emptyCell = el('td', { textContent: 'ยังไม่มีประกาศ', attributes: { colspan: 5, style: 'text-align:center;' } });
+          emptyRow.appendChild(emptyCell);
+          tableBody.appendChild(emptyRow);
+      } else {
+          data.forEach(renderPropertyRow);
+      }
+  } catch (error) {
+      clear(tableBody); // Clear loading row on error too
+      toast('Error loading properties: ' + error.message, 4000, 'error');
   }
-
-  const { data, error } = await listAll();
-
-  clear(tableBody);
-  if (error) return toast('Error: ' + error.message, 4000, 'error');
-
-  if (!data || data.length === 0) {
-    const tr = el('tr', {});
-    const td = el('td', { textContent: 'ยังไม่มีประกาศ', attributes: { colspan: 5, style: 'text-align:center;' } });
-    tr.appendChild(td);
-    tableBody.appendChild(tr);
-    return;
-  }
-
-  data.forEach(renderPropertyRow);
 }
 
-// แสดงแต่ละแถว
 function renderPropertyRow(prop) {
   const tr = el('tr', { attributes: { 'data-id': prop.id } });
-
   const updatedAt = prop.updated_at ? new Date(prop.updated_at) : null;
   const updatedAtText = updatedAt && !isNaN(updatedAt) ? updatedAt.toLocaleDateString('th-TH') : '-';
 
@@ -78,7 +84,7 @@ function renderPropertyRow(prop) {
   tableBody.appendChild(tr);
 }
 
-// Modal หลัก
+// --- Modal Handling ---
 function openModal() { modal.classList.add('open'); }
 function closeModal() {
   modal.classList.remove('open');
@@ -90,40 +96,44 @@ function closeModal() {
 
   const mapContainer = $('#modal-map');
   if (mapContainer) mapContainer.style.display = 'none';
+
+  // *** Add this line to clear dynamic YouTube inputs ***
+  if (youtubeIdsContainer) clear(youtubeIdsContainer);
 }
 
-addPropertyBtn.addEventListener('click', () => {
-  modalTitle.textContent = 'เพิ่มประกาศใหม่';
-  openModal();
-  setTimeout(() => setupModalMap(), 100);
-});
-if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
-if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
-window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
-// CRUD
+// --- CRUD Operations ---
 function handleEdit(prop) {
-  modalTitle.textContent = `แก้ไข: ${prop.title}`;
+  modalTitle.textContent = `แก้ไข: ${prop.title || 'ประกาศ'}`;
 
+  // Populate form fields, excluding youtube_video_ids
   for (const key in prop) {
-    if (propertyForm.elements[key]) {
-		if (key !== 'youtube_video_ids' && propertyForm.elements[key]) {
-			propertyForm.elements[key].checked = !!prop[key];
-			} else {
-				propertyForm.elements[key].value = prop[key] ?? '';
-				}
-			}
-		}
-
-// --- *** เพิ่มโค้ดส่วนนี้: Populate YouTube IDs Textarea *** ---
-  if (Array.isArray(prop.youtube_video_ids) && propertyForm.elements.youtube_video_ids_text) {
-    // Join the array back into a string with newlines for editing
-    propertyForm.elements.youtube_video_ids_text.value = prop.youtube_video_ids.join('\n');
-  } else if (propertyForm.elements.youtube_video_ids_text) {
-    propertyForm.elements.youtube_video_ids_text.value = ''; // Clear if no data or not an array
+    if (key !== 'youtube_video_ids' && propertyForm.elements[key]) {
+      const element = propertyForm.elements[key];
+      if (element.type === 'checkbox') {
+        element.checked = !!prop[key];
+      } else {
+        element.value = prop[key] ?? '';
+      }
+    }
   }
-  // ---------------------------------------------------------
 
+  // Populate Dynamic YouTube ID Inputs
+  if (youtubeIdsContainer) {
+      clear(youtubeIdsContainer);
+      const videoIds = Array.isArray(prop.youtube_video_ids) ? prop.youtube_video_ids : [];
+      if (videoIds.length > 0) {
+          videoIds.forEach(id => {
+              if (id) youtubeIdsContainer.append(createYoutubeIdInput(id));
+          });
+      }
+      // Optionally add one empty field if none exist when editing
+      // else {
+      //    youtubeIdsContainer.append(createYoutubeIdInput());
+      // }
+  }
+
+
+  // Populate Image Preview
   if (prop.cover_url) {
     imagePreview.src = prop.cover_url;
     imagePreview.style.display = 'block';
@@ -136,16 +146,19 @@ function handleEdit(prop) {
 }
 
 async function handleDelete(id, title) {
-  if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${title}"?`)) {
-    const { error } = await removeProperty(id);
-    if (error) toast('ลบไม่สำเร็จ: ' + error.message, 4000, 'error');
-    else {
-      toast('ลบประกาศสำเร็จแล้ว', 2000, 'success');
-      loadProperties();
+  if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${title || 'ประกาศนี้'}"?`)) {
+    try {
+        const { error } = await removeProperty(id);
+        if (error) throw error;
+        toast('ลบประกาศสำเร็จแล้ว', 2000, 'success');
+        loadProperties();
+    } catch(error) {
+        toast('ลบไม่สำเร็จ: ' + error.message, 4000, 'error');
     }
   }
 }
 
+// --- Form Submission ---
 propertyForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const submitBtn = propertyForm.querySelector('button[type="submit"]');
@@ -154,55 +167,55 @@ propertyForm.addEventListener('submit', async (e) => {
 
   const payload = getFormData(propertyForm);
   payload.published = !!payload.published;
-  
-  // --- Process YouTube Video IDs ---
-  const videoIdsText = payload.youtube_video_ids_text || ''; // Get text from textarea
-  if (videoIdsText.trim()) {
-      // Split by comma or newline, trim whitespace, filter out empty strings
-      const videoIdsArray = videoIdsText
-          .split(/[\n,]+/) // Split by newline or comma
-          .map(id => id.trim()) // Remove extra spaces
-          .filter(id => id); // Remove empty entries
-      // Store the clean array as JSON in the real payload field
-      payload.youtube_video_ids = JSON.stringify(videoIdsArray); 
-  } else {
-      payload.youtube_video_ids = '[]'; // Save an empty JSON array if input is empty
-  }
-  // Remove the temporary text field from the payload
-  delete payload.youtube_video_ids_text;
-  // ---------------------------------
+
+  // --- Collect YouTube Video IDs from Dynamic Inputs (Corrected) ---
+  const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
+  const videoIdsArray = Array.from(videoIdInputs)
+      .map(input => input.value.trim())
+      .filter(id => id); // Filter out empty strings
+  payload.youtube_video_ids = JSON.stringify(videoIdsArray);
+  delete payload.youtube_video_ids_text; // Ensure temporary field is removed
+  // -----------------------------------------------------------------
 
   try {
-    // อัปโหลดรูปหน้าปก
+    // Upload Cover Image
     const coverFile = coverImageInput.files[0];
     if (coverFile) {
       const formData = new FormData();
       formData.append('file', coverFile);
       formData.append('upload_preset', UPLOAD_PRESET);
       const response = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Cover image upload failed');
+      if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(`Cover image upload failed: ${errData?.error?.message || response.statusText}`);
+      }
       const imageData = await response.json();
       payload.cover_url = imageData.secure_url;
     }
 
-    // อัปโหลดแกลเลอรี
+    // Upload Gallery Images
     const galleryFiles = galleryImagesInput.files;
     if (galleryFiles && galleryFiles.length > 0) {
       submitBtn.textContent = `กำลังอัปโหลดแกลเลอรี (0/${galleryFiles.length})...`;
       const uploadedImages = await Promise.all(
-        Array.from(galleryFiles).map(async (file) => {
+        Array.from(galleryFiles).map(async (file, index) => {
+          submitBtn.textContent = `กำลังอัปโหลดแกลเลอรี (${index + 1}/${galleryFiles.length})...`;
           const fd = new FormData();
           fd.append('file', file);
           fd.append('upload_preset', UPLOAD_PRESET);
           const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
-          if (!res.ok) throw new Error(`Gallery image upload failed for ${file.name}`);
+          if (!res.ok) {
+              const errData = await res.json();
+              throw new Error(`Gallery image upload failed for ${file.name}: ${errData?.error?.message || res.statusText}`);
+          }
           return res.json();
         })
       );
       payload.gallery = uploadedImages.map(img => img.secure_url);
     }
 
-    const { error } = await upsertProperty(payload);
+    // Save data to Supabase
+    const { data, error } = await upsertProperty(payload);
     if (error) throw error;
 
     toast('บันทึกข้อมูลสำเร็จ!', 2000, 'success');
@@ -217,59 +230,114 @@ propertyForm.addEventListener('submit', async (e) => {
   }
 });
 
-// Main
-document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage();
-  setupNav();
-  signOutIfAny();
-  setupMobileNav();
-  loadProperties();
-});
+// --- Helper Functions ---
 
-// Preview รูป
-coverImageInput.addEventListener('change', () => {
-  const file = coverImageInput.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      imagePreview.src = e.target.result;
-      imagePreview.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-  } else {
-    imagePreview.style.display = 'none';
-  }
-});
+// Function to create YouTube ID input row
+function createYoutubeIdInput(videoId = '') {
+  const itemDiv = el('div', {
+    className: 'youtube-id-item',
+    style: 'display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;'
+  });
+  const input = el('input', {
+    type: 'text',
+    className: 'form-control youtube-id-input',
+    style: 'flex-grow: 1;', // Make input take available space
+    value: videoId,
+    placeholder: 'เช่น dQw4w9WgXcQ'
+  });
+  const removeBtn = el('button', {
+    type: 'button',
+    className: 'btn btn-secondary remove-youtube-id-btn',
+    textContent: 'ลบ',
+    style: 'padding: 0.5rem 0.75rem; background: #fee2e2; color: #ef4444; border: none; flex-shrink: 0;'
+  });
+  removeBtn.addEventListener('click', () => itemDiv.remove());
+  itemDiv.append(input, removeBtn);
+  return itemDiv;
+}
 
-// แผนที่
+// Image Preview Handler
+if (coverImageInput) {
+    coverImageInput.addEventListener('change', () => {
+      const file = coverImageInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; };
+        reader.readAsDataURL(file);
+      } else {
+        imagePreview.src = ''; imagePreview.style.display = 'none';
+      }
+    });
+}
+
+// Map Handling Function
 function setupModalMap(lat, lng) {
   const latInput = propertyForm.elements.latitude;
   const lngInput = propertyForm.elements.longitude;
+  const mapContainer = $('#modal-map');
+  if (!mapContainer) return; // Exit if map container doesn't exist
 
-  const startLat = (typeof lat === 'number' ? lat : parseFloat(lat)) || 9.1337;
-  const startLng = (typeof lng === 'number' ? lng : parseFloat(lng)) || 99.3325;
+  // Convert lat/lng safely and set defaults
+  let startLat = parseFloat(lat);
+  let startLng = parseFloat(lng);
+  startLat = !isNaN(startLat) ? startLat : 9.1337; // Default Lat
+  startLng = !isNaN(startLng) ? startLng : 99.3325; // Default Lng
 
+  // Update form inputs if they exist
   if (latInput) latInput.value = startLat.toFixed(6);
   if (lngInput) lngInput.value = startLng.toFixed(6);
 
-  const mapContainer = $('#modal-map');
-  if (!mapContainer) return;
   mapContainer.style.display = 'block';
 
-  if (modalMap) {
-    modalMap.setView([startLat, startLng], 15);
-    if (draggableMarker) draggableMarker.setLatLng([startLat, startLng]);
-    return;
+  try { // Add try-catch for Leaflet initialization
+      if (modalMap) {
+          modalMap.setView([startLat, startLng], 15);
+          if (draggableMarker) draggableMarker.setLatLng([startLat, startLng]);
+      } else {
+          modalMap = L.map('modal-map').setView([startLat, startLng], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap contributors' // Add attribution
+          }).addTo(modalMap);
+
+          draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
+          draggableMarker.on('dragend', (event) => {
+              const position = event.target.getLatLng();
+              if (latInput) latInput.value = position.lat.toFixed(6);
+              if (lngInput) lngInput.value = position.lng.toFixed(6);
+          });
+      }
+  } catch (mapError) {
+      console.error("Error initializing Leaflet map:", mapError);
+      mapContainer.innerHTML = '<p style="color: red; text-align: center;">เกิดข้อผิดพลาดในการโหลดแผนที่</p>';
+  }
+}
+
+// --- Main execution ---
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+      await protectPage();
+      setupNav();
+      signOutIfAny();
+      setupMobileNav();
+
+      // Add listener for the YouTube '+' button safely
+      if (addYoutubeIdBtn && youtubeIdsContainer) {
+          addYoutubeIdBtn.addEventListener('click', () => {
+              youtubeIdsContainer.append(createYoutubeIdInput());
+          });
+      }
+
+      await loadProperties(); // Load properties last
+
+  } catch (initError) {
+      console.error("Initialization error:", initError);
+      // Display error to user if appropriate
+      if (tableBody) tableBody.innerHTML = `<tr><td colspan="5" style="color: red; text-align: center;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ</td></tr>`;
   }
 
-  // ใช้ Leaflet จาก global L
-  modalMap = L.map('modal-map').setView([startLat, startLng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
+  // Event listeners for the main modal (safer placement)
+  if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+  if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
+  window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
-  draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
-  draggableMarker.on('dragend', (event) => {
-    const position = event.target.getLatLng();
-    if (latInput) latInput.value = position.lat.toFixed(6);
-    if (lngInput) lngInput.value = position.lng.toFixed(6);
-  });
-}
+}); // End DOMContentLoaded
