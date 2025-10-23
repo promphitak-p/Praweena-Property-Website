@@ -637,8 +637,8 @@ tbody tr:last-child td {
 
 /* ให้ไอคอน svg ปรับตามสีปุ่ม */
 .yt-remove-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   fill: currentColor;
 }
 
