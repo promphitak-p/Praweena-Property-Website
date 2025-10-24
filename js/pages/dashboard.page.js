@@ -17,11 +17,18 @@ const propertyForm = $('#property-form');
 const addPropertyBtn = $('#add-property-btn');
 const closeModalBtn = $('.modal-close');
 const cancelModalBtn = $('.modal-cancel');
-const coverImageInput = $('#cover-image-input');
-const imagePreview = $('#image-preview');
-const galleryImagesInput = $('#gallery-images-input');
+const coverImageInput = $('#cover-image-input');      // (ยังอยู่ แต่จะไม่บังคับใช้)
+const imagePreview = $('#image-preview');             // preview เดิม
+const galleryImagesInput = $('#gallery-images-input'); // <input multiple>
 const youtubeIdsContainer = $('#youtube-ids-container');
 const addYoutubeIdBtn = $('#add-youtube-id-btn');
+
+// เพิ่มพื้นที่แสดงตัวจัดการแกลเลอรี (ถ้าใน HTML ยังไม่มี ให้เพิ่ม div ใต้ input แกลเลอรี)
+let galleryManager = $('#gallery-manager');
+if (!galleryManager && galleryImagesInput) {
+  galleryManager = el('div', { id: 'gallery-manager', style: 'margin-top:12px;' });
+  galleryImagesInput.parentElement.append(galleryManager);
+}
 
 // --- Map Vars ---
 let modalMap = null;
@@ -31,6 +38,9 @@ let draggableMarker = null;
 const CLOUD_NAME = 'dupwjm8q2';
 const UPLOAD_PRESET = 'praweena_property_preset';
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+
+// --- Local state สำหรับแกลเลอรี (URL ทั้งหมด) ---
+let currentGallery = []; // array<string> เก็บลำดับปัจจุบันของรูปในแกลเลอรี
 
 // =====================================================
 // Core
@@ -98,6 +108,92 @@ function renderPropertyRow(prop) {
 }
 
 // =====================================================
+// Gallery Manager (UI)
+// =====================================================
+function renderGalleryManager() {
+  if (!galleryManager) return;
+  clear(galleryManager);
+
+  if (!currentGallery.length) {
+    galleryManager.append(el('p', { style: 'color:var(--text-light);', textContent: 'ยังไม่มีรูปในแกลเลอรี' }));
+    return;
+  }
+
+  const wrap = el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;' });
+
+  currentGallery.forEach((url, idx) => {
+    const card = el('div', { className: 'gm-card', style: 'position:relative;border-radius:8px;overflow:hidden;background:#f3f4f6;' });
+
+    const img = el('img', {
+      attributes: { src: url, alt: 'gallery-image' },
+      style: 'width:100%;height:100px;object-fit:cover;display:block;'
+    });
+
+    // ป้ายหน้าปก
+    if (idx === 0) {
+      const badge = el('div', { className: 'gm-cover-badge', style: 'position:absolute;left:6px;top:6px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;padding:2px 6px;border-radius:6px;' });
+      badge.textContent = 'หน้าปก';
+      card.append(badge);
+    }
+
+    // แถบปุ่ม overlay
+    const bar = el('div', { style: 'position:absolute;inset:auto 0 0 0;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.55));padding:6px;display:flex;gap:6px;justify-content:flex-end;' });
+
+    const setCoverBtn = el('button', { className: 'btn btn-secondary', style: 'padding:4px 8px;font-size:12px;background:rgba(255,255,255,.9);color:#111;border:none;border-radius:6px;' , textContent: 'ตั้งเป็นหน้าปก' });
+    setCoverBtn.addEventListener('click', () => {
+      if (idx === 0) return;
+      const [item] = currentGallery.splice(idx, 1);
+      currentGallery.unshift(item);        // ย้ายไปลำดับแรก
+      renderGalleryManager();
+    });
+
+    const removeBtn = el('button', { className: 'btn btn-secondary', style: 'padding:4px 8px;font-size:12px;background:rgba(239,68,68,.95);color:#fff;border:none;border-radius:6px;', textContent: 'ลบ' });
+    removeBtn.addEventListener('click', () => {
+      currentGallery.splice(idx, 1);       // เอาออกจาก state
+      renderGalleryManager();
+    });
+
+    bar.append(setCoverBtn, removeBtn);
+    card.append(img, bar);
+    wrap.append(card);
+  });
+
+  galleryManager.append(wrap);
+}
+
+// อัปโหลดรูปใหม่เพิ่มเข้าแกลเลอรี
+if (galleryImagesInput) {
+  galleryImagesInput.addEventListener('change', async () => {
+    const files = galleryImagesInput.files || [];
+    if (!files.length) return;
+
+    try {
+      const uploaded = await Promise.all(
+        Array.from(files).map(async (file) => {
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('upload_preset', UPLOAD_PRESET);
+          const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err?.error?.message || 'upload failed');
+          }
+          return res.json();
+        })
+      );
+
+      // เพิ่ม URL เข้า state แล้ว render ใหม่
+      currentGallery.push(...uploaded.map(x => x.secure_url));
+      renderGalleryManager();
+      // ล้างค่า input เพื่อให้เลือกไฟล์ชุดเดิมซ้ำได้ในอนาคต
+      galleryImagesInput.value = '';
+    } catch (e) {
+      toast('อัปโหลดแกลเลอรีไม่สำเร็จ: ' + e.message, 4000, 'error');
+    }
+  });
+}
+
+// =====================================================
 // Modal Handling
 // =====================================================
 function openModal() { if (modal) modal.classList.add('open'); }
@@ -116,9 +212,11 @@ function closeModal() {
   if (mapContainer) mapContainer.style.display = 'none';
 
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
+
+  currentGallery = [];      // เคลียร์ state แกลเลอรี
+  renderGalleryManager();   // เคลียร์หน้าจอ
 }
 
-// รับค่าที่อาจเป็น array/json-string/สตริงคั่นด้วย comma → คืน array ของ string (ไม่ว่าง)
 function normalizeYoutubeIds(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val.filter(Boolean);
@@ -152,25 +250,26 @@ function handleEdit(prop) {
     }
   }
 
-  // เติม YouTube IDs แบบไดนามิก (อย่างน้อย 1 ช่อง)
-  if (youtubeIdsContainer) {
-    clear(youtubeIdsContainer);
-    const ids = normalizeYoutubeIds(prop.youtube_video_ids);
-    if (ids.length === 0) {
-      youtubeIdsContainer.append(createYoutubeIdInput(''));
-    } else {
-      ids.forEach(id => youtubeIdsContainer.append(createYoutubeIdInput(id)));
-    }
-  }
+  // แกลเลอรี: โหลดเข้ามาเป็น state และ render
+  currentGallery = Array.isArray(prop.gallery) ? [...prop.gallery] : [];
+  renderGalleryManager();
 
-  // Preview รูป
+  // Preview cover (อิงจาก cover_url เดิมถ้ามี)
   if (imagePreview) {
-    if (prop.cover_url) {
-      imagePreview.src = prop.cover_url;
+    const url = prop.cover_url || currentGallery[0] || '';
+    if (url) {
+      imagePreview.src = url;
       imagePreview.style.display = 'block';
     } else {
       imagePreview.style.display = 'none';
     }
+  }
+
+  // YouTube IDs
+  if (youtubeIdsContainer) {
+    clear(youtubeIdsContainer);
+    const ids = normalizeYoutubeIds(prop.youtube_video_ids);
+    ids.forEach(id => youtubeIdsContainer.append(createYoutubeIdInput(id)));
   }
 
   openModal();
@@ -204,34 +303,22 @@ propertyForm.addEventListener('submit', async (e) => {
   payload.published = !!payload.published;
   if (payload.price !== undefined) payload.price = Number(payload.price) || 0;
 
-  // --- YouTube IDs: เก็บจาก DOM เท่านั้น ---
-const ytInputs = $$('#youtube-ids-container .youtube-id-input');
-const collectedIds = Array.from(ytInputs)
-  .map(input => {
-    // ถ้าผู้ใช้พิมพ์ใหม่ → ใช้ค่าที่ parse ได้
-    const parsed = parseYouTubeId(input.value);
-    if (parsed) return parsed;
-    // ถ้าพิมพ์ว่าง/พิมพ์แล้ว parse ไม่ได้ แต่เป็นช่องที่มาจากของเดิม → ใช้ค่าเดิม
-    if (input.dataset.originalId) return input.dataset.originalId;
-    // ช่องใหม่ที่ยังไม่กรอกอะไร → ตัดทิ้ง
-    return '';
-  })
-  .filter(Boolean);
-  const isEditing = !!propertyForm.elements.id?.value;
+  // YouTube ids
+  const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
+  const newIds = Array.from(videoIdInputs)
+    .map(i => parseYouTubeId(i.value))
+    .filter(Boolean);
+  payload.youtube_video_ids = Array.from(new Set(newIds));
 
-  // ป้องกันการเผลอล้างทั้งหมดโดยไม่ได้ตั้งใจ
-  if (ytInputs.length === 0 && isEditing) {
-    // ไม่มี element ช่องเหลือเลย (เช่น DOM หาย) → อย่าทับค่าเดิม
-    delete payload.youtube_video_ids;
-  } else {
-    // มีช่องอยู่ → เคารพค่าที่ผู้ใช้ตั้งใจ (อาจว่าง = ล้างทั้งหมด)
-    payload.youtube_video_ids = Array.from(new Set(collectedIds));
-  }
-  delete payload.youtube_video_ids_text; // ไม่ใช้แล้ว
+  // ใช้ state ปัจจุบันของแกลเลอรีเป็นความจริง
+  payload.gallery = [...currentGallery];
 
+  // ตั้ง cover_url = รูปแรกของแกลเลอรี (ถ้ามี)
+  payload.cover_url = payload.gallery.length ? payload.gallery[0] : null;
+
+  // ถ้ามีผู้ใช้เลือก cover ใหม่ผ่าน input cover (อนุโลมให้ทับได้)
+  const coverFile = coverImageInput?.files?.[0];
   try {
-    // อัปโหลด Cover
-    const coverFile = coverImageInput?.files?.[0];
     if (coverFile) {
       const formData = new FormData();
       formData.append('file', coverFile);
@@ -242,29 +329,10 @@ const collectedIds = Array.from(ytInputs)
         throw new Error(`Cover image upload failed: ${errData?.error?.message || response.statusText}`);
       }
       const imageData = await response.json();
-      payload.cover_url = imageData.secure_url;
+      payload.cover_url = imageData.secure_url; // ถ้าอัปโหลด cover แยก → ให้ค่านี้เป็นหน้าปกแทน
     }
 
-    // อัปโหลด Gallery
-    const galleryFiles = galleryImagesInput?.files || [];
-    if (galleryFiles.length > 0) {
-      submitBtn.textContent = `กำลังอัปโหลดแกลเลอรี (0/${galleryFiles.length})...`;
-      const uploadedImages = await Promise.all(
-        Array.from(galleryFiles).map(async (file, index) => {
-          submitBtn.textContent = `กำลังอัปโหลดแกลเลอรี (${index + 1}/${galleryFiles.length})...`;
-          const fd = new FormData();
-          fd.append('file', file);
-          fd.append('upload_preset', UPLOAD_PRESET);
-          const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(`Gallery image upload failed for ${file.name}: ${errData?.error?.message || res.statusText}`);
-          }
-          return res.json();
-        })
-      );
-      payload.gallery = uploadedImages.map(img => img.secure_url);
-    }
+    // (การอัปโหลดไฟล์แกลเลอรีทำไปแล้วตอนเลือกไฟล์ → currentGallery ถูกเติมไว้แล้ว)
 
     const { error } = await upsertProperty(payload);
     if (error) throw error;
@@ -287,17 +355,13 @@ const collectedIds = Array.from(ytInputs)
 function createYoutubeIdInput(videoId = '') {
   const itemDiv = el('div', { className: 'youtube-id-item' });
 
-  // ช่องกรอก ID/URL
   const input = el('input', {
     type: 'text',
     className: 'form-control youtube-id-input',
     value: videoId,
     placeholder: 'เช่น dQw4w9WgXcQ หรือ URL YouTube'
   });
-  // 👇 เก็บค่าเดิมไว้เพื่อกันเคลียร์พลาด
-  if (videoId) input.dataset.originalId = videoId;
 
-  // กล่องพรีวิว + overlay ปุ่มลบ
   const previewWrap = el('div', { className: 'yt-preview' });
 
   const removeBtn = el('button', {
@@ -325,8 +389,7 @@ function createYoutubeIdInput(videoId = '') {
       });
       previewWrap.append(thumb);
     } else {
-      const msg = el('div', { className: 'yt-thumb yt-thumb--empty', textContent: 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง' });
-      previewWrap.append(msg);
+      previewWrap.textContent = 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง';
     }
     previewWrap.append(removeBtn);
   }
@@ -337,7 +400,6 @@ function createYoutubeIdInput(videoId = '') {
   itemDiv.append(input, previewWrap);
   return itemDiv;
 }
-
 
 if (coverImageInput) {
   coverImageInput.addEventListener('change', () => {
@@ -376,10 +438,7 @@ function setupModalMap(lat, lng) {
       if (draggableMarker) draggableMarker.setLatLng([startLat, startLng]);
     } else {
       modalMap = L.map('modal-map').setView([startLat, startLng], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(modalMap);
-
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(modalMap);
       draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
       draggableMarker.on('dragend', (event) => {
         const position = event.target.getLatLng();
@@ -406,12 +465,12 @@ function parseYouTubeId(input) {
     if (m1) return m1[1];
     const m2 = u.pathname.match(/^\/shorts\/([a-zA-Z0-9_-]{11})/);
     if (m2) return m2[1];
-  } catch (_) {}
+  } catch {}
   return '';
 }
 
 // =====================================================
-// Init (ONE block only)
+// Init
 // =====================================================
 document.addEventListener('DOMContentLoaded', async () => {
   try {
@@ -420,19 +479,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     signOutIfAny();
     setupMobileNav();
 
-    // ปุ่ม "เพิ่มประกาศใหม่"
     if (addPropertyBtn) {
       addPropertyBtn.addEventListener('click', () => {
         if (youtubeIdsContainer) {
           clear(youtubeIdsContainer);
-          youtubeIdsContainer.append(createYoutubeIdInput()); // เริ่มด้วย 1 ช่อง
+          youtubeIdsContainer.append(createYoutubeIdInput());
         }
+        currentGallery = [];        // เริ่มแกลเลอรีว่าง
+        renderGalleryManager();
         openModal();
         setTimeout(() => setupModalMap(), 100);
       });
     }
 
-    // ปุ่ม + YouTube (จำกัดสูงสุด 5 คลิป)
+    // จำกัดเพิ่ม YouTube fields (เดิม)
     const MAX_YT = 5;
     if (addYoutubeIdBtn && youtubeIdsContainer) {
       addYoutubeIdBtn.addEventListener('click', () => {
@@ -445,18 +505,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // โหลดรายการประกาศ
     await loadProperties();
 
   } catch (initError) {
     console.error('Initialization error:', initError);
     if (tableBody) {
-      tableBody.innerHTML =
-        `<tr><td colspan="5" style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="5" style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ</td></tr>`;
     }
   }
 
-  // ปุ่มปิดโมดัล
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
   if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
   window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
