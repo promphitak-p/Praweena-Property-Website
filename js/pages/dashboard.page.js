@@ -9,9 +9,9 @@ import { getFormData } from '../ui/forms.js';
 import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 
-// =====================================================
-// DOM Elements
-// =====================================================
+/* =====================================================
+   DOM Elements
+===================================================== */
 const tableBody = $('#properties-table tbody');
 const modal = $('#property-modal');
 const modalTitle = $('#modal-title');
@@ -19,57 +19,59 @@ const propertyForm = $('#property-form');
 const addPropertyBtn = $('#add-property-btn');
 const closeModalBtn = $('.modal-close');
 const cancelModalBtn = $('.modal-cancel');
-const coverImageInput = $('#cover-image-input');
-const imagePreview = $('#image-preview');
+
+// cover (แบบใหม่: ครอบรูปก่อนอัป)
+const pickCoverBtn = $('#pick-cover-btn');
+const coverFileInput = $('#cover-file-input');
+const imagePreviewEl = $('#image-preview'); // พรีวิวหน้าปก
+
+// gallery (เลือกหลายไฟล์)
 const galleryImagesInput = $('#gallery-images-input');
+
+// YouTube
 const youtubeIdsContainer = $('#youtube-ids-container');
 const addYoutubeIdBtn = $('#add-youtube-id-btn');
 
-const pickCoverBtn = document.getElementById('pick-cover-btn');
-const coverFileInput = document.getElementById('cover-file-input');
-const imagePreviewEl = document.getElementById('image-preview');
+// แผนที่
+let modalMap = null;
+let draggableMarker = null;
 
-const cropModal = document.getElementById('cover-crop-modal');
-const cropClose = document.getElementById('cover-crop-close');
-const cropperImage = document.getElementById('cropper-image');
-const cropApplyBtn = document.getElementById('crop-apply-btn');
-const cropCancelBtn = document.getElementById('crop-cancel-btn');
-const cropAspectSelect = document.getElementById('crop-aspect');
-const rotateLeftBtn = document.getElementById('crop-rotate-left');
-const rotateRightBtn = document.getElementById('crop-rotate-right');
-
-let cropper = null;           // instance ของ Cropper.js
-let pickedFileURL = null;     // objectURL เก็บชั่วคราว
-let coverUrl = null;          // URL หลังอัปโหลดเสร็จ (ไว้เซฟลง payload.cover_url)
-
-
-// Cloudinary Picker UI
-const pickCloudinaryBtn = $('#pick-cloudinary-btn');
-const cloudinaryPickedPreview = $('#cloudinary-picked-preview');
-let selectedCloudinaryUrls = [];
-
-// Cloudinary Config
+// Cloudinary (unsigned)
 const CLOUD_NAME = 'dupwjm8q2';
 const UPLOAD_PRESET = 'praweena_property_preset';
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
-// Gallery Manager container
+/* =====================================================
+   Cropper Modal (ครอบรูปหน้าปก)
+===================================================== */
+const cropModal = $('#cover-crop-modal');
+const cropClose = $('#cover-crop-close');
+const cropperImage = $('#cropper-image');
+const cropApplyBtn = $('#crop-apply-btn');
+const cropCancelBtn = $('#crop-cancel-btn');
+const cropAspectSelect = $('#crop-aspect');
+const rotateLeftBtn = $('#crop-rotate-left');
+const rotateRightBtn = $('#crop-rotate-right');
+
+let cropper = null;        // instance ของ Cropper.js
+let pickedFileURL = null;  // objectURL ชั่วคราว
+let coverUrl = null;       // URL หน้าปกหลังอัปโหลดเสร็จ
+
+/* =====================================================
+   Local state
+===================================================== */
+let currentGallery = [];   // เก็บ URL ของรูปในแกลเลอรีตามลำดับ
+
+// กล่องแสดงตัวจัดการแกลเลอรี (thumbnail + ปุ่ม)
 let galleryManager = $('#gallery-manager');
 if (!galleryManager && galleryImagesInput) {
   galleryManager = el('div', { id: 'gallery-manager', style: 'margin-top:12px;' });
   galleryImagesInput.parentElement.append(galleryManager);
 }
 
-// Map Vars
-let modalMap = null;
-let draggableMarker = null;
-
-// Local state
-let currentGallery = [];
-
-// =====================================================
-// Core Load Table
-// =====================================================
+/* =====================================================
+   Load ตารางรายการประกาศ
+===================================================== */
 async function loadProperties() {
   if (!tableBody) return;
   clear(tableBody);
@@ -122,91 +124,77 @@ function renderPropertyRow(prop) {
       <button class="btn btn-secondary delete-btn" style="background:#fee2e2;color:#ef4444;border:none;">ลบ</button>
     </td>
   `;
-
   tr.querySelector('.edit-btn').addEventListener('click', () => handleEdit(prop));
   tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(prop.id, prop.title));
-
   tableBody.append(tr);
 }
 
-// =====================================================
-// Gallery Manager
-// =====================================================
-
-// ====== เปิดเลือกไฟล์หน้าปก ======
+/* =====================================================
+   Cover: เลือกไฟล์ + ครอบรูป + อัปโหลด
+===================================================== */
 if (pickCoverBtn && coverFileInput) {
   pickCoverBtn.addEventListener('click', () => coverFileInput.click());
-
   coverFileInput.addEventListener('change', () => {
     const file = coverFileInput.files?.[0];
     if (!file) return;
-    // สร้าง objectURL แล้วโยนให้ Cropper
     if (pickedFileURL) URL.revokeObjectURL(pickedFileURL);
     pickedFileURL = URL.createObjectURL(file);
-    cropperImage.src = pickedFileURL;
+    if (cropperImage) cropperImage.src = pickedFileURL;
     openCropModal();
   });
 }
 
-// ====== Modal helpers ======
 function openCropModal() {
+  if (!cropModal || !cropperImage) return;
   cropModal.classList.add('open');
-  // รอภาพโหลดเสร็จ ก่อน init cropper
   cropperImage.onload = () => {
     if (cropper) cropper.destroy();
+    // ต้องมี <link/script> ของ cropperjs ใน HTML:
+    // https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css
+    // https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js
     cropper = new Cropper(cropperImage, {
       viewMode: 1,
       dragMode: 'move',
-      aspectRatio: 16 / 9,      // ค่าเริ่มต้น
+      aspectRatio: 16 / 9,
       autoCropArea: 1,
-      responsive: true,
       background: false,
-      checkCrossOrigin: false,
+      responsive: true,
+      checkCrossOrigin: false
     });
   };
 }
 function closeCropModal() {
+  if (!cropModal) return;
   cropModal.classList.remove('open');
   if (cropper) { cropper.destroy(); cropper = null; }
   if (pickedFileURL) { URL.revokeObjectURL(pickedFileURL); pickedFileURL = null; }
 }
-
-// ปุ่มปิด/ยกเลิก
 if (cropClose) cropClose.addEventListener('click', closeCropModal);
 if (cropCancelBtn) cropCancelBtn.addEventListener('click', closeCropModal);
 
-// เปลี่ยนอัตราส่วน
 if (cropAspectSelect) {
   cropAspectSelect.addEventListener('change', () => {
     if (!cropper) return;
-    const val = cropAspectSelect.value;
-    const ratio = isNaN(Number(val)) ? eval(val) : Number(val); // "16/9" -> 1.777...
+    const val = cropAspectSelect.value; // "16/9" | "4/3" | "1/1" | "NaN"
+    let ratio;
+    try { ratio = eval(val); } catch { ratio = NaN; }
     cropper.setAspectRatio(isNaN(ratio) ? NaN : ratio);
   });
 }
-
-// หมุน
-if (rotateLeftBtn) rotateLeftBtn.addEventListener('click', () => { if (cropper) cropper.rotate(-90); });
+if (rotateLeftBtn)  rotateLeftBtn.addEventListener('click',  () => { if (cropper) cropper.rotate(-90); });
 if (rotateRightBtn) rotateRightBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
 
-// ยืนยันครอบ → export canvas → อัปโหลด Cloudinary → แสดงพรีวิว
 if (cropApplyBtn) {
   cropApplyBtn.addEventListener('click', async () => {
     if (!cropper) return;
-
     try {
-      // สร้าง canvas ตามอัตราส่วนปัจจุบัน (กำหนดความกว้างเป้าหมายเพื่อคุณภาพ)
-      const canvas = cropper.getCroppedCanvas({ 
-        // ปรับขนาดตามความเหมาะสมของเว็บ: 1600px กว้างพอสำหรับ hero/cover
-        width: 1600,
-        fillColor: '#fff',
-      });
+      const canvas = cropper.getCroppedCanvas({ width: 1600, fillColor: '#fff' });
       const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
 
-      // อัปขึ้น Cloudinary (unsigned)
       const fd = new FormData();
       fd.append('file', blob, 'cover.jpg');
       fd.append('upload_preset', UPLOAD_PRESET);
+
       const resp = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
@@ -215,12 +203,10 @@ if (cropApplyBtn) {
       const data = await resp.json();
       coverUrl = data.secure_url;
 
-      // แสดงพรีวิว
       if (imagePreviewEl) {
         imagePreviewEl.src = coverUrl;
         imagePreviewEl.style.display = 'block';
       }
-
       toast('อัปโหลดหน้าปกสำเร็จ', 1800, 'success');
       closeCropModal();
     } catch (e) {
@@ -229,23 +215,18 @@ if (cropApplyBtn) {
   });
 }
 
-// ====== รวมเข้ากับการ “บันทึกประกาศ” เดิม ======
-// ก่อนส่ง payload (เวลาคุณกดปุ่ม บันทึก)
-// ... สมมติคุณมี payload จาก getFormData() เหมือนเดิม
-// ให้ตั้งค่า cover_url จาก coverUrl (ถ้ามี) หรือ fallback เป็นรูปแรกของ gallery
-
-// ตัวอย่างใน handler submit ของฟอร์ม:
+// helper เอาไปใช้ก่อน upsert
 function applyCoverToPayload(payload, galleryArray) {
-  // ถ้าเพิ่งครอบใหม่ → ใช้ url ใหม่นี้
   if (coverUrl) {
     payload.cover_url = coverUrl;
   } else if (!payload.cover_url) {
-    // ยังไม่มี -> ใช้รูปแรกในแกลเลอรี
     payload.cover_url = Array.isArray(galleryArray) && galleryArray.length ? galleryArray[0] : null;
   }
 }
 
-
+/* =====================================================
+   Gallery Manager (UI + Upload)
+===================================================== */
 function renderGalleryManager() {
   if (!galleryManager) return;
   clear(galleryManager);
@@ -256,17 +237,10 @@ function renderGalleryManager() {
   }
 
   const wrap = el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;' });
-
   currentGallery.forEach((url, idx) => {
-    const card = el('div', {
-      className: 'gm-card',
-      style: 'position:relative;border-radius:8px;overflow:hidden;background:#f3f4f6;'
-    });
+    const card = el('div', { className: 'gm-card', style: 'position:relative;border-radius:8px;overflow:hidden;background:#f3f4f6;' });
 
-    const img = el('img', {
-      attributes: { src: url, alt: 'gallery-image' },
-      style: 'width:100%;height:100px;object-fit:cover;display:block;'
-    });
+    const img = el('img', { attributes: { src: url, alt: 'gallery-image' }, style: 'width:100%;height:100px;object-fit:cover;display:block;' });
 
     if (idx === 0) {
       const badge = el('div', {
@@ -288,9 +262,14 @@ function renderGalleryManager() {
     });
     setCoverBtn.addEventListener('click', () => {
       if (idx === 0) return;
-      const [item] = currentGallery.splice(idx, 1);
-      currentGallery.unshift(item);
+      const [it] = currentGallery.splice(idx, 1);
+      currentGallery.unshift(it);
       renderGalleryManager();
+      // อัปเดตพรีวิวหน้าปกทันที
+      if (imagePreviewEl) {
+        imagePreviewEl.src = currentGallery[0];
+        imagePreviewEl.style.display = 'block';
+      }
     });
 
     const removeBtn = el('button', {
@@ -301,6 +280,13 @@ function renderGalleryManager() {
     removeBtn.addEventListener('click', () => {
       currentGallery.splice(idx, 1);
       renderGalleryManager();
+      if (!currentGallery.length && imagePreviewEl) {
+        // ถ้าไม่มีรูปเหลือ ให้ซ่อนพรีวิวด้วย
+        imagePreviewEl.style.display = 'none';
+      } else if (idx === 0 && imagePreviewEl) {
+        // ถ้าลบรูปหน้าปก ให้พรีวิวเป็นรูปแรกอันใหม่
+        imagePreviewEl.src = currentGallery[0];
+      }
     });
 
     bar.append(setCoverBtn, removeBtn);
@@ -311,9 +297,7 @@ function renderGalleryManager() {
   galleryManager.append(wrap);
 }
 
-// =====================================================
-// Upload new gallery images
-// =====================================================
+// อัปโหลดรูปเพิ่มเข้าแกลเลอรี (จากเครื่องผู้ใช้)
 if (galleryImagesInput) {
   galleryImagesInput.addEventListener('change', async () => {
     const files = galleryImagesInput.files || [];
@@ -334,69 +318,51 @@ if (galleryImagesInput) {
         })
       );
 
-      currentGallery.push(...uploaded.map(x => x.secure_url));
+      const urls = uploaded.map(x => x.secure_url);
+      currentGallery.push(...urls);
       renderGalleryManager();
-      galleryImagesInput.value = '';
+
+      // ถ้าไม่มีหน้าปก ให้ตั้งรูปแรกของแกลเลอรีที่เพิ่มมาเป็นพรีวิว
+      if (imagePreviewEl && currentGallery.length && !imagePreviewEl.src) {
+        imagePreviewEl.src = currentGallery[0];
+        imagePreviewEl.style.display = 'block';
+      }
+
+      galleryImagesInput.value = ''; // reset เพื่อเลือกไฟล์เดิมซ้ำได้
     } catch (e) {
       toast('อัปโหลดแกลเลอรีไม่สำเร็จ: ' + e.message, 4000, 'error');
     }
   });
 }
 
-// =====================================================
-// Cloudinary Picker
-// =====================================================
-function renderPickedPreview() {
-  if (!cloudinaryPickedPreview) return;
-  cloudinaryPickedPreview.innerHTML = '';
-
-  selectedCloudinaryUrls.forEach((url, idx) => {
-    const wrap = el('div', {
-      style: 'position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;background:#eee;'
-    });
-    const img = el('img', {
-      attributes: { src: url, alt: 'gallery' },
-      style: 'width:100%;height:100%;object-fit:cover;display:block;'
-    });
-
-    const del = el('button', {
-      type: 'button',
-      style: 'position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;'
-    });
-    del.innerHTML = '&times;';
-    del.addEventListener('click', () => {
-      selectedCloudinaryUrls.splice(idx, 1);
-      renderPickedPreview();
-    });
-
-    wrap.append(img, del);
-    cloudinaryPickedPreview.append(wrap);
-  });
-}
-
-// =====================================================
-// Modal Handling
-// =====================================================
+/* =====================================================
+   Modal Handling
+===================================================== */
 function openModal() { if (modal) modal.classList.add('open'); }
-
 function closeModal() {
   if (!modal || !propertyForm) return;
   modal.classList.remove('open');
   propertyForm.reset();
   if (propertyForm.elements.id) propertyForm.elements.id.value = '';
-  if (imagePreview) { imagePreview.src = ''; imagePreview.style.display = 'none'; }
+  if (imagePreviewEl) { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
+
   const mapContainer = $('#modal-map');
   if (mapContainer) mapContainer.style.display = 'none';
+
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
-  selectedCloudinaryUrls = [];
-  if (cloudinaryPickedPreview) cloudinaryPickedPreview.innerHTML = '';
+
+  // รีเซ็ต state
   currentGallery = [];
+  coverUrl = null;
   renderGalleryManager();
+
+  // ปิด + ทำลาย cropper ถ้ายังเปิดค้าง
+  closeCropModal();
 }
 
-// =====================================================
-// Handle Edit
-// =====================================================
+/* =====================================================
+   Edit ฟอร์ม
+===================================================== */
 function normalizeYoutubeIds(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val.filter(Boolean);
@@ -415,32 +381,28 @@ function normalizeYoutubeIds(val) {
 function handleEdit(prop) {
   if (modalTitle) modalTitle.textContent = `แก้ไข: ${prop.title || 'ประกาศ'}`;
 
+  // เติมค่าให้ input ต่าง ๆ
   for (const key in prop) {
     if (key === 'youtube_video_ids') continue;
     const elmt = propertyForm.elements[key];
     if (!elmt) continue;
-
-    if (elmt.type === 'checkbox') {
-      elmt.checked = !!prop[key];
-    } else if (elmt.name === 'youtube_video_ids_text') {
-      continue;
-    } else {
-      elmt.value = prop[key] ?? '';
-    }
+    if (elmt.type === 'checkbox') elmt.checked = !!prop[key];
+    else if (elmt.name === 'youtube_video_ids_text') continue;
+    else elmt.value = prop[key] ?? '';
   }
 
-  selectedCloudinaryUrls = Array.isArray(prop.gallery) ? [...prop.gallery] : [];
-  renderPickedPreview();
-
+  // โหลดแกลเลอรีเดิม
   currentGallery = Array.isArray(prop.gallery) ? [...prop.gallery] : [];
   renderGalleryManager();
 
-  if (imagePreview) {
+  // พรีวิว cover (ถ้าไม่มี ใช้รูปแรกของแกลเลอรี)
+  if (imagePreviewEl) {
     const url = prop.cover_url || currentGallery[0] || '';
-    if (url) { imagePreview.src = url; imagePreview.style.display = 'block'; }
-    else imagePreview.style.display = 'none';
+    if (url) { imagePreviewEl.src = url; imagePreviewEl.style.display = 'block'; }
+    else imagePreviewEl.style.display = 'none';
   }
 
+  // YouTube IDs
   if (youtubeIdsContainer) {
     clear(youtubeIdsContainer);
     const ids = normalizeYoutubeIds(prop.youtube_video_ids);
@@ -451,9 +413,9 @@ function handleEdit(prop) {
   setTimeout(() => setupModalMap(prop.latitude, prop.longitude), 100);
 }
 
-// =====================================================
-// CRUD
-// =====================================================
+/* =====================================================
+   CRUD
+===================================================== */
 async function handleDelete(id, title) {
   if (!id) return;
   if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${title || 'ประกาศนี้'}"?`)) return;
@@ -467,20 +429,24 @@ async function handleDelete(id, title) {
   }
 }
 
-propertyForm.addEventListener('submit', async (e) => {
+propertyForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const submitBtn = propertyForm.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
   submitBtn.textContent = 'กำลังบันทึก...';
+
   const payload = getFormData(propertyForm);
   payload.published = !!payload.published;
   if (payload.price !== undefined) payload.price = Number(payload.price) || 0;
 
+  // YouTube ids
   const videoIdInputs = $$('#youtube-ids-container .youtube-id-input');
   const newIds = Array.from(videoIdInputs).map(i => parseYouTubeId(i.value)).filter(Boolean);
   payload.youtube_video_ids = Array.from(new Set(newIds));
+
+  // gallery และ cover
   payload.gallery = [...currentGallery];
-  payload.cover_url = payload.gallery.length ? payload.gallery[0] : null;
+  applyCoverToPayload(payload, payload.gallery);
 
   try {
     const { error } = await upsertProperty(payload);
@@ -496,9 +462,9 @@ propertyForm.addEventListener('submit', async (e) => {
   }
 });
 
-// =====================================================
-// Helper: YouTube Input
-// =====================================================
+/* =====================================================
+   YouTube helper
+===================================================== */
 function createYoutubeIdInput(videoId = '') {
   const itemDiv = el('div', { className: 'youtube-id-item' });
   const input = el('input', {
@@ -521,6 +487,7 @@ function createYoutubeIdInput(videoId = '') {
       <rect x="6" y="6" width="12" height="14" rx="2" stroke="white" stroke-width="2"/>
     </svg>`;
   removeBtn.addEventListener('click', () => itemDiv.remove());
+
   function updatePreview(value) {
     const id = parseYouTubeId(value);
     previewWrap.innerHTML = '';
@@ -530,7 +497,9 @@ function createYoutubeIdInput(videoId = '') {
         attributes: { src: `https://img.youtube.com/vi/${id}/hqdefault.jpg`, alt: `Preview ${id}` }
       });
       previewWrap.append(thumb);
-    } else previewWrap.textContent = 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง';
+    } else {
+      previewWrap.textContent = 'ใส่ YouTube ID หรือ URL ให้ถูกต้อง';
+    }
     previewWrap.append(removeBtn);
   }
   input.addEventListener('input', (e) => updatePreview(e.target.value));
@@ -539,46 +508,7 @@ function createYoutubeIdInput(videoId = '') {
   return itemDiv;
 }
 
-// =====================================================
-// Map
-// =====================================================
-function setupModalMap(lat, lng) {
-  if (!propertyForm) return;
-  const latInput = propertyForm.elements.latitude;
-  const lngInput = propertyForm.elements.longitude;
-  const mapContainer = $('#modal-map');
-  if (!mapContainer) return;
-  let startLat = parseFloat(lat);
-  let startLng = parseFloat(lng);
-  startLat = !isNaN(startLat) ? startLat : 9.1337;
-  startLng = !isNaN(startLng) ? startLng : 99.3325;
-  if (latInput) latInput.value = startLat.toFixed(6);
-  if (lngInput) lngInput.value = startLng.toFixed(6);
-  mapContainer.style.display = 'block';
-  try {
-    if (modalMap) {
-      modalMap.setView([startLat, startLng], 15);
-      if (draggableMarker) draggableMarker.setLatLng([startLat, startLng]);
-    } else {
-      modalMap = L.map('modal-map').setView([startLat, startLng], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(modalMap);
-      draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
-      draggableMarker.on('dragend', (event) => {
-        const pos = event.target.getLatLng();
-        if (latInput) latInput.value = pos.lat.toFixed(6);
-        if (lngInput) lngInput.value = pos.lng.toFixed(6);
-      });
-    }
-  } catch (err) {
-    mapContainer.innerHTML = '<p style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดแผนที่</p>';
-  }
-}
-
-// =====================================================
-// Parse YouTube
-// =====================================================
+// ครอบคลุม watch?v=, youtu.be/, /shorts/
 function parseYouTubeId(input) {
   const raw = (input || '').trim();
   if (!raw) return '';
@@ -595,9 +525,47 @@ function parseYouTubeId(input) {
   return '';
 }
 
-// =====================================================
-// Init
-// =====================================================
+/* =====================================================
+   แผนที่ (Leaflet)
+===================================================== */
+function setupModalMap(lat, lng) {
+  if (!propertyForm) return;
+  const latInput = propertyForm.elements.latitude;
+  const lngInput = propertyForm.elements.longitude;
+  const mapContainer = $('#modal-map');
+  if (!mapContainer) return;
+
+  let startLat = parseFloat(lat);
+  let startLng = parseFloat(lng);
+  startLat = !isNaN(startLat) ? startLat : 9.1337;
+  startLng = !isNaN(startLng) ? startLng : 99.3325;
+
+  if (latInput) latInput.value = startLat.toFixed(6);
+  if (lngInput) lngInput.value = startLng.toFixed(6);
+
+  mapContainer.style.display = 'block';
+  try {
+    if (modalMap) {
+      modalMap.setView([startLat, startLng], 15);
+      if (draggableMarker) draggableMarker.setLatLng([startLat, startLng]);
+    } else {
+      modalMap = L.map('modal-map').setView([startLat, startLng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(modalMap);
+      draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
+      draggableMarker.on('dragend', (event) => {
+        const pos = event.target.getLatLng();
+        if (latInput) latInput.value = pos.lat.toFixed(6);
+        if (lngInput) lngInput.value = pos.lng.toFixed(6);
+      });
+    }
+  } catch {
+    mapContainer.innerHTML = '<p style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดแผนที่</p>';
+  }
+}
+
+/* =====================================================
+   Init
+===================================================== */
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     await protectPage();
@@ -605,6 +573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     signOutIfAny();
     setupMobileNav();
 
+    // ปุ่มเพิ่มประกาศ
     if (addPropertyBtn) {
       addPropertyBtn.addEventListener('click', () => {
         if (youtubeIdsContainer) {
@@ -612,12 +581,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           youtubeIdsContainer.append(createYoutubeIdInput());
         }
         currentGallery = [];
+        coverUrl = null;
         renderGalleryManager();
+        if (imagePreviewEl) { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
         openModal();
         setTimeout(() => setupModalMap(), 100);
       });
     }
 
+    // ปุ่ม + YouTube (จำกัดสูงสุด 5 คลิป)
     const MAX_YT = 5;
     if (addYoutubeIdBtn && youtubeIdsContainer) {
       addYoutubeIdBtn.addEventListener('click', () => {
@@ -631,48 +603,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadProperties();
-
-if (pickCloudinaryBtn) {
-  pickCloudinaryBtn.addEventListener('click', () => {
-    try {
-      if (!window.cloudinary) {
-        toast('ยังโหลดวิดเจ็ต Cloudinary ไม่เสร็จ ลองรีเฟรชหน้าอีกครั้ง', 4000, 'error');
-        return;
-      }
-
-      window.cloudinary.openMediaLibrary(
-        {
-          cloud_name: CLOUD_NAME,
-          api_key: '847189155667559', // ใส่ API key จริง
-          multiple: true,
-          max_files: 50,
-          // กรองเฉพาะรูปถ้าต้องการ:
-          // asset: 'image'
-        },
-        {
-          insertHandler: ({ assets }) => {
-            if (!assets || !assets.length) return;
-            const urls = assets.map(a => a.secure_url).filter(Boolean);
-            selectedCloudinaryUrls = Array.from(new Set([...selectedCloudinaryUrls, ...urls]));
-            renderPickedPreview();
-            toast(`เพิ่มรูปจาก Cloudinary แล้ว ${urls.length} รูป`, 2000, 'success');
-          }
-        }
-      );
-    } catch (err) {
-      console.error(err);
-      toast('เปิด Media Library ไม่สำเร็จ: ' + (err?.message || 'ไม่ทราบสาเหตุ'), 4000, 'error');
-    }
-  });
-}
-
-
   } catch (initError) {
     console.error('Initialization error:', initError);
-    if (tableBody)
+    if (tableBody) {
       tableBody.innerHTML = `<tr><td colspan="5" style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ</td></tr>`;
+    }
   }
 
+  // ปิดโมดัล
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
   if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
   window.addEventListener('click', e => { if (e.target === modal) closeModal(); });

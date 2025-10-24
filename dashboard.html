@@ -19,8 +19,6 @@
   <link rel="stylesheet" href="/assets/css/layout.css">
   <link rel="stylesheet" href="/assets/css/components.css">
   
-  <script src="https://media-library.cloudinary.com/global/all.js"></script>
-  
   <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
   <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
 
@@ -142,13 +140,8 @@
 			
 			<div class="form-group col-span-2">
 				<label>รูปภาพแกลเลอรี (เลือกได้หลายรูป)</label>
-				
-				<button id="pick-cloudinary-btn" type="button" class="btn btn-secondary" style="margin-top:.5rem">
-				📂 เลือกรูปจาก Cloudinary
-				</button>
-				<div id="cloudinary-picked-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.5rem"></div>
-
 				<input type="file" id="gallery-images-input" class="form-control" accept="image/png, image/jpeg" multiple>
+				<div id="gallery-manager" style="margin-top:12px;"></div>
 			</div>
 			
 <div class="form-group col-span-2">
