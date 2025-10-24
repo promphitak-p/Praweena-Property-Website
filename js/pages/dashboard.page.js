@@ -229,76 +229,38 @@ function applyCoverToPayload(payload, galleryArray) {
 ===================================================== */
 function renderGalleryManager() {
   if (!galleryManager) return;
-
-  // ทำให้ทั้งบล็อกอยู่กึ่งกลาง
-  galleryManager.style.display = 'flex';
-  galleryManager.style.justifyContent = 'center';
-
   clear(galleryManager);
 
-  // ไม่มีรูป
   if (!currentGallery.length) {
     galleryManager.append(
-      el('p', { style: 'color:var(--text-light);', textContent: 'ยังไม่มีรูปในแกลเลอรี' })
+      el('p', { style: 'color:var(--text-light);text-align:center;', textContent: 'ยังไม่มีรูปในแกลเลอรี' })
     );
     if (imagePreviewEl) { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
     return;
   }
 
-  // กริดตรงกลาง + กำหนดความกว้างสูงสุดเพื่อไม่ให้ยาวเต็มหน้าจอ
-  const wrap = el('div', {
-    style: `
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-      gap:12px;
-      width:100%;
-      max-width:900px;
-    `
-  });
+  // ใช้ .gm-wrap (flex + wrap) ไม่ใช้ inline-style แล้ว
+  const wrap = el('div', { className: 'gm-wrap' });
 
   currentGallery.forEach((url, idx) => {
-    const card = el('div', {
-      className: 'gm-card',
-      style: `
-        position:relative;
-        border-radius:10px;
-        overflow:hidden;
-        background:#f3f4f6;
-        aspect-ratio: 3 / 2; /* ช่องภาพคงสัดส่วนสวย ๆ */
-      `
-    });
+    const card = el('div', { className: 'gm-card' });
 
-    // ใช้รูปย่อจาก Cloudinary เพื่อลดโหลด
     const img = el('img', {
-      attributes: { src: cldThumb(url, 360, 240), alt: 'gallery-image', loading: 'lazy' },
-      style: 'width:100%;height:100%;object-fit:cover;display:block;'
+      attributes: { src: url, alt: 'gallery-image' }
     });
 
-    // Badge "หน้าปก" เฉพาะรูปแรก (อัตโนมัติ)
+    // badge "หน้าปก" เฉพาะรูปแรก
     if (idx === 0) {
-      const badge = el('div', {
-        className: 'gm-cover-badge',
-        style: `
-          position:absolute;left:6px;top:6px;
-          background:rgba(0,0,0,.6);color:#fff;
-          font-size:12px;padding:2px 6px;border-radius:6px;
-        `
-      });
+      const badge = el('div', { className: 'gm-cover-badge' });
       badge.textContent = 'หน้าปก';
       card.append(badge);
     }
 
-    // ปุ่มลบ — ใช้สไตล์เดียวกับปุ่มลบวิดีโอ (yt-remove-btn)
+    // ปุ่มลบ (ใช้สไตล์เดียวกับลบวิดีโอ)
     const removeBtn = el('button', {
       type: 'button',
       className: 'yt-remove-btn',
-      attributes: { 'aria-label': 'ลบรูปนี้', title: 'ลบรูปนี้' },
-      style: `
-        position:absolute;right:6px;top:6px;
-        background:rgba(0,0,0,.55);
-        border:none;border-radius:6px;padding:4px;cursor:pointer;
-        display:flex;align-items:center;justify-content:center;
-      `
+      attributes: { 'aria-label': 'ลบรูปนี้', title: 'ลบรูปนี้' }
     });
     removeBtn.innerHTML = `
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -309,7 +271,6 @@ function renderGalleryManager() {
       </svg>
     `;
     removeBtn.addEventListener('click', () => {
-      // เอารูปนี้ออกจาก state แล้ว re-render
       currentGallery.splice(idx, 1);
       renderGalleryManager();
     });
@@ -320,18 +281,14 @@ function renderGalleryManager() {
 
   galleryManager.append(wrap);
 
-  // อัปเดตพรีวิวปก = รูปแรกเสมอ
+  // อัปเดตพรีวิวหน้าปกเป็นรูปแรกเสมอ
   const cover = currentGallery[0] || '';
   if (imagePreviewEl) {
-    if (cover) {
-      imagePreviewEl.src = cldThumb(cover, 960, 540);
-      imagePreviewEl.style.display = 'block';
-    } else {
-      imagePreviewEl.src = '';
-      imagePreviewEl.style.display = 'none';
-    }
+    if (cover) { imagePreviewEl.src = cover; imagePreviewEl.style.display = 'block'; }
+    else { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
   }
 }
+
 
 
 // อัปโหลดรูปเพิ่มเข้าแกลเลอรี (จากเครื่องผู้ใช้)
