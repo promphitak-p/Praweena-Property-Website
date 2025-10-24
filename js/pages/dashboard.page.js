@@ -25,14 +25,28 @@ const galleryImagesInput = $('#gallery-images-input');
 const youtubeIdsContainer = $('#youtube-ids-container');
 const addYoutubeIdBtn = $('#add-youtube-id-btn');
 
+const pickCoverBtn = document.getElementById('pick-cover-btn');
+const coverFileInput = document.getElementById('cover-file-input');
+const imagePreviewEl = document.getElementById('image-preview');
+
+const cropModal = document.getElementById('cover-crop-modal');
+const cropClose = document.getElementById('cover-crop-close');
+const cropperImage = document.getElementById('cropper-image');
+const cropApplyBtn = document.getElementById('crop-apply-btn');
+const cropCancelBtn = document.getElementById('crop-cancel-btn');
+const cropAspectSelect = document.getElementById('crop-aspect');
+const rotateLeftBtn = document.getElementById('crop-rotate-left');
+const rotateRightBtn = document.getElementById('crop-rotate-right');
+
+let cropper = null;           // instance ของ Cropper.js
+let pickedFileURL = null;     // objectURL เก็บชั่วคราว
+let coverUrl = null;          // URL หลังอัปโหลดเสร็จ (ไว้เซฟลง payload.cover_url)
+
+
 // Cloudinary Picker UI
 const pickCloudinaryBtn = $('#pick-cloudinary-btn');
 const cloudinaryPickedPreview = $('#cloudinary-picked-preview');
 let selectedCloudinaryUrls = [];
-
-// Map Vars
-let modalMap = null;
-let draggableMarker = null;
 
 // Cloudinary Config
 const CLOUD_NAME = 'dupwjm8q2';
@@ -45,6 +59,10 @@ if (!galleryManager && galleryImagesInput) {
   galleryManager = el('div', { id: 'gallery-manager', style: 'margin-top:12px;' });
   galleryImagesInput.parentElement.append(galleryManager);
 }
+
+// Map Vars
+let modalMap = null;
+let draggableMarker = null;
 
 // Local state
 let currentGallery = [];
@@ -114,6 +132,120 @@ function renderPropertyRow(prop) {
 // =====================================================
 // Gallery Manager
 // =====================================================
+
+// ====== เปิดเลือกไฟล์หน้าปก ======
+if (pickCoverBtn && coverFileInput) {
+  pickCoverBtn.addEventListener('click', () => coverFileInput.click());
+
+  coverFileInput.addEventListener('change', () => {
+    const file = coverFileInput.files?.[0];
+    if (!file) return;
+    // สร้าง objectURL แล้วโยนให้ Cropper
+    if (pickedFileURL) URL.revokeObjectURL(pickedFileURL);
+    pickedFileURL = URL.createObjectURL(file);
+    cropperImage.src = pickedFileURL;
+    openCropModal();
+  });
+}
+
+// ====== Modal helpers ======
+function openCropModal() {
+  cropModal.classList.add('open');
+  // รอภาพโหลดเสร็จ ก่อน init cropper
+  cropperImage.onload = () => {
+    if (cropper) cropper.destroy();
+    cropper = new Cropper(cropperImage, {
+      viewMode: 1,
+      dragMode: 'move',
+      aspectRatio: 16 / 9,      // ค่าเริ่มต้น
+      autoCropArea: 1,
+      responsive: true,
+      background: false,
+      checkCrossOrigin: false,
+    });
+  };
+}
+function closeCropModal() {
+  cropModal.classList.remove('open');
+  if (cropper) { cropper.destroy(); cropper = null; }
+  if (pickedFileURL) { URL.revokeObjectURL(pickedFileURL); pickedFileURL = null; }
+}
+
+// ปุ่มปิด/ยกเลิก
+if (cropClose) cropClose.addEventListener('click', closeCropModal);
+if (cropCancelBtn) cropCancelBtn.addEventListener('click', closeCropModal);
+
+// เปลี่ยนอัตราส่วน
+if (cropAspectSelect) {
+  cropAspectSelect.addEventListener('change', () => {
+    if (!cropper) return;
+    const val = cropAspectSelect.value;
+    const ratio = isNaN(Number(val)) ? eval(val) : Number(val); // "16/9" -> 1.777...
+    cropper.setAspectRatio(isNaN(ratio) ? NaN : ratio);
+  });
+}
+
+// หมุน
+if (rotateLeftBtn) rotateLeftBtn.addEventListener('click', () => { if (cropper) cropper.rotate(-90); });
+if (rotateRightBtn) rotateRightBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
+
+// ยืนยันครอบ → export canvas → อัปโหลด Cloudinary → แสดงพรีวิว
+if (cropApplyBtn) {
+  cropApplyBtn.addEventListener('click', async () => {
+    if (!cropper) return;
+
+    try {
+      // สร้าง canvas ตามอัตราส่วนปัจจุบัน (กำหนดความกว้างเป้าหมายเพื่อคุณภาพ)
+      const canvas = cropper.getCroppedCanvas({ 
+        // ปรับขนาดตามความเหมาะสมของเว็บ: 1600px กว้างพอสำหรับ hero/cover
+        width: 1600,
+        fillColor: '#fff',
+      });
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+
+      // อัปขึ้น Cloudinary (unsigned)
+      const fd = new FormData();
+      fd.append('file', blob, 'cover.jpg');
+      fd.append('upload_preset', UPLOAD_PRESET);
+      const resp = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err?.error?.message || 'อัปโหลดหน้าปกไม่สำเร็จ');
+      }
+      const data = await resp.json();
+      coverUrl = data.secure_url;
+
+      // แสดงพรีวิว
+      if (imagePreviewEl) {
+        imagePreviewEl.src = coverUrl;
+        imagePreviewEl.style.display = 'block';
+      }
+
+      toast('อัปโหลดหน้าปกสำเร็จ', 1800, 'success');
+      closeCropModal();
+    } catch (e) {
+      toast(e.message || 'เกิดข้อผิดพลาดในการอัปโหลดหน้าปก', 3000, 'error');
+    }
+  });
+}
+
+// ====== รวมเข้ากับการ “บันทึกประกาศ” เดิม ======
+// ก่อนส่ง payload (เวลาคุณกดปุ่ม บันทึก)
+// ... สมมติคุณมี payload จาก getFormData() เหมือนเดิม
+// ให้ตั้งค่า cover_url จาก coverUrl (ถ้ามี) หรือ fallback เป็นรูปแรกของ gallery
+
+// ตัวอย่างใน handler submit ของฟอร์ม:
+function applyCoverToPayload(payload, galleryArray) {
+  // ถ้าเพิ่งครอบใหม่ → ใช้ url ใหม่นี้
+  if (coverUrl) {
+    payload.cover_url = coverUrl;
+  } else if (!payload.cover_url) {
+    // ยังไม่มี -> ใช้รูปแรกในแกลเลอรี
+    payload.cover_url = Array.isArray(galleryArray) && galleryArray.length ? galleryArray[0] : null;
+  }
+}
+
+
 function renderGalleryManager() {
   if (!galleryManager) return;
   clear(galleryManager);

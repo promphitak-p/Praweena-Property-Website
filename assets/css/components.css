@@ -642,3 +642,20 @@ tbody tr:last-child td {
   fill: currentColor;
 }
 
+/* เวทีแสดงภาพสำหรับ Cropper */
+.cropper-stage {
+  width: 100%;
+  height: 60vh;
+  min-height: 380px;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius, 8px);
+}
+.cropper-stage img { max-width: 100%; display: block; }
+
+/* ปรับปุ่มมาตรฐานเล็กน้อย */
+.btn.btn-primary { background: var(--brand, #b1976b); color:#fff; border:none; padding:.6rem 1rem; border-radius:8px; }
+.btn.btn-secondary { background:#f3f4f6; color:#111; border:1px solid #e5e7eb; padding:.6rem 1rem; border-radius:8px; }
