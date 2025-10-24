@@ -235,8 +235,8 @@ function renderGalleryManager() {
     galleryManager.append(
       el('p', { style: 'color:var(--text-light);', textContent: 'ยังไม่มีรูปในแกลเลอรี' })
     );
-    // อัปเดตพรีวิวหน้าปกให้หายด้วย
-    if (imagePreview) { imagePreview.src = ''; imagePreview.style.display = 'none'; }
+    // อัปเดตพรีวิวหน้าปกให้ซ่อน
+    if (imagePreviewEl) { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
     return;
   }
 
@@ -255,7 +255,7 @@ function renderGalleryManager() {
       style: 'width:100%;height:100px;object-fit:cover;display:block;'
     });
 
-    // ติด badge "หน้าปก" ที่ภาพลำดับแรกเท่านั้น (อัตโนมัติ)
+    // ป้าย "หน้าปก" อัตโนมัติที่รูปแรก
     if (idx === 0) {
       const badge = el('div', {
         className: 'gm-cover-badge',
@@ -265,11 +265,11 @@ function renderGalleryManager() {
       card.append(badge);
     }
 
-    // ปุ่มลบ — ใช้แบบเดียวกับลบวิดีโอ (yt-remove-btn)
+    // ปุ่มลบ (สไตล์เดียวกับลบวิดีโอ)
     const removeBtn = el('button', {
       type: 'button',
       className: 'yt-remove-btn',
-      attributes: { 'aria-label': 'ลูกรูปนี้', title: 'ลบรูปนี้' },
+      attributes: { 'aria-label': 'ลบรูปนี้', title: 'ลบรูปนี้' }, // แก้คำผิดจาก "ลูกรูปนี้"
       style: 'position:absolute;right:6px;top:6px;background:rgba(0,0,0,.55);border:none;border-radius:6px;padding:4px;cursor:pointer;'
     });
     removeBtn.innerHTML = `
@@ -281,9 +281,7 @@ function renderGalleryManager() {
       </svg>
     `;
     removeBtn.addEventListener('click', () => {
-      // เอารูปนี้ออกจาก state
       currentGallery.splice(idx, 1);
-      // render ใหม่
       renderGalleryManager();
     });
 
@@ -293,13 +291,14 @@ function renderGalleryManager() {
 
   galleryManager.append(wrap);
 
-  // อัปเดตพรีวิวหน้าปกเสมอเป็นรูปแรกของ currentGallery
+  // อัปเดตพรีวิวหน้าปก = รูปแรกเสมอ
   const cover = currentGallery[0] || '';
-  if (imagePreview) {
-    if (cover) { imagePreview.src = cover; imagePreview.style.display = 'block'; }
-    else { imagePreview.src = ''; imagePreview.style.display = 'none'; }
+  if (imagePreviewEl) {
+    if (cover) { imagePreviewEl.src = cover; imagePreviewEl.style.display = 'block'; }
+    else { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
   }
 }
+
 
 
 // อัปโหลดรูปเพิ่มเข้าแกลเลอรี (จากเครื่องผู้ใช้)
