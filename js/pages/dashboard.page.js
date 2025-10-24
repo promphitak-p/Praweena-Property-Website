@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ml = cloudinary.createMediaLibrary(
           {
             cloud_name: CLOUD_NAME,
-            api_key: 'ใส่_API_KEY_ของคุณที่นี่',
+            api_key: '847189155667559',
             multiple: true,
             max_files: 50,
             insert_caption: 'เพิ่มรูปเข้าแกลเลอรี',
