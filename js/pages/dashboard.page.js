@@ -511,7 +511,7 @@ if (pickCloudinaryBtn) {
       window.cloudinary.openMediaLibrary(
         {
           cloud_name: CLOUD_NAME,
-          api_key: 'YOUR_API_KEY_HERE', // ใส่ API key จริง
+          api_key: '847189155667559', // ใส่ API key จริง
           multiple: true,
           max_files: 50,
           // กรองเฉพาะรูปถ้าต้องการ:
