@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/assets/css/base.css">
   <link rel="stylesheet" href="/assets/css/layout.css">
   <link rel="stylesheet" href="/assets/css/components.css">
-  
+    
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="/assets/css/base.css">
   <link rel="stylesheet" href="/assets/css/layout.css">
   <link rel="stylesheet" href="/assets/css/components.css">
+  
+  <script src="https://media-library.cloudinary.com/global/all.js"></script>
   
 </head>
 <body>
@@ -103,13 +105,18 @@
 			
 			<div class="form-group col-span-2">
 				<label>รูปภาพแกลเลอรี (เลือกได้หลายรูป)</label>
+				
+				<button id="pick-cloudinary-btn" type="button" class="btn btn-secondary" style="margin-top:.5rem">
+				📂 เลือกรูปจาก Cloudinary
+				</button>
+				<div id="cloudinary-picked-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.5rem"></div>
+
 				<input type="file" id="gallery-images-input" class="form-control" accept="image/png, image/jpeg" multiple>
 			</div>
 			
 <div class="form-group col-span-2">
   <label>YouTube Video IDs (ถ้ามี)</label>
-  <div id="youtube-ids-container">
-    </div>
+  <div id="youtube-ids-container"></div>
   <button type="button" id="add-youtube-id-btn" class="btn btn-secondary" style="margin-top: 0.5rem;">+ เพิ่มวิดีโอ YouTube</button>
   <small style="color: var(--text-light); display: block;">*ใส่เฉพาะส่วนรหัสท้าย URL ของวิดีโอ*</small>
   <input type="hidden" name="youtube_video_ids">
