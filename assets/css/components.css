@@ -671,3 +671,106 @@ tbody tr:last-child td {
   max-width: 100%;
   display: block;
 }
+
+/* ====== Cover preview ====== */
+.property-cover-image{
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  display: block;
+}
+
+/* ====== Cropper modal (ครอบรูปหน้าปก) ====== */
+#cover-crop-modal.modal{
+  display: none;
+}
+#cover-crop-modal.modal.open{
+  display: block;
+}
+#cover-crop-modal .modal-content{
+  max-width: 900px;
+}
+.cropper-stage{
+  width: 100%;
+  max-height: 60vh;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+/* ====== Gallery Manager: grid แบบกึ่งกลาง ====== */
+#gallery-manager{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  justify-items: center;
+  align-items: center;
+}
+
+/* การ์ดรูป */
+.gm-card{
+  position: relative;
+  width: 140px;
+  height: 110px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f3f4f6;
+  box-shadow: var(--shadow-sm);
+}
+.gm-card img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ป้าย "หน้าปก" อัตโนมัติสำหรับรูปแรก */
+.gm-cover-badge{
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* ====== ปุ่มลบ (ใช้คลาสเดียวกับวิดีโอ) ====== */
+.yt-remove-btn{
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: transform .15s ease;
+}
+.yt-remove-btn:hover{ transform: scale(1.04); }
+
+/* ====== ปุ่ม/พื้นที่เลือกรูปหน้าปก ====== */
+.cover-uploader .btn{ margin-top: .25rem; }
+.cover-preview-wrap{ margin-top: .5rem; }
+
+/* ปุ่มเล็กๆ บนรูป (ถ้าต้องใช้ซ้ำ) */
+.btn-icon{
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+  color: var(--text);
+}
+

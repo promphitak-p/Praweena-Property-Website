@@ -224,3 +224,33 @@ img {
   .nav-open .nav-links {
     display: flex;
   }
+  
+  /* ปรับขนาดตัวอักษรเล็กน้อยในปุ่มรอง */
+.btn.btn-secondary{ font-weight: 500; }
+
+/* ถ้าโปรเจกต์ของคุณใช้ .modal/.modal-content อยู่แล้วสามารถข้ามได้ */
+.modal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  background: rgba(0,0,0,.4);
+  z-index: 30;
+}
+.modal.open{ display: flex; align-items: center; justify-content: center; }
+.modal .modal-content{
+  width: min(900px, 92vw);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+.modal .modal-close{
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-light);
+}
