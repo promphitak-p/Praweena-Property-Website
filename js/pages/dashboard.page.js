@@ -232,16 +232,30 @@ function renderGalleryManager() {
   clear(galleryManager);
 
   if (!currentGallery.length) {
-    galleryManager.append(el('p', { style: 'color:var(--text-light);', textContent: 'ยังไม่มีรูปในแกลเลอรี' }));
+    galleryManager.append(
+      el('p', { style: 'color:var(--text-light);', textContent: 'ยังไม่มีรูปในแกลเลอรี' })
+    );
+    // อัปเดตพรีวิวหน้าปกให้หายด้วย
+    if (imagePreview) { imagePreview.src = ''; imagePreview.style.display = 'none'; }
     return;
   }
 
-  const wrap = el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;' });
+  const wrap = el('div', {
+    style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;'
+  });
+
   currentGallery.forEach((url, idx) => {
-    const card = el('div', { className: 'gm-card', style: 'position:relative;border-radius:8px;overflow:hidden;background:#f3f4f6;' });
+    const card = el('div', {
+      className: 'gm-card',
+      style: 'position:relative;border-radius:8px;overflow:hidden;background:#f3f4f6;'
+    });
 
-    const img = el('img', { attributes: { src: url, alt: 'gallery-image' }, style: 'width:100%;height:100px;object-fit:cover;display:block;' });
+    const img = el('img', {
+      attributes: { src: url, alt: 'gallery-image' },
+      style: 'width:100%;height:100px;object-fit:cover;display:block;'
+    });
 
+    // ติด badge "หน้าปก" ที่ภาพลำดับแรกเท่านั้น (อัตโนมัติ)
     if (idx === 0) {
       const badge = el('div', {
         className: 'gm-cover-badge',
@@ -251,51 +265,42 @@ function renderGalleryManager() {
       card.append(badge);
     }
 
-    const bar = el('div', {
-      style: 'position:absolute;inset:auto 0 0 0;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.55));padding:6px;display:flex;gap:6px;justify-content:flex-end;'
-    });
-
-    const setCoverBtn = el('button', {
-      className: 'btn btn-secondary',
-      style: 'padding:4px 8px;font-size:12px;background:rgba(255,255,255,.9);color:#111;border:none;border-radius:6px;',
-      textContent: 'ตั้งเป็นหน้าปก'
-    });
-    setCoverBtn.addEventListener('click', () => {
-      if (idx === 0) return;
-      const [it] = currentGallery.splice(idx, 1);
-      currentGallery.unshift(it);
-      renderGalleryManager();
-      // อัปเดตพรีวิวหน้าปกทันที
-      if (imagePreviewEl) {
-        imagePreviewEl.src = currentGallery[0];
-        imagePreviewEl.style.display = 'block';
-      }
-    });
-
+    // ปุ่มลบ — ใช้แบบเดียวกับลบวิดีโอ (yt-remove-btn)
     const removeBtn = el('button', {
-      className: 'btn btn-secondary',
-      style: 'padding:4px 8px;font-size:12px;background:rgba(239,68,68,.95);color:#fff;border:none;border-radius:6px;',
-      textContent: 'ลบ'
+      type: 'button',
+      className: 'yt-remove-btn',
+      attributes: { 'aria-label': 'ลูกรูปนี้', title: 'ลบรูปนี้' },
+      style: 'position:absolute;right:6px;top:6px;background:rgba(0,0,0,.55);border:none;border-radius:6px;padding:4px;cursor:pointer;'
     });
+    removeBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 6h18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 6v-.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V6" stroke="white" stroke-width="2"/>
+        <path d="M8 10v8M12 10v8M16 10v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <rect x="6" y="6" width="12" height="14" rx="2" stroke="white" stroke-width="2"/>
+      </svg>
+    `;
     removeBtn.addEventListener('click', () => {
+      // เอารูปนี้ออกจาก state
       currentGallery.splice(idx, 1);
+      // render ใหม่
       renderGalleryManager();
-      if (!currentGallery.length && imagePreviewEl) {
-        // ถ้าไม่มีรูปเหลือ ให้ซ่อนพรีวิวด้วย
-        imagePreviewEl.style.display = 'none';
-      } else if (idx === 0 && imagePreviewEl) {
-        // ถ้าลบรูปหน้าปก ให้พรีวิวเป็นรูปแรกอันใหม่
-        imagePreviewEl.src = currentGallery[0];
-      }
     });
 
-    bar.append(setCoverBtn, removeBtn);
-    card.append(img, bar);
+    card.append(img, removeBtn);
     wrap.append(card);
   });
 
   galleryManager.append(wrap);
+
+  // อัปเดตพรีวิวหน้าปกเสมอเป็นรูปแรกของ currentGallery
+  const cover = currentGallery[0] || '';
+  if (imagePreview) {
+    if (cover) { imagePreview.src = cover; imagePreview.style.display = 'block'; }
+    else { imagePreview.src = ''; imagePreview.style.display = 'none'; }
+  }
 }
+
 
 // อัปโหลดรูปเพิ่มเข้าแกลเลอรี (จากเครื่องผู้ใช้)
 if (galleryImagesInput) {
@@ -446,7 +451,7 @@ propertyForm?.addEventListener('submit', async (e) => {
 
   // gallery และ cover
   payload.gallery = [...currentGallery];
-  applyCoverToPayload(payload, payload.gallery);
+  payload.cover_url = payload.gallery.length ? payload.gallery[0] : null; // รูปแรกเสมอ
 
   try {
     const { error } = await upsertProperty(payload);
