@@ -500,31 +500,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadProperties();
 
-    // Cloudinary Media Library Picker
-    if (pickCloudinaryBtn && window.cloudinary) {
-      pickCloudinaryBtn.addEventListener('click', () => {
-        const ml = cloudinary.createMediaLibrary(
-          {
-            cloud_name: CLOUD_NAME,
-            api_key: '847189155667559',
-            multiple: true,
-            max_files: 50,
-            insert_caption: 'เพิ่มรูปเข้าแกลเลอรี',
-          },
-          {
-            insertHandler: ({ assets }) => {
-              if (!assets || !assets.length) return;
-              const urls = assets.map(a => a.secure_url).filter(Boolean);
-              selectedCloudinaryUrls = Array.from(new Set([...selectedCloudinaryUrls, ...urls]));
-              renderPickedPreview();
-              toast(`เพิ่มรูปจาก Cloudinary แล้ว ${urls.length} รูป`, 2000, 'success');
-            }
-          },
-          document.body
-        );
-        ml.show();
-      });
+if (pickCloudinaryBtn) {
+  pickCloudinaryBtn.addEventListener('click', () => {
+    try {
+      if (!window.cloudinary) {
+        toast('ยังโหลดวิดเจ็ต Cloudinary ไม่เสร็จ ลองรีเฟรชหน้าอีกครั้ง', 4000, 'error');
+        return;
+      }
+
+      window.cloudinary.openMediaLibrary(
+        {
+          cloud_name: CLOUD_NAME,
+          api_key: 'YOUR_API_KEY_HERE', // ใส่ API key จริง
+          multiple: true,
+          max_files: 50,
+          // กรองเฉพาะรูปถ้าต้องการ:
+          // asset: 'image'
+        },
+        {
+          insertHandler: ({ assets }) => {
+            if (!assets || !assets.length) return;
+            const urls = assets.map(a => a.secure_url).filter(Boolean);
+            selectedCloudinaryUrls = Array.from(new Set([...selectedCloudinaryUrls, ...urls]));
+            renderPickedPreview();
+            toast(`เพิ่มรูปจาก Cloudinary แล้ว ${urls.length} รูป`, 2000, 'success');
+          }
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      toast('เปิด Media Library ไม่สำเร็จ: ' + (err?.message || 'ไม่ทราบสาเหตุ'), 4000, 'error');
     }
+  });
+}
+
 
   } catch (initError) {
     console.error('Initialization error:', initError);
