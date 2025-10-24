@@ -245,9 +245,10 @@ function renderGalleryManager() {
   currentGallery.forEach((url, idx) => {
     const card = el('div', { className: 'gm-card' });
 
-    const img = el('img', {
-      attributes: { src: url, alt: 'gallery-image' }
-    });
+	const img = el('img', {
+	  attributes: { src: cldThumb(url, 240, 160), alt: 'gallery-image' }
+	});
+
 
     // badge "หน้าปก" เฉพาะรูปแรก
     if (idx === 0) {
