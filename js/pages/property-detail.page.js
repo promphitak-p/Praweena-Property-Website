@@ -201,11 +201,27 @@ function renderPropertyDetails(property) {
       const lat = parseFloat(property.latitude);
       const lon = parseFloat(property.longitude);
       if (isNaN(lat) || isNaN(lon)) return;
-      const map = L.map('map').setView([lat, lon], 16);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+		const map = L.map('map', {
+		  center: [lat, lng],
+		  zoom: 15,
+		  dragging: false,        // ❌ ปิดการลากแผนที่
+		  scrollWheelZoom: false, // ❌ ปิดซูมด้วย scroll
+		  doubleClickZoom: false, // ❌ ปิดซูมด้วยดับเบิ้ลคลิก
+		  touchZoom: false,       // ❌ ปิด pinch zoom บนมือถือ
+		  boxZoom: false,         // ❌ ปิด drag-select zoom
+		  keyboard: false,        // ❌ ปิดการควบคุมด้วยคีย์บอร์ด
+		  zoomControl: false      // ❌ ซ่อนปุ่ม +/−
+		});
+
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		  attribution: '© OpenStreetMap contributors'
+		}).addTo(map);
       const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
       const popupContent = `<b>${property.title}</b><br><a href="${googleMapsUrl}" target="_blank">เปิดใน Google Maps เพื่อนำทาง</a>`;
-      L.marker([lat, lon]).addTo(map).bindPopup(popupContent).openPopup();
+      L.marker([lat, lng])
+  .addTo(map)
+  .bindPopup(`<b>${title}</b><br>เปิดใน Google Maps เพื่อเส้นทาง`)
+  .openPopup();
     }, 100);
   }
 

@@ -269,3 +269,8 @@ body.no-scroll{
   overflow:hidden;
 }
 
+#map {
+  pointer-events: none;
+}
+
+
