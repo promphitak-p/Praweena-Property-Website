@@ -245,9 +245,9 @@ function renderGalleryManager() {
   currentGallery.forEach((url, idx) => {
     const card = el('div', { className: 'gm-card' });
 
-	const img = el('img', {
-	  attributes: { src: cldThumb(url, 240, 160), alt: 'gallery-image' }
-	});
+const img = el('img', {
+  attributes: { src: cldThumb(url, 220, 160), alt: 'gallery-image', loading: 'lazy' }
+});
 
 
     // badge "หน้าปก" เฉพาะรูปแรก
