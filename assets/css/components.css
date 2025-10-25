@@ -232,3 +232,40 @@ tbody tr:last-child td{ border-bottom:none; }
 .grid{ display:grid; gap:1rem; }
 .grid-cols-2{ grid-template-columns:1fr 1fr; }
 .col-span-2{ grid-column:1 / -1; }
+
+/* ===== Modal: allow inner scroll, lock page scroll ===== */
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:rgba(0,0,0,.5);
+  /* ให้ overlay เองเลื่อนได้เผื่อ content สูงมาก */
+  overflow-y:auto;
+  /* จัดวางให้ top มีระยะหายใจ เวลา content สูงกว่า viewport */
+  align-items:flex-start;
+}
+
+.modal.open{ display:flex; }
+
+/* กล่องด้านในเลื่อนแยกจากหน้าเว็บ */
+.modal-content{
+  position:relative;
+  margin:2rem auto;              /* เผื่อพื้นที่ด้านบน/ล่าง */
+  width:90%;
+  max-width:100%;
+  background:var(--surface);
+  border-radius:var(--radius);
+  box-shadow:0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+  padding:2rem;
+
+  /* สำคัญ: ให้เลื่อนภายในกล่องได้ */
+  max-height:calc(100vh - 4rem); /* = viewport - marginแนวตั้ง */
+  overflow:auto;                 /* เปิดสกรอลในกล่อง */
+}
+
+/* เมื่อปิดการสกรอลของ body */
+body.no-scroll{
+  overflow:hidden;
+}
+

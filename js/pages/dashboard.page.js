@@ -353,10 +353,17 @@ function cldThumb(url, w = 240, h = 160) {
 /* =====================================================
    Modal Handling
 ===================================================== */
-function openModal() { if (modal) modal.classList.add('open'); }
+function openModal() {
+  if (modal) {
+    modal.classList.add('open');
+    document.body.classList.add('no-scroll'); // <— ล็อกพื้นหลัง
+  }
+}
+
 function closeModal() {
   if (!modal || !propertyForm) return;
   modal.classList.remove('open');
+  document.body.classList.remove('no-scroll'); // <— คืนสกรอลพื้นหลัง
   propertyForm.reset();
   if (propertyForm.elements.id) propertyForm.elements.id.value = '';
   if (imagePreviewEl) { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
@@ -628,5 +635,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ปิดโมดัล
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
   if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
-  window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+window.addEventListener('click', e => {
+  if (e.target === modal) {
+    closeModal();
+  }
 });
