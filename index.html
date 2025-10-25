@@ -22,6 +22,16 @@
   <link rel="stylesheet" href="/assets/css/base.css">
   <link rel="stylesheet" href="/assets/css/layout.css">
   <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/pp-theme.css">
+
+<!-- ใส่ใน <head> ของทุกหน้า ก่อนสคริปต์อื่นที่เรียก Supabase -->
+<script>
+  // วิธี 1: ใส่ค่าไว้ตรงนี้ตอนทดสอบ (ห้าม commit key จริงถ้า repo public)
+  window.SUPABASE_URL = window.SUPABASE_URL || "https://YOUR-PROJECT.supabase.co";
+  window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "YOUR-ANON-KEY";
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+<script src="/js/init-supabase.js" defer></script>
   
   </head>
   
@@ -55,6 +65,20 @@
         </div>
       </div>
     </section>
+	
+<form id="search-form" class="search-bar">
+  <input type="text" id="q" placeholder="ค้นหา (ทำเล/คำอธิบาย)">
+  <input type="number" id="minPrice" placeholder="ราคาต่ำสุด">
+  <input type="number" id="maxPrice" placeholder="ราคาสูงสุด">
+  <select id="beds">
+    <option value="">ห้องนอน</option>
+    <option value="1">1</option><option value="2">2</option>
+    <option value="3">3</option><option value="4+">4+</option>
+  </select>
+  <button type="submit">ค้นหา</button>
+</form>
+
+<div id="results" class="grid"></div>
 
     <section class="container" id="listings">
       <h2>รายการล่าสุด</h2>
@@ -84,5 +108,7 @@
   </footer>
 
   <script type="module" src="/js/pages/index.page.js"></script>
+  <script src="/js/search.js" defer></script>
+
 </body>
 </html>

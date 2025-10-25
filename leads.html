@@ -16,6 +16,16 @@
   <link rel="stylesheet" href="/assets/css/base.css">
   <link rel="stylesheet" href="/assets/css/layout.css">
   <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/pp-theme.css">
+  
+  <!-- ใส่ใน <head> ของทุกหน้า ก่อนสคริปต์อื่นที่เรียก Supabase -->
+<script>
+  // วิธี 1: ใส่ค่าไว้ตรงนี้ตอนทดสอบ (ห้าม commit key จริงถ้า repo public)
+  window.SUPABASE_URL = window.SUPABASE_URL || "https://YOUR-PROJECT.supabase.co";
+  window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "YOUR-ANON-KEY";
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+<script src="/js/init-supabase.js" defer></script>
   
 </head>
 

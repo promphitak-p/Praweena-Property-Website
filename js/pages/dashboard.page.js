@@ -638,3 +638,57 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('click', e => { 
   if (e.target === modal) closeModal(); });
 });
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const { createClient } = window.supabase;
+  const sb = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '/auth.html'; return; }
+  // ตรวจ role จาก user_metadata.role === 'admin' ถ้าอยากเข้มงวดเพิ่ม
+});
+</script>
+
+<form id="prop-form">
+  <input name="title" placeholder="ชื่อบ้าน" required>
+  <textarea name="desc" placeholder="คำอธิบาย"></textarea>
+  <input type="number" name="price" placeholder="ราคา" required>
+  <input type="number" name="beds" placeholder="ห้องนอน">
+  <input type="number" step="any" name="lat" placeholder="ละติจูด">
+  <input type="number" step="any" name="lng" placeholder="ลองจิจูด">
+  <input type="file" id="cover" accept="image/*">
+  <button type="submit">บันทึก</button>
+</form>
+
+<script>
+document.getElementById('prop-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const { createClient } = window.supabase;
+  const sb = createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+  const fd = new FormData(e.target);
+  let coverUrl = null;
+  const file = document.getElementById('cover').files[0];
+  if (file) {
+    const path = `covers/${Date.now()}-${file.name}`;
+    const { data, error } = await sb.storage.from('property-images').upload(path, file, { upsert: true });
+    if (error) return alert(error.message);
+    const { data: pub } = sb.storage.from('property-images').getPublicUrl(path);
+    coverUrl = pub.publicUrl;
+  }
+
+  const payload = {
+    title: fd.get('title'),
+    desc: fd.get('desc'),
+    price: Number(fd.get('price')),
+    beds: Number(fd.get('beds')) || null,
+    lat: fd.get('lat') ? Number(fd.get('lat')) : null,
+    lng: fd.get('lng') ? Number(fd.get('lng')) : null,
+    cover: coverUrl,
+    published: true
+  };
+
+  const { error: upErr } = await sb.from('properties').insert(payload);
+  if (upErr) alert(upErr.message); else { alert('บันทึกแล้ว'); e.target.reset(); }
+});
+</script>

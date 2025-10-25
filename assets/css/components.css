@@ -273,6 +273,12 @@ body.no-scroll{
   pointer-events: none;
 }
 
+<style>
+  #map { height: 300px; border-radius: 12px; }
+  .notice { padding: 12px; border: 1px dashed #ccc; border-radius: 10px; background: #fafafa; }
+</style>
+
+
 /* Notice box (optional) */
 .alert { border-radius: 10px; padding: 12px 14px; line-height: 1.5; }
 .alert.info { background:#f1f5f9; border:1px solid #e2e8f0; color:#334155; }
