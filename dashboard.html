@@ -1,100 +1,243 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8">
-  <title>Dashboard - Praweena Admin</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="/assets/css/pp-theme.css">
-  <script>
-    window.SUPABASE_URL = window.SUPABASE_URL || "https://YOUR-PROJECT.supabase.co";
-    window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "YOUR-ANON-KEY";
-  </script>
-  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="/js/init-supabase.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>แดชบอร์ด - Praweena Property</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/assets/css/base.css"/>
+  <link rel="stylesheet" href="/assets/css/layout.css"/>
+  <link rel="stylesheet" href="/assets/css/components.css"/>
+
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/assets/favicon/site.webmanifest">
+
+  <!-- Cropper.js (สำหรับครอบรูปหน้าปก) -->
+  <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
+  <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+  <!-- เฉพาะหน้านี้: ช่วยเรื่องเวทีครอบรูป -->
   <style>
-    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-    .nav{display:flex;gap:8px;flex-wrap:wrap}
-    .nav button{padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff}
-    .section{margin-top:16px}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.08)}
-    th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
-    th{background:#fafafa}
-    .actions button{margin-right:6px}
-    .form-grid{display:grid;gap:8px;grid-template-columns:repeat(2,1fr)}
-    .form-grid input, .form-grid textarea{padding:10px;border:1px solid #e5e7eb;border-radius:10px}
-    .form-grid textarea{grid-column:1/-1;min-height:90px}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px}
-    .modal .panel{background:#fff;padding:16px;border-radius:16px;max-width:720px;width:100%}
+    .cropper-stage {
+      width: 100%;
+      height: 500px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .cropper-stage img { max-width: 100%; display: block; }
+    /* รูปหน้าปกพรีวิว */
+    .property-cover-image {
+      width: 100%;
+      max-width: 560px;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <h1>Praweena Admin</h1>
-      <div>
-        <button id="btn-new" class="btn-primary">+ เพิ่มทรัพย์</button>
-        <button id="btn-logout" class="btn-secondary" style="background:#1F2937;color:#fff">ออกจากระบบ</button>
-      </div>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
+          <span class="logo-text">Praweena Property</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html" aria-current="page">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
+        </ul>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+      <h1>จัดการประกาศ</h1>
+      <button class="btn" id="add-property-btn">เพิ่มประกาศใหม่</button>
     </div>
 
-    <div class="nav">
-      <button data-tab="properties">ทรัพย์สิน</button>
-      <button data-tab="leads">Leads</button>
-      <button data-tab="storage">อัปโหลดรูป</button>
+    <div class="table-wrapper">
+      <table id="properties-table">
+        <thead>
+          <tr>
+            <th>หัวข้อ</th>
+            <th>ราคา</th>
+            <th>สถานะ</th>
+            <th>อัปเดตล่าสุด</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
+  </main>
 
-    <div id="tab-properties" class="section">
-      <div style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap;">
-        <input id="p-q" placeholder="ค้นหา (ชื่อ/ทำเล)" />
-        <select id="p-published">
-          <option value="">ทุกสถานะ</option>
-          <option value="true">เผยแพร่</option>
-          <option value="false">ซ่อน</option>
-        </select>
-        <button id="p-refresh">รีเฟรช</button>
-      </div>
-      <div id="p-list"></div>
-    </div>
+  <!-- Modal: ฟอร์มประกาศ -->
+  <div id="property-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h3 id="modal-title">เพิ่มประกาศใหม่</h3>
 
-    <div id="tab-leads" class="section" style="display:none">
-      <button id="l-refresh">รีเฟรช</button>
-      <div id="l-list" style="margin-top:8px"></div>
-    </div>
+      <form id="property-form">
+        <input type="hidden" name="id" />
 
-    <div id="tab-storage" class="section" style="display:none">
-      <input type="file" id="file" accept="image/*">
-      <button id="btn-upload">อัปโหลด</button>
-      <div id="upload-result" class="notice" style="margin-top:8px" hidden></div>
-    </div>
-  </div>
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label>หัวข้อ</label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
 
-  <div class="modal" id="modal">
-    <div class="panel">
-      <h3 id="modal-title">เพิ่ม/แก้ไขทรัพย์</h3>
-      <form id="prop-form" class="form-grid">
-        <input name="id" type="hidden">
-        <input name="title" placeholder="ชื่อบ้าน/โครงการ" required>
-        <input name="location" placeholder="ทำเล/ย่าน">
-        <input name="price" type="number" placeholder="ราคา (บาท)" required>
-        <input name="beds" type="number" placeholder="ห้องนอน">
-        <input name="baths" type="number" placeholder="ห้องน้ำ">
-        <input name="area" type="number" step="any" placeholder="พื้นที่ (ตร.ว.)">
-        <input name="lat" type="number" step="any" placeholder="ละติจูด">
-        <input name="lng" type="number" step="any" placeholder="ลองจิจูด">
-        <input name="slug" placeholder="slug (ลิงก์)">
-        <input name="cover" placeholder="URL รูปหน้าปก">
-        <textarea name="desc" placeholder="คำอธิบาย (ถ้ามีคอลัมน์นี้ใน DB จะบันทึกให้ ถ้าไม่มีก็ข้าม)"></textarea>
-        <label><input type="checkbox" name="published"> เผยแพร่</label>
-        <div style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-          <button type="button" id="btn-cancel">ยกเลิก</button>
-          <button type="submit" class="btn-primary">บันทึก</button>
+          <div class="form-group">
+            <label>Slug</label>
+            <input type="text" name="slug" class="form-control" placeholder="จะสร้างให้อัตโนมัติถ้าเว้นว่าง">
+          </div>
+
+          <div class="form-group">
+            <label>ราคา</label>
+            <input type="number" name="price" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>ขนาด (เช่น 120 ตร.ม.)</label>
+            <input type="text" name="size_text" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>ห้องนอน</label>
+            <input type="number" name="beds" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>ห้องน้ำ</label>
+            <input type="number" name="baths" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>ที่จอดรถ</label>
+            <input type="number" name="parking" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>อำเภอ</label>
+            <input type="text" name="district" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>จังหวัด</label>
+            <input type="text" name="province" class="form-control" value="สุราษฎร์ธานี">
+          </div>
+
+          <div class="form-group">
+            <label>สถานะ</label>
+            <select name="status" class="form-control">
+              <option value="available">ว่าง (Available)</option>
+              <option value="sold">ขายแล้ว (Sold)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>ที่อยู่</label>
+            <input type="text" name="address" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>ละติจูด</label>
+            <input type="number" step="any" name="latitude" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>ลองจิจูด</label>
+            <input type="number" step="any" name="longitude" class="form-control">
+          </div>
+
+          <div id="modal-map" style="height:300px;margin:1rem 0;border-radius:8px;z-index:10;"></div>
+
+          <!-- เลือกรูปหน้าปก + พรีวิว -->
+          <div class="form-group col-span-2">
+            <label>รูปภาพหน้าปก</label>
+            <div class="cover-uploader">
+              <button type="button" id="pick-cover-btn" class="btn btn-secondary">เลือกรูปหน้าปก</button>
+              <input type="file" id="cover-file-input" accept="image/*" hidden />
+              <div class="cover-preview-wrap" style="margin-top:10px;">
+                <img id="image-preview" class="property-cover-image" style="display:none;" alt="cover preview"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal ครอบรูปหน้าปก -->
+          <div class="modal" id="cover-crop-modal">
+            <div class="modal-content" style="max-width:900px;">
+              <span class="modal-close" id="cover-crop-close">&times;</span>
+              <h3 style="margin-top:0;">ครอบรูปหน้าปก</h3>
+
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+                <label>อัตราส่วน:</label>
+                <select id="crop-aspect">
+                  <option value="16/9" selected>16:9 (แนะนำ)</option>
+                  <option value="4/3">4:3</option>
+                  <option value="1/1">1:1</option>
+                  <option value="NaN">อิสระ</option>
+                </select>
+                <button type="button" id="crop-rotate-left" class="btn btn-secondary">หมุนซ้าย 90°</button>
+                <button type="button" id="crop-rotate-right" class="btn btn-secondary">หมุนขวา 90°</button>
+              </div>
+
+              <div class="cropper-stage">
+                <img id="cropper-image" alt="crop source"/>
+              </div>
+
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                <button type="button" class="btn btn-secondary modal-cancel" id="crop-cancel-btn">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="crop-apply-btn">ใช้รูปนี้</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- แกลเลอรี -->
+          <div class="form-group col-span-2">
+            <label>รูปภาพแกลเลอรี (เลือกได้หลายรูป)</label>
+            <input type="file" id="gallery-images-input" class="form-control" accept="image/png, image/jpeg" multiple>
+            <div id="gallery-manager" style="margin-top:12px;"></div>
+          </div>
+
+          <!-- YouTube -->
+          <div class="form-group col-span-2">
+            <label>YouTube Video IDs (ถ้ามี)</label>
+            <div id="youtube-ids-container"></div>
+            <button type="button" id="add-youtube-id-btn" class="btn btn-secondary" style="margin-top:.5rem;">+ เพิ่มวิดีโอ YouTube</button>
+            <small style="color:var(--text-light);display:block;">*ใส่เฉพาะส่วนรหัสท้าย URL ของวิดีโอ*</small>
+            <input type="hidden" name="youtube_video_ids">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label><input type="checkbox" name="published" style="margin-right:8px;">เผยแพร่ทันที</label>
+        </div>
+
+        <div style="text-align:right;">
+          <button type="button" class="btn btn-secondary modal-cancel">ยกเลิก</button>
+          <button type="submit" class="btn">บันทึก</button>
         </div>
       </form>
     </div>
   </div>
 
-  <script src="/js/uploader.js" defer></script>
-  <script src="/js/dashboard.js" defer></script>
+  <!-- Page JS -->
+  <script type="module" src="/js/pages/dashboard.page.js"></script>
 </body>
 </html>
