@@ -196,42 +196,69 @@ function renderPropertyDetails(property) {
 // Map
 // Map (แสดงเมื่อพิกัดเป็นตัวเลขเท่านั้น + ปิดการเลื่อน/ซูม)
 // ===== Map Section =====
-const lat = parseFloat(property.latitude ?? property.lat);
-const lng = parseFloat(property.longitude ?? property.lng);
+// ===== Map Section (robust, no scroll/zoom) =====
+const latRaw = property.latitude ?? property.lat;
+const lngRaw = property.longitude ?? property.lng;
 
-if (Number.isFinite(lat) && Number.isFinite(lng)) {
-  const mapEl = el('div', {
-    attributes: { id: 'map' },
-    style: 'height: 400px; width: 100%; margin-top: 1.5rem; border-radius: var(--radius); z-index: 1;'
-  });
-  leftCol.append(mapEl);
+// แปลงเป็นตัวเลขแบบปลอดภัย
+const lat = typeof latRaw === 'string' ? parseFloat(latRaw.trim()) : Number(latRaw);
+const lng = typeof lngRaw === 'string' ? parseFloat(lngRaw.trim()) : Number(lngRaw);
 
+// สร้าง container ไว้ก่อนเสมอ (จะได้เห็นพื้นที่แม้ init ไม่สำเร็จ)
+const mapId = 'map-' + (property.id || 'detail');
+const mapEl = el('div', {
+  attributes: { id: mapId, 'aria-label': 'แผนที่' },
+  style: 'height:400px;min-height:400px;width:100%;margin-top:1.5rem;border-radius:var(--radius);overflow:hidden;background:#f5f5f5;'
+});
+leftCol.append(mapEl);
+
+// ถ้าพิกัดไม่ใช่ตัวเลข ให้หยุด และไม่โชว์อะไร (หรือจะใส่ข้อความแจ้งก็ได้)
+if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  console.warn('No valid coordinates for map:', { lat: latRaw, lng: lngRaw });
+} else {
+  // ลองใช้ Leaflet ก่อน
   setTimeout(() => {
-    if (typeof L === 'undefined') return;
+    try {
+      if (typeof L === 'undefined') throw new Error('Leaflet is not loaded');
 
-    const map = L.map('map', {
-      center: [lat, lng],
-      zoom: 15,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      touchZoom: false,
-      boxZoom: false,
-      keyboard: false,
-      zoomControl: false
-    });
+      const map = L.map(mapId, {
+        center: [lat, lng],
+        zoom: 15,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        zoomControl: false
+      });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
 
-    const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    L.marker([lat, lng])
-      .addTo(map)
-      .bindPopup(`<b>${property.title || 'สถานที่'}</b><br><a href="${gmaps}" target="_blank" rel="noopener">เปิดใน Google Maps เพื่อนำทาง</a>`)
-      .openPopup();
+      L.marker([lat, lng]).addTo(map).bindPopup(
+        `<b>${property.title || 'สถานที่'}</b><br>
+         <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" rel="noopener">
+           เปิดใน Google Maps เพื่อนำทาง
+         </a>`
+      );
+
+      // กันเคส container ขยายช้า ทำให้แผนที่กว้าง/สูง 0
+      setTimeout(() => map.invalidateSize(), 0);
+    } catch (err) {
+      console.error('Leaflet init failed, using Google Maps iframe fallback:', err);
+      mapEl.innerHTML = `
+        <iframe
+          src="https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed"
+          style="width:100%;height:100%;border:0;"
+          loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+          title="Google Map"
+        ></iframe>`;
+    }
   }, 0);
 }
+
 
   // Share
   const facebookIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
