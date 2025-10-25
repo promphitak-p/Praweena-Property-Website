@@ -635,8 +635,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ปิดโมดัล
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
   if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
-window.addEventListener('click', e => {
-  if (e.target === modal) {
-    closeModal();
-  }
+  window.addEventListener('click', e => { 
+  if (e.target === modal) closeModal(); });
 });
