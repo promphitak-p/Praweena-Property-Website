@@ -1,1018 +1,234 @@
-/* assets/css/components.css */
+/* ===============================
+   Components.css (Optimized)
+   =============================== */
 
-/* === Property Card === */
-.property-card {
-  background-color: var(--surface);
+/* ============ Property Card ============ */
+.property-card{
+  position: relative;
+  background: var(--surface);
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow-md);
-  transition: transform 0.2s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
+  transition: transform .2s, box-shadow .2s;
 }
-
-.property-card:hover {
+.property-card:hover{
   transform: translateY(-5px);
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
-
-.property-card__image {
-  height: 200px;
-  width: 100%;
-  object-fit: cover;
-}
-
-.property-card__body {
-  padding: 1.25rem;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.property-card__title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--text);
-}
-
-.property-card__address {
-  color: var(--text-light);
-  margin-bottom: 1rem;
-}
-
-.property-card__price {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--brand);
-  margin-top: auto;
-}
-
-/* === Modal === */
-.modal {
-  display: none; /* Hidden by default */
-  position: fixed;
-  z-index: 100;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0, 0, 0, 0.5);
-  align-items: center;
-  justify-content: center;
-}
-
-.modal.open {
-  display: flex;
-}
-
-.modal-content {
-  background-color: var(--surface);
-  margin: auto;
-  padding: 2rem;
-  border-radius: var(--radius);
-  /*max-width: 600px;*/
-  max-width: 100%;
-  width: 90%;
-  position: relative;
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-}
-
-.modal-close {
-  position: absolute;
-  top: 1rem;
-  right: 1.5rem;
-  font-size: 2rem;
-  font-weight: bold;
-  color: var(--text-light);
-  cursor: pointer;
-}
-
-.modal-close:hover {
-  color: var(--text);
-}
-
-
-/* === Table === */
-.table-wrapper {
-  overflow-x: auto;
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  padding: 1rem;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-}
-
-thead th {
-  font-weight: 600;
-  color: var(--brand); /* Change color to brand color */
-  text-transform: uppercase;
-  font-size: 0.875rem;
-  /* Add a bottom border for separation */
-  border-bottom: 2px solid var(--brand-2); 
-  background-color: #f9fafb; /* Add a subtle background color */
-}
-
-tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* === Toast Notification === */
-.toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--text);
-    color: white;
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    box-shadow: var(--shadow-md);
-    z-index: 1000;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
-}
-
-.toast.show {
-    opacity: 1;
-    visibility: visible;
-    transform: translate(-50%, -10px);
-}
-
-.property-cover-image {
-  width: 100%; /* ให้ความกว้างเต็มพื้นที่ที่มันอยู่ */
-  max-height: 550px; /* กำหนดความสูงสูงสุดไม่ให้เกินนี้ */
-  object-fit: cover; /* ทำให้รูปเต็มกรอบโดยไม่เสียสัดส่วน (ส่วนที่เกินจะถูกซ่อน) */
-  border-radius: var(--radius);
-  background-color: #eee; /* สีพื้นหลังเผื่อรูปยังไม่โหลด */
-}
-
-/* assets/css/components.css */
-
-/* Container หลักของ Gallery ที่จะทำให้ปัดได้ */
-.image-gallery {
-  display: flex; /* 1. จัดเรียงรูปภาพในแนวนอน */
-  overflow-x: auto; /* 2. ทำให้แกน X (แนวนอน) เลื่อนได้เมื่อเนื้อหาล้น */
-  scroll-snap-type: x mandatory; /* 3. ทำให้การเลื่อน "เข้าล็อค" ทีละรูป */
-  scroll-behavior: smooth; /* ทำให้การเลื่อนสมูทขึ้น (เมื่อใช้ปุ่มในอนาคต) */
-  -webkit-overflow-scrolling: touch; /* ทำให้การปัดบน iOS ลื่นขึ้น */
-  margin-top: 1rem;
-}
-
-/* ซ่อนแถบ Scrollbar ที่ไม่สวยงาม */
-.image-gallery::-webkit-scrollbar {
-  display: none;
-}
-.image-gallery {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-/* สไตล์ของรูปภาพแต่ละรูปใน Gallery */
-.gallery-image {
-  flex: 0 0 100%; /* 4. ทำให้แต่ละรูปกว้าง 100% ของ Container */
-  width: 100%;
-  scroll-snap-align: start; /* 5. กำหนดให้รูปภาพ "เข้าล็อค" ที่ด้านซ้าย */
-  object-fit: cover;
-  height: 450px; /* กำหนดความสูงของรูปในแกลเลอรี */
-  border-radius: var(--radius);
-  background-color: #eee;
-}
-
-.thumbnail-image:hover {
-  border-color: var(--brand);
-}
-
-/* assets/css/components.css */
-
-/* Wrapper ใหม่สำหรับจัดตำแหน่งปุ่ม */
-.gallery-wrapper {
-  position: relative; /* ทำให้ปุ่มลูกศรจัดตำแหน่งเทียบกับกรอบนี้ */
-  width: 100%;
-}
-
-/* สไตล์ของปุ่มลูกศร */
-.gallery-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(0, 0, 0, 0.4);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  transition: background-color 0.2s;
-}
-
-.gallery-nav:hover {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-.gallery-nav.prev {
-  left: 10px;
-}
-
-.gallery-nav.next {
-  right: 10px;
-}
-
-/* Skeleton Loader Styles */
-.skeleton {
-  background-color: #e2e8f0;
-  border-radius: 8px;
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  transform: translateX(-100%);
-  background-image: linear-gradient(90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0) 100%);
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* assets/css/components.css (เวอร์ชันแก้ไขสำหรับ Desktop) */
-
-/* พื้นหลังสีดำเต็มจอ - เพิ่ม padding เพื่อสร้างกรอบ */
-.lightbox-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
-  z-index: 1000;
-  display: none;
-  /* เพิ่ม padding 5% รอบด้าน เพื่อสร้างขอบเขตให้รูปภาพ */
-  padding: 5vh 5vw;
-  box-sizing: border-box; /* สำคัญ: ทำให้ padding ไม่ไปเพิ่มขนาดโดยรวม */
-}
-.lightbox-overlay.show {
-  display: block; /* เปลี่ยนจาก flex เป็น block */
-}
-
-/* Container ของรูปภาพที่จะทำให้เลื่อนได้ */
-.lightbox-gallery {
-  display: flex;
-  width: 100%; /* ให้กว้าง 100% ของพื้นที่หลังหัก padding ออกแล้ว */
-  height: 100%; /* ให้สูง 100% ของพื้นที่หลังหัก padding ออกแล้ว */
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  border-radius: 8px; /* เพิ่มความมนให้กรอบ */
-}
-.lightbox-gallery::-webkit-scrollbar { display: none; }
-.lightbox-gallery { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* รูปภาพแต่ละรูปใน Lightbox */
-.lightbox-image {
-  flex: 0 0 100%;
-  width: 100%;
-  height: 100%;
-  scroll-snap-align: center;
-  object-fit: contain;
-}
-
-/* คลาสสำหรับควบคุมสถานะของรูปภาพ */
-.lightbox-image.prev {
-    transform: translateX(-100%); /* สไลด์ไปทางซ้ายสุด */
-}
-.lightbox-image.next {
-    transform: translateX(100%); /* สไลด์ไปทางขวาสุด */
-}
-.lightbox-image.current {
-    transform: translateX(0); /* อยู่ตรงกลาง */
-}
-
-.lightbox-close {
-  position: absolute;
-  top: 20px;
-  right: 30px;
-  color: white;
-  font-size: 40px;
-  font-weight: bold;
-  cursor: pointer;
-  z-index: 1002; /* <-- เพิ่มบรรทัดนี้ เพื่อให้ปุ่มอยู่เหนือทุกอย่าง */
-}
-
-/* assets/css/components.css */
-
-/* ปุ่มลูกศรซ้าย-ขวา */
-.lightbox-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(0, 0, 0, 0.4);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 45px;
-  height: 45px;
-  font-size: 30px;
-  cursor: pointer;
-  z-index: 1001;
-  transition: background-color 0.2s;
-}
-
-.lightbox-nav:hover {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-.lightbox-prev {
-  left: 15px;
-}
-
-.lightbox-next {
-  right: 15px;
-}
-
-/* ซ่อนปุ่มลูกศรบนอุปกรณ์ที่ใช้การสัมผัสเป็นหลัก (Coarse Pointer)
-   หรืออุปกรณ์ที่ไม่รองรับการ Hover (ส่วนใหญ่คือทัชสกรีน)
-*/
-@media (pointer: coarse), (hover: none) {
-  .gallery-wrapper .gallery-nav,
-  .lightbox-overlay .lightbox-nav {
-    display: none;
-  }
-}
-
-.lightbox-image-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    overflow: hidden; /* ซ่อนรูปภาพที่อยู่นอกกรอบ */
-}
-
-/* assets/css/components.css */
-
-/* Container for Gallery Dots */
-.gallery-dots {
-  text-align: center;
-  padding: 10px 0;
-}
-
-.dot {
-  cursor: pointer;
-  height: 12px;
-  width: 12px;
-  margin: 0 4px;
-  background-color: #ddd;
-  border-radius: 50%;
-  display: inline-block;
-  transition: background-color 0.3s ease;
-}
-
-.dot.active, .dot:hover {
-  background-color: var(--brand);
-}
-
-/* assets/css/components.css */
-
-/* ทำให้การ์ดเป็นกรอบอ้างอิงสำหรับป้าย */
-.property-card {
-  position: relative;
-}
-
-/* สไตล์ของป้าย "ขายแล้ว" */
-.sold-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background-color: rgba(20, 20, 20, 0.75);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  backdrop-filter: blur(4px); /* เพิ่มเอฟเฟคกระจกฝ้า */
-}
-
-/* assets/css/components.css */
-
-/* Container for social share buttons */
-.share-buttons {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.share-buttons p {
-  font-weight: 600;
-  color: var(--text-light);
-}
-
-.share-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  text-decoration: none;
-  transition: transform 0.2s, opacity 0.2s;
-}
-
-/* สไตล์สำหรับ SVG icon ที่อยู่ข้างในปุ่ม */
-.share-btn svg {
-  width: 24px; /* กำหนดขนาดของไอคอน */
-  height: 24px;
-  fill: white; /* กำหนดสีของไอคอนเป็นสีขาว */
-}
-
-.share-btn:hover {
-  transform: scale(1.1);
-  opacity: 0.9;
-}
-
-/* Specific colors for each platform */
-.share-btn.facebook { background-color: #1877F2; }
-.share-btn.line { background-color: #06C755; }
-.share-btn.twitter { background-color: #1DA1F2; }
-.share-btn.messenger { background-color: #00B2FF; }
-
-/* Responsive YouTube Video Container */
-.video-container {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  padding-top: 56.25%; /* อัตราส่วน 16:9 (9 / 16 * 100) */
-  margin-top: 1.5rem; /* ระยะห่างจากด้านบน */
-  border-radius: var(--radius); /* ทำให้ขอบมน */
-  background-color: #eee; /* สีพื้นหลังเผื่อวิดีโอยังไม่โหลด */
-}
-
-.video-container iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: 0; /* เอาเส้นขอบออก */
-}
-
-/* assets/css/components.css */
-
-/* === Gallery Thumbnails === */
-.thumbnail-container {
-  display: flex;
-  gap: 0.75rem;
-  overflow-x: auto; /* ทำให้เลื่อนได้ถ้า thumbnails เยอะ */
-  padding: 0.75rem 0;
-  margin-top: 0.5rem;
-}
-/* ซ่อน Scrollbar ของ thumbnails */
-.thumbnail-container::-webkit-scrollbar { display: none; }
-.thumbnail-container { -ms-overflow-style: none; scrollbar-width: none; }
-
-.thumbnail-image {
-  flex: 0 0 100px; /* กำหนดความกว้างคงที่ */
-  width: 100px;
-  height: 75px;
-  object-fit: cover;
-  border-radius: 8px;
-  cursor: pointer;
-  border: 3px solid transparent;
-  transition: border-color 0.2s, opacity 0.2s;
-  opacity: 0.6; /* ทำให้รูปที่ไม่ active ดูจางลง */
-}
-
-.thumbnail-image.active,
-.thumbnail-image:hover {
-  border-color: var(--brand);
-  opacity: 1; /* ทำให้รูป active/hover ชัดเจน */
-}
-
-/* === YouTube Thumbnail === */
-.youtube-thumbnail-container {
-  position: relative;
-  cursor: pointer;
-  overflow: hidden; /* สำหรับ border-radius */
-  border-radius: var(--radius);
-  margin-top: 1.5rem;
-  background-color: #eee;
-}
-
-.youtube-thumbnail-container img {
-  display: block;
-  width: 100%;
-  height: auto;
-  transition: transform 0.3s ease;
-}
-
-.youtube-thumbnail-container:hover img {
-  transform: scale(1.05); /* Zoom effect on hover */
-}
-
-/* Play button overlay */
-.youtube-thumbnail-container::before {
-  content: '▶'; /* Play symbol */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 50px;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.6);
-  border-radius: 50%;
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 80px; /* Vertically center the play symbol */
-  text-shadow: 0 0 10px rgba(0,0,0,0.5);
-  transition: background-color 0.3s ease;
-}
-
-.youtube-thumbnail-container:hover::before {
-  background-color: rgba(0, 0, 0, 0.8);
-}
-
-.thumbnail-container { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-.thumbnail-image { width:72px; height:72px; object-fit:cover; border-radius:6px; border:2px solid transparent; cursor:pointer; }
-.thumbnail-image.active { border-color: var(--brand); }
-
-/* === YouTube inputs & preview (dashboard modal) === */
-.youtube-id-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  position: relative;
-}
-
-.yt-preview {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--surface-2, #f4f6f8);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-light);
-  font-size: 0.95rem;
-}
-
-.yt-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Delete overlay button */
-.yt-remove-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* themable surface-on-image */
-  background: rgba(0, 0, 0, 0.45);
-  color: #fff;
-  backdrop-filter: blur(2px);
-
-  opacity: 0.85;
-  transition: opacity .18s ease, background .18s ease, transform .08s ease;
-}
-
-.yt-remove-btn:hover {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.6);
-}
-
-.yt-remove-btn:active {
-  transform: scale(.95);
-}
-
-/* ให้ไอคอน svg ปรับตามสีปุ่ม */
-.yt-remove-btn svg {
-  width: 24px;
-  height: 24px;
-  fill: currentColor;
-}
-
-/* เวทีแสดงภาพสำหรับ Cropper */
-.cropper-stage {
-  width: 100%;
-  height: 60vh;
-  min-height: 380px;
-  background: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: var(--radius, 8px);
-}
-.cropper-stage img { max-width: 100%; display: block; }
-
-/* ปรับปุ่มมาตรฐานเล็กน้อย */
-.btn.btn-primary { background: var(--brand, #b1976b); color:#fff; border:none; padding:.6rem 1rem; border-radius:8px; }
-.btn.btn-secondary { background:#f3f4f6; color:#111; border:1px solid #e5e7eb; padding:.6rem 1rem; border-radius:8px; }
-
-.cropper-stage {
-  width: 100%;
-  height: 500px;
-  background: #f0f0f0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.cropper-stage img {
-  max-width: 100%;
-  display: block;
-}
-
-/* ====== Cover preview ====== */
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+}
+.property-card__image{ width:100%; height:200px; object-fit:cover; }
+.property-card__body{ padding:1.25rem; display:flex; flex-direction:column; flex-grow:1; }
+.property-card__title{ font-size:1.25rem; font-weight:600; margin-bottom:.5rem; color:var(--text); }
+.property-card__address{ color:var(--text-light); margin-bottom:1rem; }
+.property-card__price{ font-size:1.5rem; font-weight:700; color:var(--brand); margin-top:auto; }
+
+/* Sold badge on card */
+.sold-badge{
+  position:absolute; top:1rem; right:1rem;
+  background:rgba(20,20,20,.75); color:#fff;
+  padding:.25rem .75rem; border-radius:6px;
+  font-size:.875rem; font-weight:600; backdrop-filter:blur(4px);
+}
+
+/* =============== Modal =============== */
+.modal{
+  display:none; position:fixed; inset:0; z-index:100;
+  background:rgba(0,0,0,.5); align-items:center; justify-content:center;
+}
+.modal.open{ display:flex; }
+.modal-content{
+  background:var(--surface); width:90%; max-width:100%;
+  margin:auto; padding:2rem; border-radius:var(--radius);
+  position:relative; box-shadow:0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+}
+.modal-close{
+  position:absolute; top:1rem; right:1.5rem;
+  font-size:2rem; font-weight:700; color:var(--text-light); cursor:pointer;
+}
+.modal-close:hover{ color:var(--text); }
+
+/* ============== Table ============== */
+.table-wrapper{
+  overflow-x:auto; background:var(--surface); border-radius:var(--radius);
+  box-shadow:var(--shadow-sm); padding:1rem;
+}
+table{ width:100%; border-collapse:collapse; }
+th,td{ padding:1rem; text-align:left; border-bottom:1px solid var(--border-color); }
+thead th{
+  font-weight:600; color:var(--brand); text-transform:uppercase; font-size:.875rem;
+  border-bottom:2px solid var(--brand-2); background:#f9fafb;
+}
+tbody tr:last-child td{ border-bottom:none; }
+
+/* ============== Toast ============== */
+.toast{
+  position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
+  background:var(--text); color:#fff; padding:1rem 1.5rem; border-radius:8px;
+  box-shadow:var(--shadow-md); z-index:1000; opacity:0; visibility:hidden;
+  transition:opacity .3s, visibility .3s, transform .3s;
+}
+.toast.show{ opacity:1; visibility:visible; transform:translate(-50%,-10px); }
+
+/* ======= Cover (preview image) ======= */
 .property-cover-image{
-  width: 100%;
-  max-width: 420px;
-  height: auto;
-  border-radius: 12px;
-  box-shadow: var(--shadow-md);
-  display: block;
+  width:100%; max-width:420px; height:auto; display:block;
+  border-radius:12px; box-shadow:var(--shadow-md); background:#eee;
 }
 
-/* ====== Cropper modal (ครอบรูปหน้าปก) ====== */
-#cover-crop-modal.modal{
-  display: none;
+/* ================= Media/Gallery (listing page) ================ */
+.image-gallery{
+  display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch; margin-top:1rem;
 }
-#cover-crop-modal.modal.open{
-  display: block;
-}
-#cover-crop-modal .modal-content{
-  max-width: 900px;
-}
-.cropper-stage{
-  width: 100%;
-  max-height: 60vh;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  overflow: hidden;
-  background: #f8fafc;
+.image-gallery::-webkit-scrollbar{ display:none; }
+.image-gallery{ -ms-overflow-style:none; scrollbar-width:none; }
+.gallery-image{
+  flex:0 0 100%; width:100%; height:450px; object-fit:cover;
+  scroll-snap-align:start; border-radius:var(--radius); background:#eee;
 }
 
-/* ====== Gallery Manager: grid แบบกึ่งกลาง ====== */
-#gallery-manager{
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px;
-  justify-items: center;
-  align-items: center;
+/* Thumbnails (listing) */
+.thumbnail-container{
+  display:flex; gap:.75rem; overflow-x:auto; padding:.75rem 0; margin-top:.5rem;
+}
+.thumbnail-container::-webkit-scrollbar{ display:none; }
+.thumbnail-container{ -ms-overflow-style:none; scrollbar-width:none; }
+.thumbnail-image{
+  flex:0 0 100px; width:100px; height:75px; object-fit:cover; border-radius:8px;
+  cursor:pointer; border:3px solid transparent; opacity:.6; transition:border-color .2s, opacity .2s;
+}
+.thumbnail-image:hover, .thumbnail-image.active{ border-color:var(--brand); opacity:1; }
+
+/* =============== Lightbox =============== */
+.lightbox-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000;
+  display:none; padding:5vh 5vw; box-sizing:border-box;
+}
+.lightbox-overlay.show{ display:block; }
+.lightbox-gallery{
+  display:flex; width:100%; height:100%; overflow-x:auto;
+  scroll-snap-type:x mandatory; scroll-behavior:smooth; border-radius:8px;
+}
+.lightbox-gallery::-webkit-scrollbar{ display:none; }
+.lightbox-gallery{ -ms-overflow-style:none; scrollbar-width:none; }
+.lightbox-image{
+  flex:0 0 100%; width:100%; height:100%; object-fit:contain; scroll-snap-align:center;
+}
+.lightbox-image.prev{ transform:translateX(-100%); }
+.lightbox-image.next{ transform:translateX(100%); }
+.lightbox-image.current{ transform:translateX(0); }
+.lightbox-image-container{ width:100%; height:100%; display:flex; justify-content:center; align-items:center; position:relative; overflow:hidden; }
+.lightbox-close{
+  position:absolute; top:20px; right:30px; color:#fff; font-size:40px; font-weight:700; cursor:pointer; z-index:1002;
+}
+.lightbox-nav{
+  position:absolute; top:50%; transform:translateY(-50%); z-index:1001;
+  width:45px; height:45px; border:none; border-radius:50%; font-size:30px; cursor:pointer;
+  background:rgba(0,0,0,.4); color:#fff; transition:background-color .2s;
+}
+.lightbox-nav:hover{ background:rgba(0,0,0,.7); }
+.lightbox-prev{ left:15px; } .lightbox-next{ right:15px; }
+
+/* Hide arrows on touch devices */
+@media (pointer:coarse),(hover:none){
+  .gallery-wrapper .gallery-nav, .lightbox-overlay .lightbox-nav{ display:none; }
 }
 
-/* การ์ดรูป */
-.gm-card{
-  position: relative;
-  width: 140px;
-  height: 110px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #f3f4f6;
-  box-shadow: var(--shadow-sm);
+/* Dots */
+.gallery-dots{ text-align:center; padding:10px 0; }
+.dot{
+  display:inline-block; width:12px; height:12px; margin:0 4px; border-radius:50%;
+  background:#ddd; cursor:pointer; transition:background-color .3s;
 }
-.gm-card img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.dot.active, .dot:hover{ background:var(--brand); }
 
-/* ป้าย "หน้าปก" อัตโนมัติสำหรับรูปแรก */
-.gm-cover-badge{
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 6px;
+/* =========== Share Buttons =========== */
+.share-buttons{
+  margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--border-color);
+  display:flex; gap:1rem; align-items:center;
 }
-
-/* ====== ปุ่มลบ (ใช้คลาสเดียวกับวิดีโอ) ====== */
-.yt-remove-btn{
-  position: absolute;
-  right: 6px;
-  top: 6px;
-  padding: 4px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: transform .15s ease;
-}
-.yt-remove-btn:hover{ transform: scale(1.04); }
-
-/* ====== ปุ่ม/พื้นที่เลือกรูปหน้าปก ====== */
-.cover-uploader .btn{ margin-top: .25rem; }
-.cover-preview-wrap{ margin-top: .5rem; }
-
-/* ปุ่มเล็กๆ บนรูป (ถ้าต้องใช้ซ้ำ) */
-.btn-icon{
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--surface);
-  color: var(--text);
-}
-
-/* ===== Gallery wrapper: จัดกึ่งกลาง + เรียงแนวนอนและตัดบรรทัด ===== */
-#gallery-manager{
-  margin-top: 12px;
-}
-.gm-wrap{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;   /* ทั้งบล็อกกึ่งกลาง */
-  align-items: center;
-}
-
-/* การ์ดแต่ละรูป (ขนาดคงที่เพื่อให้จัดแถวสวย) */
-.gm-card{
-  position: relative;
-  width: 132px;      /* ปรับได้ตามที่ต้องการ */
-  height: 100px;     /* ปรับได้ตามที่ต้องการ */
-  border-radius: 10px;
-  overflow: hidden;
-  background: #f3f4f6;
-  box-shadow: var(--shadow-sm);
-}
-.gm-card img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* ป้าย "หน้าปก" เฉพาะรูปแรก */
-.gm-cover-badge{
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-
-/* ปุ่มลบ ใช้หน้าตาเดียวกับลบวิดีโอ */
-.yt-remove-btn{
-  position: absolute;
-  right: 6px;
-  top: 6px;
-  padding: 4px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: transform .15s ease;
-}
-.yt-remove-btn:hover{ transform: scale(1.04); }
-
-/* เผื่อหน้าจอเล็ก: ย่อ thumbnail ลงนิดนึง */
-@media (max-width: 560px){
-  .gm-card{ width: 110px; height: 84px; }
-}
-
-/* ===== Gallery wrapper: เรียงแนวนอน, ตัดบรรทัดอัตโนมัติ, จัดกึ่งกลาง ===== */
-#gallery-manager{ margin-top:12px; }
-#gallery-manager .gm-wrap{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-  justify-content:center;   /* จัดทั้งบล็อกให้อยู่กึ่งกลาง */
-  align-items:center;
-}
-
-/* การ์ดแต่ละภาพ (ขนาด thumbnail คงที่) */
-#gallery-manager .gm-card{
-  position:relative;
-  width:132px;       /* ปรับได้ */
-  height:100px;      /* ปรับได้ */
-  border-radius:10px;
-  overflow:hidden;
-  background:#f3f4f6;
-  box-shadow: var(--shadow-sm);
-}
-#gallery-manager .gm-card img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-/* badge หน้าปก (เฉพาะภาพแรก) */
-#gallery-manager .gm-cover-badge{
-  position:absolute;
-  left:6px; top:6px;
-  background:rgba(0,0,0,.55);
-  color:#fff;
-  font-size:12px;
-  padding:2px 6px;
-  border-radius:6px;
-}
-
-/* ปุ่มลบ ใช้ดีไซน์เดียวกับลบวิดีโอ */
-#gallery-manager .yt-remove-btn{
-  position:absolute;
-  right:6px; top:6px;
-  padding:4px;
-  border:none;
-  border-radius:6px;
-  background:rgba(0,0,0,.55);
-  color:#fff;
-  cursor:pointer;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  line-height:1;
-  transition:transform .15s ease;
-}
-#gallery-manager .yt-remove-btn:hover{ transform:scale(1.04); }
-
-/* เผื่อจอเล็ก */
-@media (max-width:560px){
-  #gallery-manager .gm-card{ width:110px; height:84px; }
-}
-
-
-/* ===== Gallery: เรียงแนวนอน, ตัดบรรทัดอัตโนมัติ และจัดกึ่งกลาง ===== */
-#gallery-manager { margin-top: 12px; }
-
-/* ห่อรูปทั้งหมด */
-.gm-wrap{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;   /* จัดทั้งบล็อกให้อยู่กึ่งกลาง */
-  align-items: center;
-}
-
-/* การ์ดของรูปแต่ละใบ */
-.gm-card{
-  position: relative;
-  width: 132px;        /* ปรับได้ */
-  height: 100px;       /* ปรับได้ */
-  border-radius: 10px;
-  overflow: hidden;
-  background: #f3f4f6;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
-}
-.gm-card img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* ป้าย "หน้าปก" เฉพาะรูปแรก */
-.gm-cover-badge{
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-
-/* ปุ่มลบ (ใช้หน้าตาเดียวกับปุ่มลบวิดีโอ) */
-.yt-remove-btn{
-  position: absolute;
-  right: 6px;
-  top: 6px;
-  padding: 4px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: transform .15s ease;
-}
-.yt-remove-btn:hover{ transform: scale(1.05); }
-
-/* จอเล็ก ย่อ thumb ลง */
-@media (max-width: 560px){
-  .gm-card{ width: 110px; height: 84px; }
-}
-
-/* ===== Gallery: เรียงแนวนอน ตัดบรรทัดอัตโนมัติ และจัดกึ่งกลาง ===== */
-#gallery-manager{ margin-top:12px; width:100%; }
-
-.gm-wrap{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-  justify-content:center;   /* ทั้งบล็อกอยู่กึ่งกลาง */
-  align-items:center;
-}
-
-.gm-card{
-  position:relative;
-  width:132px;
-  height:100px;
-  border-radius:10px;
-  overflow:hidden;
-  background:#f3f4f6;
-  box-shadow: var(--shadow-sm,0 1px 3px rgba(0,0,0,.08));
-}
-.gm-card img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-.gm-cover-badge{
-  position:absolute; left:6px; top:6px;
-  background:rgba(0,0,0,.55); color:#fff;
-  font-size:12px; padding:2px 6px; border-radius:6px;
-}
-
-.yt-remove-btn{
-  position:absolute; right:6px; top:6px;
-  padding:4px; border:none; border-radius:6px;
-  background:rgba(0,0,0,.55); color:#fff; cursor:pointer;
+.share-buttons p{ font-weight:600; color:var(--text-light); }
+.share-btn{
   display:inline-flex; align-items:center; justify-content:center;
-  line-height:1; transition:transform .15s ease;
+  width:44px; height:44px; border-radius:50%; border:none; text-decoration:none;
+  transition:transform .2s, opacity .2s;
 }
-.yt-remove-btn:hover{ transform:scale(1.04); }
+.share-btn svg{ width:24px; height:24px; fill:#fff; }
+.share-btn:hover{ transform:scale(1.1); opacity:.9; }
+.share-btn.facebook{ background:#1877F2; }
+.share-btn.line{ background:#06C755; }
+.share-btn.twitter{ background:#1DA1F2; }
+.share-btn.messenger{ background:#00B2FF; }
 
+/* ======= YouTube (dashboard inputs) ======= */
+.youtube-id-item{ display:flex; flex-direction:column; gap:.5rem; margin-bottom:1.25rem; position:relative; }
+.yt-preview{
+  position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden;
+  background:var(--surface-2, #f4f6f8); box-shadow:var(--shadow-sm);
+  display:flex; align-items:center; justify-content:center; color:var(--text-light); font-size:.95rem;
+}
+.yt-thumb{ width:100%; height:100%; object-fit:cover; display:block; }
+
+/* Reusable delete button (used by video & gallery) */
+.yt-remove-btn{
+  position:absolute; top:8px; right:8px; width:34px; height:34px; border-radius:50%;
+  border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2;
+  background:rgba(0,0,0,.45); color:#fff; backdrop-filter:blur(2px);
+  opacity:.85; transition:opacity .18s, background .18s, transform .08s;
+}
+.yt-remove-btn:hover{ opacity:1; background:rgba(0,0,0,.6); }
+.yt-remove-btn:active{ transform:scale(.95); }
+.yt-remove-btn svg{ width:24px; height:24px; fill:currentColor; }
+
+/* ============= Cropper ============= */
+.cropper-stage{
+  width:100%; max-height:60vh; min-height:380px;
+  border:1px solid var(--border-color); border-radius:12px; overflow:hidden;
+  background:#f8fafc; display:flex; align-items:center; justify-content:center;
+}
+.cropper-stage img{ max-width:100%; display:block; }
+#cover-crop-modal.modal{ display:none; }
+#cover-crop-modal.modal.open{ display:block; }
+#cover-crop-modal .modal-content{ max-width:900px; }
+
+/* Buttons (light touch) */
+.btn.btn-primary{ background:var(--brand,#b1976b); color:#fff; border:none; padding:.6rem 1rem; border-radius:8px; }
+.btn.btn-secondary{ background:#f3f4f6; color:#111; border:1px solid #e5e7eb; padding:.6rem 1rem; border-radius:8px; }
+.cover-uploader .btn{ margin-top:.25rem; }
+.cover-preview-wrap{ margin-top:.5rem; }
+.btn-icon{
+  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:8px; border:1px solid var(--border-color); background:var(--surface); color:var(--text);
+}
+
+/* ============ Gallery Manager (dashboard modal) ============ */
+/* Container */
+#gallery-manager{ margin-top:12px; width:100%; }
+/* Wrapper: row → wrap, centered */
+.gm-wrap{
+  display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center;
+}
+/* Card */
+.gm-card{
+  position:relative; width:132px; height:100px; border-radius:10px; overflow:hidden;
+  background:#f3f4f6; box-shadow:var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
+}
+.gm-card img{ width:100%; height:100%; object-fit:cover; display:block; }
+/* Cover badge (first only) */
+.gm-cover-badge{
+  position:absolute; left:6px; top:6px; background:rgba(0,0,0,.55);
+  color:#fff; font-size:12px; padding:2px 6px; border-radius:6px;
+}
+/* Delete button (reuse) */
+.gm-card .yt-remove-btn{ right:6px; top:6px; padding:4px; border-radius:6px; width:auto; height:auto; }
+
+/* Small screens */
 @media (max-width:560px){
   .gm-card{ width:110px; height:84px; }
 }
 
-/* ===== Grid utilities (ถ้ายังไม่มี) ===== */
+/* ============ Grid utilities (for form layout) ============ */
 .grid{ display:grid; gap:1rem; }
-.grid-cols-2{ grid-template-columns: 1fr 1fr; }
-.col-span-2{ grid-column: 1 / -1; }   /* กินเต็ม 2 คอลัมน์ */
+.grid-cols-2{ grid-template-columns:1fr 1fr; }
+.col-span-2{ grid-column:1 / -1; }
