@@ -194,28 +194,48 @@ function renderPropertyDetails(property) {
   if (ytSection) leftCol.append(ytSection);
 
 // Map
-// Map (แสดงเมื่อพิกัดเป็นตัวเลขเท่านั้น + ปิดการเลื่อน/ซูม)
-// ===== Map Section =====
-// ===== Map Section (robust, no scroll/zoom) =====
+
+// ===== Map Section (no-scroll/zoom + robust + fallback + notice) =====
 const latRaw = property.latitude ?? property.lat;
 const lngRaw = property.longitude ?? property.lng;
 
-// แปลงเป็นตัวเลขแบบปลอดภัย
+// แปลงค่าให้เป็นตัวเลขแบบปลอดภัย (กันค่าว่าง/สตริงมีเว้นวรรค)
 const lat = typeof latRaw === 'string' ? parseFloat(latRaw.trim()) : Number(latRaw);
 const lng = typeof lngRaw === 'string' ? parseFloat(lngRaw.trim()) : Number(lngRaw);
 
-// สร้าง container ไว้ก่อนเสมอ (จะได้เห็นพื้นที่แม้ init ไม่สำเร็จ)
+// เตรียม container ของแผนที่/กล่องแจ้งเตือน
 const mapId = 'map-' + (property.id || 'detail');
-const mapEl = el('div', {
-  attributes: { id: mapId, 'aria-label': 'แผนที่' },
-  style: 'height:400px;min-height:400px;width:100%;margin-top:1.5rem;border-radius:var(--radius);overflow:hidden;background:#f5f5f5;'
-});
-leftCol.append(mapEl);
+const mapWrap = el('div', { style: 'margin-top:1.5rem;' });
+leftCol.append(mapWrap);
 
-// ถ้าพิกัดไม่ใช่ตัวเลข ให้หยุด และไม่โชว์อะไร (หรือจะใส่ข้อความแจ้งก็ได้)
+// ฟังก์ชันแสดงกล่องแจ้งเตือน “ไม่มีพิกัด”
+function showNoCoordsNotice() {
+  const notice = el('div', {
+    className: 'alert info',
+    style: `
+      background:#f1f5f9;border:1px solid #e2e8f0;color:#334155;
+      padding:12px 14px;border-radius:10px;line-height:1.5;
+    `
+  });
+  notice.innerHTML = `
+    <strong>ไม่พบพิกัดสำหรับประกาศนี้</strong><br>
+    กรุณาติดต่อผู้ดูแลหรือเพิ่มพิกัด (Latitude/Longitude) ให้กับประกาศ เพื่อแสดงแผนที่นำทาง
+  `;
+  mapWrap.append(notice);
+}
+
+// ถ้าพิกัดไม่ถูกต้อง แสดงกล่องแจ้งเตือนแล้วจบ
 if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   console.warn('No valid coordinates for map:', { lat: latRaw, lng: lngRaw });
+  showNoCoordsNotice();
 } else {
+  // มีพิกัด: ใส่ div ของแผนที่
+  const mapEl = el('div', {
+    attributes: { id: mapId },
+    style: 'height:400px;min-height:400px;width:100%;border-radius:var(--radius);overflow:hidden;background:#f5f5f5;'
+  });
+  mapWrap.append(mapEl);
+
   // ลองใช้ Leaflet ก่อน
   setTimeout(() => {
     try {
@@ -239,15 +259,15 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
 
       L.marker([lat, lng]).addTo(map).bindPopup(
         `<b>${property.title || 'สถานที่'}</b><br>
-         <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" rel="noopener">
-           เปิดใน Google Maps เพื่อนำทาง
-         </a>`
+         <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}"
+            target="_blank" rel="noopener">เปิดใน Google Maps เพื่อนำทาง</a>`
       );
 
-      // กันเคส container ขยายช้า ทำให้แผนที่กว้าง/สูง 0
+      // กันกรณี container ปรับขนาดช้าทำให้แผนที่กว้าง/สูง 0
       setTimeout(() => map.invalidateSize(), 0);
     } catch (err) {
-      console.error('Leaflet init failed, using Google Maps iframe fallback:', err);
+      console.error('Leaflet init failed, falling back to Google Maps iframe:', err);
+      // fallback เป็น Google Maps embed (non-interactive)
       mapEl.innerHTML = `
         <iframe
           src="https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed"
