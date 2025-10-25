@@ -193,37 +193,45 @@ function renderPropertyDetails(property) {
  const ytSection = renderYouTubeGallery(normalizeYoutubeIds(property.youtube_video_ids));
   if (ytSection) leftCol.append(ytSection);
 
-  // Map
-  if (property.latitude && property.longitude) {
-    const mapEl = el('div', { attributes: { id: 'map', style: 'height: 400px; margin-top: 1.5rem; border-radius: var(--radius); z-index: 1;' } });
-    leftCol.append(mapEl);
-    setTimeout(() => {
-      const lat = parseFloat(property.latitude);
-      const lon = parseFloat(property.longitude);
-      if (isNaN(lat) || isNaN(lon)) return;
-		const map = L.map('map', {
-		  center: [lat, lng],
-		  zoom: 15,
-		  dragging: false,        // ❌ ปิดการลากแผนที่
-		  scrollWheelZoom: false, // ❌ ปิดซูมด้วย scroll
-		  doubleClickZoom: false, // ❌ ปิดซูมด้วยดับเบิ้ลคลิก
-		  touchZoom: false,       // ❌ ปิด pinch zoom บนมือถือ
-		  boxZoom: false,         // ❌ ปิด drag-select zoom
-		  keyboard: false,        // ❌ ปิดการควบคุมด้วยคีย์บอร์ด
-		  zoomControl: false      // ❌ ซ่อนปุ่ม +/−
-		});
+// Map
+if (property.latitude && property.longitude) {
+  const mapEl = el('div', {
+    attributes: { id: 'map' },
+    style: 'height: 400px; margin-top: 1.5rem; border-radius: var(--radius); z-index: 1;'
+  });
+  leftCol.append(mapEl);
 
-		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		  attribution: '© OpenStreetMap contributors'
-		}).addTo(map);
-      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-      const popupContent = `<b>${property.title}</b><br><a href="${googleMapsUrl}" target="_blank">เปิดใน Google Maps เพื่อนำทาง</a>`;
-      L.marker([lat, lng])
-  .addTo(map)
-  .bindPopup(`<b>${title}</b><br>เปิดใน Google Maps เพื่อเส้นทาง`)
-  .openPopup();
-    }, 100);
-  }
+  setTimeout(() => {
+    const lat = parseFloat(property.latitude);
+    const lng = parseFloat(property.longitude); // ✅ ใช้ชื่อ lng ให้ตรงกัน
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const map = L.map('map', {
+      center: [lat, lng],
+      zoom: 15,
+      dragging: false,         // ❌ ห้ามลากแผนที่
+      scrollWheelZoom: false,  // ❌ ห้ามซูมด้วยสกอลล์
+      doubleClickZoom: false,  // ❌ ห้ามซูมด้วยดับเบิลคลิก
+      touchZoom: false,        // ❌ ห้าม pinch zoom
+      boxZoom: false,
+      keyboard: false,
+      zoomControl: false       // ❌ ซ่อนปุ่ม +/-
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+    L.marker([lat, lng]).addTo(map)
+      .bindPopup(
+        `<b>${property.title}</b><br><a href="${googleMapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps เพื่อนำทาง</a>`
+      )
+      .openPopup();
+  }, 100);
+}
+
 
   // Share
   const facebookIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
