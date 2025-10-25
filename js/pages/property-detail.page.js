@@ -194,43 +194,44 @@ function renderPropertyDetails(property) {
   if (ytSection) leftCol.append(ytSection);
 
 // Map
-if (property.latitude && property.longitude) {
+// Map (แสดงเมื่อพิกัดเป็นตัวเลขเท่านั้น + ปิดการเลื่อน/ซูม)
+const latNum = Number.parseFloat(property.latitude);
+const lngNum = Number.parseFloat(property.longitude);
+
+if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
   const mapEl = el('div', {
     attributes: { id: 'map' },
-    style: 'height: 400px; margin-top: 1.5rem; border-radius: var(--radius); z-index: 1;'
+    style: 'height: 400px; width: 100%; margin-top: 1.5rem; border-radius: var(--radius); z-index: 1;'
   });
   leftCol.append(mapEl);
 
   setTimeout(() => {
-    const lat = parseFloat(property.latitude);
-    const lng = parseFloat(property.longitude); // ✅ ใช้ชื่อ lng ให้ตรงกัน
-    if (isNaN(lat) || isNaN(lng)) return;
+    // กันกรณี Leaflet ยังไม่พร้อม
+    if (typeof L === 'undefined') return;
 
     const map = L.map('map', {
-      center: [lat, lng],
+      center: [latNum, lngNum],
       zoom: 15,
-      dragging: false,         // ❌ ห้ามลากแผนที่
-      scrollWheelZoom: false,  // ❌ ห้ามซูมด้วยสกอลล์
-      doubleClickZoom: false,  // ❌ ห้ามซูมด้วยดับเบิลคลิก
-      touchZoom: false,        // ❌ ห้าม pinch zoom
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
       boxZoom: false,
       keyboard: false,
-      zoomControl: false       // ❌ ซ่อนปุ่ม +/-
+      zoomControl: false
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-
-    L.marker([lat, lng]).addTo(map)
-      .bindPopup(
-        `<b>${property.title}</b><br><a href="${googleMapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps เพื่อนำทาง</a>`
-      )
+    const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${latNum},${lngNum}`;
+    L.marker([latNum, lngNum]).addTo(map)
+      .bindPopup(`<b>${property.title || 'สถานที่'}</b><br><a href="${gmaps}" target="_blank" rel="noopener">เปิดใน Google Maps เพื่อนำทาง</a>`)
       .openPopup();
-  }, 100);
+  }, 0);
 }
+
 
 
   // Share
