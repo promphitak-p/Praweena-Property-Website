@@ -3,8 +3,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // 🔧 ใส่ค่าจริงจาก Project Settings → API
-const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY';
+const SUPABASE_URL = 'https://sihvgfnvleoloyhzcgll.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpaHZnZm52bGVvbG95aHpjZ2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NTEzNzAsImV4cCI6MjA3NjMyNzM3MH0.QVGsCHFmmzytiwtF90KNCIsHjCw4r15omI9RMTmCFxw';
 
 // export client ตัวเดียวไว้เรียกทั้ง DB / Auth / Edge Functions
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
