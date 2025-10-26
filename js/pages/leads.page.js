@@ -2,6 +2,7 @@
 import { setupMobileNav } from '../ui/mobileNav.js'; // <-- 1. Import เข้ามา
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
+import { requireAdminPage } from '../auth/adminGuard.js'; // ⬅️ เพิ่มบรรทัดนี้
 import { listLeads, updateLead } from '../services/leadsService.js';
 import { setupNav } from '../utils/config.js';
 import { el, $, clear } from '../ui/dom.js';
@@ -106,4 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   signOutIfAny();
   setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadLeads();
+  
+    const ok = await requireAdminPage({ redirect: '/index.html', showBadge: true });
+	if (!ok) return; // หยุดทำงานส่วนที่เหลือทันที
 });
