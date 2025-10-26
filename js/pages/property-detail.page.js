@@ -9,6 +9,33 @@ import { formatPrice } from '../utils/format.js';
 import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
 
+import { supabase } from '../utils/supabaseClient.js';
+import { toast } from '../ui/toast.js';
+
+async function fillPOI(propertyId) {
+  try {
+    toast('กำลังสร้างสถานที่ใกล้เคียง...', 3000, 'info');
+
+    const { data, error } = await supabase.functions.invoke('fill_poi', {
+      body: { property_id: propertyId },
+    });
+
+    if (error) throw error;
+
+    toast(`สร้างข้อมูลสถานที่ใกล้เคียง ${data.count} จุดสำเร็จ!`, 4000, 'success');
+  } catch (err) {
+    console.error(err);
+    toast('เกิดข้อผิดพลาด: ' + err.message, 5000, 'error');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('btn-fill-poi')) {
+    const id = e.target.dataset.id;
+    fillPOI(id);
+  }
+});
+
 const container = $('#property-detail-container');
 
 // --- Lightbox ---

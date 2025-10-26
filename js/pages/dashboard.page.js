@@ -8,6 +8,7 @@ import { formatPrice } from '../utils/format.js';
 import { getFormData } from '../ui/forms.js';
 import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
+import { supabase } from '../utils/supabaseClient.js'; // เพิ่มบรรทัดนี้
 
 /* =====================================================
    DOM Elements
@@ -122,10 +123,13 @@ function renderPropertyRow(prop) {
     <td>
       <button class="btn btn-secondary edit-btn">แก้ไข</button>
       <button class="btn btn-secondary delete-btn" style="background:#fee2e2;color:#ef4444;border:none;">ลบ</button>
+	  <button class="btn btn-secondary btn-fill-poi" style="margin-left:.5rem;background:#dcfce7;color:#15803d;">เติมสถานที่ใกล้เคียง</button>
     </td>
   `;
   tr.querySelector('.edit-btn').addEventListener('click', () => handleEdit(prop));
   tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(prop.id, prop.title));
+  tr.querySelector('.btn-fill-poi').addEventListener('click', () => fillPOI(prop.id));
+
   tableBody.append(tr);
 }
 
@@ -584,6 +588,79 @@ function setupModalMap(lat, lng) {
     mapContainer.innerHTML = '<p style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดแผนที่</p>';
   }
 }
+
+/* =====================================================
+   เติมสถานที่ใกล้เคียง (Edge Function)
+===================================================== */
+async function fillPOI(propertyId) {
+  try {
+    toast('⏳ กำลังสร้างข้อมูลสถานที่ใกล้เคียง...', 3000, 'info');
+
+    const { data, error } = await supabase.functions.invoke('fill_poi', {
+      body: { property_id: propertyId },
+    });
+
+    if (error) throw error;
+
+    // ดึงข้อมูล POI ที่เพิ่งสร้างจากฐานข้อมูล
+    const { data: pois, error: poiErr } = await supabase
+      .from('property_poi')
+      .select('name, type, distance_km')
+      .eq('property_id', propertyId)
+      .order('distance_km', { ascending: true })
+      .limit(5);
+
+    if (poiErr) throw poiErr;
+
+    const count = data?.count ?? pois?.length ?? 0;
+    toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${count} จุดสำเร็จ!`, 2000, 'success');
+
+    // ดึงชื่อบ้านจากตาราง
+    const row = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`);
+    const title = row ? row.textContent.trim() : 'ประกาศ';
+
+    showPOIModal(title, pois);
+  } catch (err) {
+    console.error('fillPOI error:', err);
+    toast('❌ เกิดข้อผิดพลาด: ' + err.message, 4000, 'error');
+  }
+}
+
+/* =====================================================
+   Modal แสดงผล POI ใกล้เคียง
+===================================================== */
+const poiModal = $('#poi-modal');
+const poiModalBody = $('#poi-modal-body');
+const poiModalTitle = $('#poi-modal-title');
+const poiModalClose = $('#poi-modal-close');
+const poiModalOk = $('#poi-modal-ok');
+
+function showPOIModal(title, pois = []) {
+  if (!poiModal) return;
+  poiModalTitle.textContent = `🏠 ${title}`;
+  clear(poiModalBody);
+
+  if (!pois.length) {
+    poiModalBody.innerHTML = '<p style="color:var(--text-light);">ไม่พบสถานที่ใกล้เคียง</p>';
+  } else {
+    const list = el('ul', { style: 'list-style:none;padding:0;margin:0;' });
+    pois.slice(0,5).forEach(p => {
+      const li = el('li', {
+        innerHTML: `• <strong>${p.name}</strong> — ${p.distance_km.toFixed(2)} กม. (${p.type})`
+      });
+      list.append(li);
+    });
+    poiModalBody.append(list);
+  }
+
+  poiModal.classList.add('open');
+}
+function closePOIModal() {
+  if (poiModal) poiModal.classList.remove('open');
+}
+if (poiModalClose) poiModalClose.addEventListener('click', closePOIModal);
+if (poiModalOk) poiModalOk.addEventListener('click', closePOIModal);
+window.addEventListener('click', (e) => { if (e.target === poiModal) closePOIModal(); });
 
 /* =====================================================
    Init

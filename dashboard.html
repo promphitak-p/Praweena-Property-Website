@@ -20,32 +20,12 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
   <link rel="manifest" href="/assets/favicon/site.webmanifest">
 
-  <!-- Cropper.js (สำหรับครอบรูปหน้าปก) -->
+  <!-- Cropper.js -->
   <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
   <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
-
-  <!-- เฉพาะหน้านี้: ช่วยเรื่องเวทีครอบรูป -->
-  <style>
-    .cropper-stage {
-      width: 100%;
-      height: 500px;
-      background: #f0f0f0;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .cropper-stage img { max-width: 100%; display: block; }
-    /* รูปหน้าปกพรีวิว */
-    .property-cover-image {
-      width: 100%;
-      max-width: 560px;
-      height: auto;
-      border-radius: 8px;
-      display: block;
-    }
-  </style>
 </head>
+
 <body>
-  <!-- Header -->
   <header class="header">
     <div class="container">
       <nav class="nav">
@@ -64,7 +44,6 @@
     </div>
   </header>
 
-  <!-- Main -->
   <main class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
       <h1>จัดการประกาศ</h1>
@@ -82,7 +61,9 @@
             <th>จัดการ</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="properties-table-body">
+          <!-- แถวประกาศจะถูกเติมโดย JS -->
+        </tbody>
       </table>
     </div>
   </main>
@@ -236,6 +217,19 @@
       </form>
     </div>
   </div>
+
+<!-- Modal แสดงผลสถานที่ใกล้เคียง -->
+<div id="poi-modal" class="modal">
+  <div class="modal-content" style="max-width:480px;">
+    <span class="modal-close" id="poi-modal-close">&times;</span>
+    <h3 id="poi-modal-title">สถานที่ใกล้เคียง</h3>
+    <div id="poi-modal-body" style="margin-top:1rem;line-height:1.6;"></div>
+    <div style="text-align:right;margin-top:1.5rem;">
+      <button class="btn btn-secondary" id="poi-modal-ok">ปิด</button>
+    </div>
+  </div>
+</div>
+
 
   <!-- Page JS -->
   <script type="module" src="/js/pages/dashboard.page.js"></script>
