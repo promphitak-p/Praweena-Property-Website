@@ -276,3 +276,30 @@ body.no-scroll{
 /* Notice box (optional) */
 .alert { border-radius: 10px; padding: 12px 14px; line-height: 1.5; }
 .alert.info { background:#f1f5f9; border:1px solid #e2e8f0; color:#334155; }
+
+/* --- Leaflet hardening --- */
+#property-detail-container .leaflet-container {
+  height: 400px !important;
+  width: 100% !important;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6; /* สีเทาอ่อนถ้ายังโหลดไม่ทัน */
+}
+
+/* กัน max-width:100% ทั่วเว็บไปยืด/บิด tile ของ Leaflet */
+.leaflet-container img {
+  max-width: none !important;
+}
+
+/* กัน element อื่นทับ (เช่น pseudo-element) */
+#property-detail-container .leaflet-container,
+#property-detail-container .leaflet-pane,
+#property-detail-container .leaflet-top,
+#property-detail-container .leaflet-bottom {
+  z-index: 0;
+}
+
+/* debug ชั่วคราว: ขอบแดงช่วยดูว่ากล่องแผนที่อยู่จริง */
+#property-detail-container [id^="map-"] {
+  /* border: 2px solid red;  <- เปิดใช้ชั่วคราวได้ */
+}

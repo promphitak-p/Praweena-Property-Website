@@ -238,37 +238,55 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   mapWrap.append(mapEl);
 
   setTimeout(() => {
-    try {
-      if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
+try {
+  if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
 
-      const map = L.map(mapId, {
-        center: [lat, lng], zoom: 15,
-        dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-        touchZoom: false, boxZoom: false, keyboard: false, zoomControl: false
-      });
+  const map = L.map(mapId, {
+    center: [lat, lng],
+    zoom: 15,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    zoomControl: false
+  });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
 
-      const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-      L.marker([lat, lng]).addTo(map).bindPopup(
-        `<b>${property.title || 'สถานที่'}</b><br>
-         <a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
-      ).openPopup();
+  const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+  L.marker([lat, lng]).addTo(map).bindPopup(
+    `<b>${property.title || 'สถานที่'}</b><br>
+     <a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
+  ).openPopup();
 
-      setTimeout(() => map.invalidateSize(), 300);
-    } catch (err) {
-      console.warn('Leaflet ใช้ไม่ได้ → iframe fallback', err);
-      const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-      mapEl.innerHTML = `
-        <iframe
-          src="${iframeUrl}"
-          style="width:100%;height:100%;border:0;border-radius:12px;"
-          loading="lazy" title="Google Map"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>`;
-    }
+  // ✅ บังคับให้ Leaflet คำนวณขนาดใหม่หลายจังหวะ
+  const fixSize = () => map.invalidateSize(true);
+  setTimeout(fixSize, 50);
+  setTimeout(fixSize, 300);
+  setTimeout(fixSize, 800);
+  window.addEventListener('load', fixSize, { once: true });
+
+  // ถ้ากล่อง/กริดมีการยืดขนาดภายหลัง (เช่นโหลดรูปเสร็จ) ให้ปรับตาม
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(() => fixSize());
+    ro.observe(mapEl);
+  }
+} catch (err) {
+  console.warn('Leaflet ใช้ไม่ได้ → iframe fallback', err);
+  const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+  mapEl.innerHTML = `
+    <iframe
+      src="${iframeUrl}"
+      style="width:100%;height:100%;border:0;border-radius:12px;"
+      loading="lazy" title="Google Map"
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>`;
+}
+
   }, 0);
 }
 
