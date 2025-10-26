@@ -194,7 +194,6 @@ function renderPropertyDetails(property) {
   if (ytSection) leftCol.append(ytSection);
 
 // Map
-
 // ===== Map Section (safe, non-interactive, with notice) =====
 const lat = parseFloat(property.lat ?? property.latitude);
 const lng = parseFloat(property.lng ?? property.longitude);
@@ -253,22 +252,30 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
+      // --- ⭐️ FIX 1: แก้ไข URL และ Syntax ของ Template Literal ---
+      const gmapsUrl = `https://maps.google.com/maps?q=${lat},${lng}`;
+
       L.marker([lat, lng])
         .addTo(map)
         .bindPopup(
           `<b>${property.title || 'สถานที่'}</b><br>
-           <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">
+           <a href="${gmapsUrl}" target="_blank">
              เปิดใน Google Maps เพื่อนำทาง
            </a>`
         )
         .openPopup();
 
       setTimeout(() => map.invalidateSize(), 300);
+      
     } catch (err) {
       console.error('Leaflet error → fallback to iframe:', err);
+
+      // --- ⭐️ FIX 2: แก้ไข URL และ Syntax ของ iframe ---
+      const iframeUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+      
       mapEl.innerHTML = `
         <iframe
-          src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed"
+          src="${iframeUrl}"
           style="width:100%;height:100%;border:0;border-radius:12px;"
           loading="lazy"
           title="Google Map"
@@ -276,7 +283,6 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     }
   }, 0);
 }
-
   // Share
   const facebookIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
   const messengerIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook Messenger</title><path d="M12 0C5.373 0 0 5.14 0 11.432c0 3.43.987 6.558 2.634 8.94.06.09.11.19.14.29l-1.07 4.267c-.12.48.33.93.81.81l4.267-1.07c.1.03.2.08.29.14a12.02 12 0 008.94 2.634C18.86 24 24 18.627 24 12S18.627 0 12 0zm1.14 15.192l-2.4-2.4-5.28 2.4c-.48 .24-.96-.48-.6-.84l3.12-3.12-3.12-3.12c-.36-.36 .12-.96 .6-.84l5.28 2.4 2.4-2.4c.36-.36 .96 .12 .84 .6l-2.4 5.28 2.4 2.4c.36 .36-.12 .96-.84 .6z"/></svg>`;
