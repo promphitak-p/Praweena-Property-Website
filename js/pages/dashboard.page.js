@@ -10,6 +10,15 @@ import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js'; // เพิ่มบรรทัดนี้
 
+async function fillPOI(propertyId) {
+const { data, error } = await supabase.functions.invoke('fill_poi', {
+  body: { property_id: prop.id, radius_m: 2000 }
+});
+
+  if (error) throw error;
+  return data;
+}
+
 /* =====================================================
    DOM Elements
 ===================================================== */

@@ -13,9 +13,10 @@ async function fillPOI(propertyId) {
   try {
     toast('กำลังสร้างสถานที่ใกล้เคียง...', 3000, 'info');
 
-    const { data, error } = await supabase.functions.invoke('fill_poi', {
-      body: { property_id: propertyId },
-    });
+const { data, error } = await supabase.functions.invoke('fill_poi', {
+  body: { property_id: prop.id, radius_m: 2000 }
+});
+
 
     if (error) throw error;
 
