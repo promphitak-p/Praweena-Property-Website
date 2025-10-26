@@ -1,0 +1,15 @@
+# ตั้งค่าเริ่มต้น ให้ Git จัดการไฟล์ text อัตโนมัติ
+* text=auto
+
+# กำหนดไฟล์ text ที่เราต้องการให้ Git จัดการ Line Endings เสมอ
+*.js    text
+*.css   text
+*.html  text
+*.md    text
+
+# กำหนดไฟล์ Binary ที่ Git ไม่ควรไปยุ่งเรื่อง Line Endings
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
