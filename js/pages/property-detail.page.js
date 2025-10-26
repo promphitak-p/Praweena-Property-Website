@@ -10,7 +10,6 @@ import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
 
 import { supabase } from '../utils/supabaseClient.js';
-import { toast } from '../ui/toast.js';
 
 async function fillPOI(propertyId) {
   try {
