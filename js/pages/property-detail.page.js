@@ -286,7 +286,14 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   }, 0);
 }
 
-// Share URLs
+// Share Section
+const shareContainer = el('div', { className: 'share-buttons' });
+shareContainer.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
+
+// ✅ ประกาศตัวแปรไว้ตรงนี้ ก่อนสร้างปุ่มทั้งหมด
+const currentPageUrl = window.location.href;
+const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
+
 const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`;
 const lineMessage = `${shareText}\n${currentPageUrl}`;
 const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(lineMessage)}`;
