@@ -131,6 +131,19 @@ function renderPropertyRow(prop) {
   tr.querySelector('.btn-fill-poi').addEventListener('click', () => fillPOI(prop.id));
 
   tableBody.append(tr);
+  
+    // ถ้าไม่ใช่แอดมิน ซ่อน/ปิดปุ่มแก้ไข-ลบ
+  if (!IS_ADMIN) {
+    tr.querySelector('.edit-btn')?.setAttribute('disabled', 'true');
+    tr.querySelector('.edit-btn')?.classList.add('btn-disabled');
+    tr.querySelector('.edit-btn')?.setAttribute('title', 'เฉพาะแอดมิน');
+
+    tr.querySelector('.delete-btn')?.setAttribute('disabled', 'true');
+    tr.querySelector('.delete-btn')?.classList.add('btn-disabled');
+    tr.querySelector('.delete-btn')?.setAttribute('title', 'เฉพาะแอดมิน');
+  }
+
+  
 }
 
 /* =====================================================
@@ -662,6 +675,60 @@ if (poiModalClose) poiModalClose.addEventListener('click', closePOIModal);
 if (poiModalOk) poiModalOk.addEventListener('click', closePOIModal);
 window.addEventListener('click', (e) => { if (e.target === poiModal) closePOIModal(); });
 
+// ===== Role Detection (Admin / Viewer) =====
+let IS_ADMIN = false;
+
+async function detectRoleAndRender() {
+  try {
+    // เรียก RPC ฟังก์ชัน is_admin() ที่ทำใน SQL ข้อ 1
+    const { data, error } = await supabase.rpc('is_admin');
+    if (error) throw error;
+
+    IS_ADMIN = !!data;
+
+    // หา/สร้างตำแหน่งแสดงผล
+    let badge = document.getElementById('role-indicator');
+    if (!badge) {
+      const h1 = document.querySelector('main h1');
+      badge = el('div', { id: 'role-indicator' });
+      if (h1 && h1.parentElement) {
+        h1.insertAdjacentElement('afterend', badge);
+      } else {
+        (document.querySelector('main') || document.body).prepend(badge);
+      }
+    }
+
+    // แต่งข้อความ + สไตล์
+    badge.textContent = IS_ADMIN ? 'คุณคือแอดมิน ✅  (จัดการข้อมูลได้ทุกอย่าง)' 
+                                 : 'คุณคือผู้ใช้งานทั่วไป 🔒  (โหมดอ่านอย่างเดียว)';
+    badge.style.cssText = `
+      display:inline-block;margin:.25rem 0 1rem 0;padding:.35rem .6rem;border-radius:999px;
+      font-size:.9rem;line-height:1;background:${IS_ADMIN ? '#dcfce7' : '#e5e7eb'};
+      color:${IS_ADMIN ? '#14532d' : '#374151'};border:1px solid ${IS_ADMIN ? '#86efac' : '#d1d5db'};
+    `;
+
+    // ถ้าไม่ใช่แอดมิน → ล็อก/พรางปุ่มที่เป็นงาน admin-only
+    if (!IS_ADMIN) {
+      addPropertyBtn?.setAttribute('disabled', 'true');
+      addPropertyBtn?.classList.add('btn-disabled');
+      addPropertyBtn?.setAttribute('title', 'ปุ่มนี้ใช้ได้เฉพาะแอดมิน');
+      // ซ่อนปุ่มแก้ไข/ลบในตารางหลังจาก render เสร็จ
+      hideAdminControlsInTable();
+    }
+  } catch (e) {
+    console.error('detectRoleAndRender error:', e);
+  }
+}
+
+// เรียกซ้ำหลัง render ตาราง เพื่อซ่อนปุ่ม edit/delete ถ้าไม่ใช่แอดมิน
+function hideAdminControlsInTable() {
+  if (IS_ADMIN) return;
+  // ปุ่มในแถว: .edit-btn, .delete-btn
+  $$('.edit-btn')?.forEach(btn => { btn.disabled = true; btn.style.opacity = .4; btn.title = 'เฉพาะแอดมิน'; });
+  $$('.delete-btn')?.forEach(btn => { btn.disabled = true; btn.style.opacity = .4; btn.title = 'เฉพาะแอดมิน'; });
+}
+
+
 /* =====================================================
    Init
 ===================================================== */
@@ -672,9 +739,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     signOutIfAny();
     setupMobileNav();
 
-    // ปุ่มเพิ่มประกาศ
+    // 🔐 ตรวจสิทธิ์ก่อน แล้วค่อยโหลดข้อมูล
+    await detectRoleAndRender();
+
+    // ปุ่มเพิ่มประกาศ (ล็อกไว้ถ้าไม่ใช่แอดมิน — โค้ดใน detectRoleAndRender จะจัดการ)
     if (addPropertyBtn) {
       addPropertyBtn.addEventListener('click', () => {
+        if (!IS_ADMIN) return; // กันเผื่อไว้
         if (youtubeIdsContainer) {
           clear(youtubeIdsContainer);
           youtubeIdsContainer.append(createYoutubeIdInput());
@@ -688,7 +759,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // ปุ่ม + YouTube (จำกัดสูงสุด 5 คลิป)
+    // ปุ่ม + YouTube …
     const MAX_YT = 5;
     if (addYoutubeIdBtn && youtubeIdsContainer) {
       addYoutubeIdBtn.addEventListener('click', () => {
@@ -701,7 +772,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    await loadProperties();
+    await loadProperties();     // โหลดตารางหลังรู้สิทธิ์
+    hideAdminControlsInTable(); // กันเหนียว เรียกอีกครั้งหลัง render แล้ว
   } catch (initError) {
     console.error('Initialization error:', initError);
     if (tableBody) {
@@ -709,9 +781,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // ปิดโมดัล
+  // ปิดโมดัล…
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
   if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
-  window.addEventListener('click', e => { 
-  if (e.target === modal) closeModal(); });
+  window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 });
