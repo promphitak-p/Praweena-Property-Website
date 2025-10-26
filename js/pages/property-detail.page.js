@@ -35,10 +35,11 @@ function setupLightbox(imageUrls) {
     gallery.append(img);
   });
 
-  function openLightbox(index) {
-    overlay.classList.add('show');
-    gallery.scrollTo({ left: gallery.offsetWidth * index, behavior: 'instant' });
-  }
+function openLightbox(index) {
+  overlay.classList.add('show');
+  gallery.scrollTo({ left: gallery.offsetWidth * index, behavior: 'auto' }); // <- เดิม 'instant'
+}
+
   function closeLightbox() { overlay.classList.remove('show'); }
 
   prevBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' }); });
@@ -199,7 +200,7 @@ const lat = parseFloat(property.lat ?? property.latitude);
 const lng = parseFloat(property.lng ?? property.longitude);
 
 const mapWrap = el('div', { style: 'margin-top:1.5rem;' });
-leftCol.append(mapWrap); // เพิ่ม wrapper ลงใน DOM ทันที
+leftCol.append(mapWrap);
 
 function showNoCoordsNotice() {
   const box = el('div', {
@@ -252,37 +253,39 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      // --- ⭐️ FIX (FINAL): แก้ไข Syntax $ ให้ถูกต้อง ---
-      const gmapsUrl = `http://google.com/maps?q=${lat},${lng}`;
+      // ✅ FIX: ใช้ https และลบ $ เกิน
+      const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
 
       L.marker([lat, lng])
         .addTo(map)
         .bindPopup(
-          `<b>${property.title || 'สถานที่'}</b><br>
-           <a href="${gmapsUrl}" target="_blank">
+          `<b>${(property.title || 'สถานที่')}</b><br>
+           <a href="${gmapsUrl}" target="_blank" rel="noopener">
              เปิดใน Google Maps เพื่อนำทาง
            </a>`
         )
         .openPopup();
 
       setTimeout(() => map.invalidateSize(), 300);
-      
+
     } catch (err) {
       console.error('Leaflet error → fallback to iframe:', err);
 
-      // --- ⭐️ FIX (FINAL): แก้ไข Syntax $ ให้ถูกต้อง ---
-      const iframeUrl = `http://google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-      
+      // ✅ FIX: ใช้ https และลบ $ เกิน
+      const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+
       mapEl.innerHTML = `
         <iframe
           src="${iframeUrl}"
           style="width:100%;height:100%;border:0;border-radius:12px;"
           loading="lazy"
           title="Google Map"
+          referrerpolicy="no-referrer-when-downgrade"
         ></iframe>`;
     }
   }, 0);
 }
+
 
   // Share
   const facebookIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
@@ -296,20 +299,20 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
 
   const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`;
-  const messengerBtn = el('a', { className: 'share-btn messenger', attributes: { href: messengerShareUrl, target: '_blank', 'aria-label': 'Share on Messenger' } });
+  const messengerBtn = el('a', { className: 'share-btn messenger', attributes: { href: messengerShareUrl, target: '_blank', rel="noopener", 'aria-label': 'Share on Messenger' } });
   messengerBtn.innerHTML = messengerIcon;
 
   const lineMessage = `${shareText}\n${currentPageUrl}`;
   const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(lineMessage)}`;
-  const lineBtn = el('a', { className: 'share-btn line', attributes: { href: lineShareUrl, target: '_blank', 'aria-label': 'Share on LINE' } });
+  const lineBtn = el('a', { className: 'share-btn line', attributes: { href: lineShareUrl, target: '_blank', rel="noopener", 'aria-label': 'Share on LINE' } });
   lineBtn.innerHTML = lineIcon;
 
   const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
-  const facebookBtn = el('a', { className: 'share-btn facebook', attributes: { href: facebookShareUrl, target: '_blank', 'aria-label': 'Share on Facebook' } });
+  const facebookBtn = el('a', { className: 'share-btn facebook', attributes: { href: facebookShareUrl, target: '_blank',', rel="noopener", ' 'aria-label': 'Share on Facebook' } });
   facebookBtn.innerHTML = facebookIcon;
 
   const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
-  const twitterBtn = el('a', { className: 'share-btn twitter', attributes: { href: twitterShareUrl, target: '_blank', 'aria-label': 'Share on Twitter' } });
+  const twitterBtn = el('a', { className: 'share-btn twitter', attributes: { href: twitterShareUrl, target: '_blank',', rel="noopener", ' 'aria-label': 'Share on Twitter' } });
   twitterBtn.innerHTML = xIcon;
 
   shareContainer.append(messengerBtn, lineBtn, facebookBtn, twitterBtn);
@@ -327,7 +330,7 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     form.innerHTML = `
       <input type="hidden" name="property_id" value="${property.id}">
       <div class="form-group"><label for="name">ชื่อ</label><input type="text" id="name" name="name" class="form-control" required></div>
-      <div class="form-group"><label for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" name="phone" class="form-control" required pattern="^0\\d{8,9}$"></div>
+      <div class="form-group"><label for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" name="phone" class="form-control" required pattern="^0\\d{8,9}$" inputmode="tel" autocomplete="tel-national"></div>
       <div class="form-group"><label for="note">ข้อความเพิ่มเติม</label><textarea id="note" name="note" class="form-control" rows="3"></textarea></div>
       <button type="submit" class="btn" style="width: 100%;">ส่งข้อมูล</button>
     `;
