@@ -216,14 +216,14 @@ function showNoCoordsNotice() {
   });
   box.innerHTML = `
     <strong>ไม่พบพิกัดแผนที่</strong><br>
-    กรุณาเพิ่มค่าพิกัดละติจูด (lat) และลองจิจูด (lng)
-    เพื่อแสดงตำแหน่งของบ้านบนแผนที่
+    กรุณาเพิ่มค่าพิกัดละติจูด (latitude) และลองจิจูด (longitude)
+    ในหน้าแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
   `;
   mapWrap.append(box);
 }
 
 if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-  console.warn('⚠️ ไม่มีพิกัดใน property:', property);
+  console.warn('⚠️ ไม่มีพิกัดใน property (อาจเป็นเพราะ RLS):', property);
   showNoCoordsNotice();
 } else {
   const mapId = 'map-' + (property.id || 'detail');
@@ -257,7 +257,7 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         .addTo(map)
         .bindPopup(
           `<b>${property.title || 'สถานที่'}</b><br>
-           <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank">
+           <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">
              เปิดใน Google Maps เพื่อนำทาง
            </a>`
         )
@@ -268,7 +268,7 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       console.error('Leaflet error → fallback to iframe:', err);
       mapEl.innerHTML = `
         <iframe
-          src="https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed"
+          src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed"
           style="width:100%;height:100%;border:0;border-radius:12px;"
           loading="lazy"
           title="Google Map"
