@@ -50,27 +50,7 @@ function openLightbox(index) {
   return openLightbox;
 }
 
-// ---- YouTube Section (robust fields) ----
-function getYoutubeList(property) {
-  // รองรับชื่อฟิลด์หลายแบบในฐานข้อมูล
-  const raw =
-    property.youtube_video_ids ??
-    property.youtube_ids ??
-    property.youtube_urls ??
-    property.youtube ??
-    property.video_urls ??
-    property.videos ??
-    '';
-
-  return normalizeYoutubeIds(raw);
-}
-
-const ytIds = getYoutubeList(property);
-const ytSection = renderYouTubeGallery(ytIds);
-if (ytSection) leftCol.append(ytSection);
-
-
-// --- YouTube helpers ---
+// ---------- helpers ----------
 function parseYouTubeId(input) {
   const raw = (input || '').trim();
   if (!raw) return '';
@@ -86,63 +66,64 @@ function parseYouTubeId(input) {
   } catch {}
   return '';
 }
+function collectYoutubeValues(p) {
+  const candidates = [
+    p.youtube_video_ids, p.youtube_urls, p.youtube_url, p.youtube, p.videos
+  ].filter(Boolean);
 
-function normalizeYoutubeIds(val) {
-  if (!val) return [];
-  if (Array.isArray(val)) return val.filter(Boolean);
-  if (typeof val === 'string') {
-    try {
-      const parsed = JSON.parse(val);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean);
-      return val.split(',').map(s => s.trim()).filter(Boolean);
-    } catch {
-      return val.split(',').map(s => s.trim()).filter(Boolean);
+  const flat = [];
+  for (const v of candidates) {
+    if (Array.isArray(v)) flat.push(...v);
+    else if (typeof v === 'string') {
+      try {
+        const parsed = JSON.parse(v);
+        if (Array.isArray(parsed)) flat.push(...parsed);
+        else flat.push(v);
+      } catch {
+        flat.push(...v.split(',').map(s => s.trim()).filter(Boolean));
+      }
     }
   }
-  return [];
+  return Array.from(new Set(flat.map(s => s.trim()).filter(Boolean)));
 }
-
-
 function renderYouTubeGallery(videoIds = []) {
   const wrap = el('section', { style: 'margin-top:1.5rem;' });
   const heading = el('h3', { textContent: 'วิดีโอแนะนำ', style: 'margin-bottom:.75rem;' });
   const list = el('div', { id: 'youtube-gallery' });
 
-  videoIds
-    .map(parseYouTubeId)
-    .filter(Boolean)
-    .forEach((id) => {
-      // โหลดแบบ thumbnail ก่อน คลิกแล้วค่อยสลับเป็น iframe (เบากว่า)
-      const thumbUrl = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-      const card = el('div', { style: 'position:relative;margin-bottom:1rem;border-radius:12px;overflow:hidden;cursor:pointer;' });
-      const img = el('img', { attributes: { src: thumbUrl, alt: `YouTube: ${id}`, loading: 'lazy' }, style: 'width:100%;display:block;' });
-      const play = el('div', { style: 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);' });
-      play.innerHTML = `<svg width="72" height="72" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
-      card.append(img, play);
+  videoIds.forEach((id) => {
+    const thumbUrl = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+    const card = el('div', { style: 'position:relative;margin-bottom:1rem;border-radius:12px;overflow:hidden;cursor:pointer;' });
+    const img = el('img', { attributes: { src: thumbUrl, alt: `YouTube: ${id}`, loading: 'lazy' }, style: 'width:100%;display:block;' });
+    const play = el('div', { style: 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);' });
+    play.innerHTML = `<svg width="72" height="72" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
+    card.append(img, play);
 
-      card.addEventListener('click', () => {
-        const iframe = el('iframe', {
-          attributes: {
-            src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`,
-            width: '100%',
-            height: '400',
-            frameborder: '0',
-            allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
-            allowfullscreen: true,
-            title: `YouTube video ${id}`
-          },
-          style: 'width:100%;height:400px;border:0;border-radius:12px;'
-        });
-        card.replaceWith(iframe);
-      }, { once: true });
+    card.addEventListener('click', () => {
+      const iframe = el('iframe', {
+        attributes: {
+          src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`,
+          width: '100%',
+          height: '400',
+          frameborder: '0',
+          allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+          allowfullscreen: true,
+          title: `YouTube video ${id}`
+        },
+        style: 'width:100%;height:400px;border:0;border-radius:12px;'
+      });
+      card.replaceWith(iframe);
+    }, { once: true });
 
-      list.append(card);
-    });
+    list.append(card);
+  });
 
   if (!list.children.length) return null;
   wrap.append(heading, list);
   return wrap;
 }
+// ---------- /helpers ----------
+
 
 /** แสดงผลข้อมูลอสังหาฯ */
 function renderPropertyDetails(property) {
@@ -210,132 +191,119 @@ function renderPropertyDetails(property) {
 
   leftCol.append(galleryWrapper, thumbnailContainer, title, price, address, details);
 
-  // YouTube Section (ใช้ youtube_video_ids แบบอาร์เรย์)
- const ytSection = renderYouTubeGallery(normalizeYoutubeIds(property.youtube_video_ids));
+  // ---------- YouTube ----------
+  const ytIds = collectYoutubeValues(property).map(parseYouTubeId).filter(Boolean);
+  const ytSection = renderYouTubeGallery(ytIds);
   if (ytSection) leftCol.append(ytSection);
 
-// Map
-// ---- Map Section (robust coords + reliable fallback) ----
-const latRaw =
-  property.lat ?? property.latitude ?? property.lat_deg ?? property.latDegree ?? property.lat_value;
-const lngRaw =
-  property.lng ?? property.longitude ?? property.lon ?? property.long ?? property.lng_deg ?? property.lngValue;
+  // ---------- Map ----------
+  const lat = parseFloat(property.lat ?? property.latitude ?? property.latitute);
+  const lng = parseFloat(property.lng ?? property.longitude ?? property.long);
 
-const lat = parseFloat(latRaw);
-const lng = parseFloat(lngRaw);
+  const mapWrap = el('div', { style: 'margin-top:1.5rem;' });
+  leftCol.append(mapWrap);
 
-const mapWrap = el('div', { style: 'margin-top:1.5rem;' });
-leftCol.append(mapWrap);
-
-function showNoCoordsNotice() {
-  const box = el('div', {
-    style: `
-      background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
-      padding:1rem 1.25rem;border-radius:12px;text-align:center;line-height:1.6;
-    `
-  });
-  box.innerHTML = `
-    <strong>ไม่พบพิกัดแผนที่</strong><br>
-    กรุณาเพิ่ม latitude/longitude ในแดชบอร์ดเพื่อแสดงตำแหน่งบนแผนที่
-  `;
-  mapWrap.append(box);
-}
-
-if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-  console.warn('⚠️ ไม่มีพิกัด usable:', { latRaw, lngRaw, property });
-  showNoCoordsNotice();
-} else {
-  const mapId = 'map-' + (property.id || 'detail');
-  const mapEl = el('div', {
-    attributes: { id: mapId },
-    style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;'
-  });
-  mapWrap.append(mapEl);
-
-  const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-  const fallback = () => {
-    const iframeUrl = `${gmapsUrl}&output=embed&z=15`;
-    mapEl.innerHTML = `
-      <iframe
-        src="${iframeUrl}"
-        style="width:100%;height:100%;border:0;border-radius:12px;"
-        loading="lazy" title="Google Map" referrerpolicy="no-referrer-when-downgrade">
-      </iframe>`;
-  };
-
-  // ถ้าไม่มี Leaflet ให้ใช้ iframe ทันที
-  if (typeof window.L === 'undefined') {
-    console.warn('Leaflet not loaded → use iframe fallback');
-    fallback();
-  } else {
-    try {
-      const map = L.map(mapId, {
-        center: [lat, lng], zoom: 15,
-        dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
-        touchZoom:false, boxZoom:false, keyboard:false, zoomControl:false
-      });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-
-      L.marker([lat, lng]).addTo(map).bindPopup(
-        `<b>${property.title || 'สถานที่'}</b><br><a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
-      ).openPopup();
-
-      setTimeout(() => map.invalidateSize(), 300);
-    } catch (e) {
-      console.error('Leaflet init error → fallback to iframe:', e);
-      fallback();
-    }
+  function showNoCoordsNotice() {
+    const box = el('div', {
+      style: `
+        background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
+        padding:1rem 1.25rem;border-radius:12px;text-align:center;line-height:1.6;
+      `
+    });
+    box.innerHTML = `
+      <strong>ไม่พบพิกัดแผนที่</strong><br>
+      กรุณาเพิ่ม latitude/longitude ในแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
+    `;
+    mapWrap.append(box);
   }
-}
 
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    console.warn('ℹ️ ไม่พบพิกัด lat/lng ของประกาศ:', { lat, lng, property });
+    showNoCoordsNotice();
+  } else {
+    const mapId = 'map-' + (property.id || 'detail');
+    const mapEl = el('div', {
+      attributes: { id: mapId },
+      style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;'
+    });
+    mapWrap.append(mapEl);
 
-// ---- Share Section (visible + robust) ----
-const shareContainer = el('div', {
-  className: 'share-buttons',
-  style: 'margin:1.25rem 0;padding:1rem;background:#fff;border:1px solid #eee;border-radius:12px;'
-});
-shareContainer.innerHTML = `<p style="margin:0 0 .5rem 0;color:#374151;font-weight:600;">แชร์ประกาศนี้:</p>`;
+    setTimeout(() => {
+      try {
+        if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
 
-const currentPageUrl = window.location.href;
-const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
+        const map = L.map(mapId, {
+          center: [lat, lng], zoom: 15,
+          dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+          touchZoom: false, boxZoom: false, keyboard: false, zoomControl: false
+        });
 
-const facebookIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
-const messengerIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.14 0 11.432c0 3.43.987 6.558 2.634 8.94.06.09.11.19.14.29l-1.07 4.267c-.12.48.33.93.81.81l4.267-1.07c.1.03.2.08.29.14a12.02 12 0 008.94 2.634C18.86 24 24 18.627 24 12S18.627 0 12 0zm1.14 15.192l-2.4-2.4-5.28 2.4c-.48 .24-.96-.48-.6-.84l3.12-3.12-3.12-3.12c-.36-.36 .12-.96 .6-.84l5.28 2.4 2.4-2.4c.36-.36 .96 .12 .84 .6l-2.4 5.28 2.4 2.4c.36 .36-.12 .96-.84 .6z"/></svg>`;
-const lineIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.13 6.13c-2.8-2.5-6.7-3.2-10.4-1.8-3.3 1.2-5.7 4.3-6 7.8-.3 4.1 2.2 7.7 5.9 8.9 4.3 1.4 8.6-.3 11.3-3.8 2.9-4 2.5-9.3-1.8-11.1zM9.33 16.93h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4.3-.7.7-.7h1.6c.4 0 .7.3 .7 .7v5.9c0 .4-.3 .7-.7 .7zm3.1-3.6c-.4 0-.7-.3-.7-.7v-2.1c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v2.1c0 .4-.3 .7-.7 .7h-1.6zm4.9 3.6h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v5.9c0 .4-.3 .7-.7 .7z"/></svg>`;
-const xIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 7.184L18.901 1.153Zm-1.653 19.499h2.606L6.856 2.554H4.046l13.2 18.1z"/></svg>`;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-const btnWrap = el('div', { style: 'display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;' });
+        const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        L.marker([lat, lng]).addTo(map).bindPopup(
+          `<b>${property.title || 'สถานที่'}</b><br>
+           <a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
+        ).openPopup();
 
-// URLs
-const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`; // อาจไม่ทำงานบนเดสก์ท็อป
-const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(`${shareText}\n${currentPageUrl}`)}`;
-const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
-const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
+        setTimeout(() => map.invalidateSize(), 300);
 
-// Buttons
-function iconBtn(href, label, svg) {
-  const a = el('a', {
-    className: 'share-btn',
-    attributes: { href, target: '_blank', rel: 'noopener', 'aria-label': label },
-    style: 'display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #e5e7eb;border-radius:10px;color:#111827;background:#fff;'
+      } catch (err) {
+        console.warn('Leaflet ใช้ไม่ได้ → ใช้ iframe แทน:', err);
+        const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+        mapEl.innerHTML = `
+          <iframe
+            src="${iframeUrl}"
+            style="width:100%;height:100%;border:0;border-radius:12px;"
+            loading="lazy" title="Google Map"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>`;
+      }
+    }, 0);
+  }
+
+  // ---------- Share ----------
+  const shareContainer = el('div', { className: 'share-buttons' });
+  shareContainer.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
+  const currentPageUrl = window.location.href;
+  const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
+
+  const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`;
+  const lineMessage = `${shareText}\n${currentPageUrl}`;
+  const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(lineMessage)}`;
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
+  const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
+
+  const facebookIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
+  const messengerIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook Messenger</title><path d="M12 0C5.373 0 0 5.14 0 11.432c0 3.43.987 6.558 2.634 8.94.06.09.11.19.14.29l-1.07 4.267c-.12.48.33.93.81.81l4.267-1.07c.1.03.2.08.29.14a12.02 12 0 008.94 2.634C18.86 24 24 18.627 24 12S18.627 0 12 0zm1.14 15.192l-2.4-2.4-5.28 2.4c-.48 .24-.96-.48-.6-.84l3.12-3.12-3.12-3.12c-.36-.36 .12-.96 .6-.84l5.28 2.4 2.4-2.4c.36-.36 .96 .12 .84 .6l-2.4 5.28 2.4 2.4c.36 .36-.12 .96-.84 .6z"/></svg>`;
+  const lineIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LINE</title><path d="M19.13 6.13c-2.8-2.5-6.7-3.2-10.4-1.8-3.3 1.2-5.7 4.3-6 7.8-.3 4.1 2.2 7.7 5.9 8.9 4.3 1.4 8.6-.3 11.3-3.8 2.9-4 2.5-9.3-1.8-11.1zM9.33 16.93h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4.3-.7.7-.7h1.6c.4 0 .7.3 .7 .7v5.9c0 .4-.3 .7-.7 .7zm3.1-3.6c-.4 0-.7-.3-.7-.7v-2.1c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v2.1c0 .4-.3 .7-.7 .7h-1.6zm4.9 3.6h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v5.9c0 .4-.3 .7-.7 .7z"/></svg>`;
+  const xIcon = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 7.184L18.901 1.153Zm-1.653 19.499h2.606L6.856 2.554H4.046l13.2 18.1z"/></svg>`;
+
+  const messengerBtn = el('a', {
+    className: 'share-btn messenger',
+    attributes: { href: messengerShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on Messenger' }
   });
-  a.innerHTML = svg;
-  return a;
-}
+  messengerBtn.innerHTML = messengerIcon;
 
-btnWrap.append(
-  iconBtn(messengerShareUrl, 'Share on Messenger', messengerIcon),
-  iconBtn(lineShareUrl, 'Share on LINE', lineIcon),
-  iconBtn(facebookShareUrl, 'Share on Facebook', facebookIcon),
-  iconBtn(twitterShareUrl, 'Share on Twitter/X', xIcon),
-);
+  const lineBtn = el('a', {
+    className: 'share-btn line',
+    attributes: { href: lineShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on LINE' }
+  });
+  lineBtn.innerHTML = lineIcon;
 
-shareContainer.append(btnWrap);
-rightCol.append(shareContainer);
+  const facebookBtn = el('a', {
+    className: 'share-btn facebook',
+    attributes: { href: facebookShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on Facebook' }
+  });
+  facebookBtn.innerHTML = facebookIcon;
 
-
+  const twitterBtn = el('a', {
+    className: 'share-btn twitter',
+    attributes: { href: twitterShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on Twitter/X' }
+  });
+  twitterBtn.innerHTML = xIcon;
 
   // Lead form
   const formCard = el('div', { style: 'background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow-md);' });
@@ -359,11 +327,12 @@ rightCol.append(shareContainer);
 
   // Assemble
   grid.append(leftCol, rightCol);
-  rightCol.append(shareContainer, formCard);
+  rightCol.append(shareContainer, messengerBtn, lineBtn, facebookBtn, twitterBtn, formCard);
   formCard.prepend(formHeader);
   formCard.append(form);
   container.append(grid);
 }
+
 
 /** โหลดข้อมูลตาม slug */
 async function loadProperty() {
