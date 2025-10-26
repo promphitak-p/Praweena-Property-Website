@@ -194,6 +194,7 @@ function renderPropertyDetails(property) {
   if (ytSection) leftCol.append(ytSection);
 
 // Map
+// ให้คัดลอกทับตั้งแต่บรรทัดนี้
 // ===== Map Section (safe, non-interactive, with notice) =====
 const lat = parseFloat(property.lat ?? property.latitude);
 const lng = parseFloat(property.lng ?? property.longitude);
@@ -252,8 +253,8 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      // --- ⭐️ FIX 3.1: แก้ไข Syntax และ URL ให้ถูกต้อง ---
-      const gmapsUrl = `http://google.com/maps?q=${lat},${lng}`;
+      // --- ⭐️ FIX (FINAL): แก้ไข Syntax $ ให้ถูกต้อง ---
+      const gmapsUrl = `http://google.com/maps?q=$${lat},${lng}`;
 
       L.marker([lat, lng])
         .addTo(map)
@@ -270,8 +271,8 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     } catch (err) {
       console.error('Leaflet error → fallback to iframe:', err);
 
-      // --- ⭐️ FIX 3.2: แก้ไข Syntax และ URL ของ iframe ให้ถูกต้อง ---
-      const iframeUrl = `http://google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+      // --- ⭐️ FIX (FINAL): แก้ไข Syntax $ ให้ถูกต้อง ---
+      const iframeUrl = `http://google.com/maps?q=$${lat},${lng}&output=embed&z=15`;
       
       mapEl.innerHTML = `
         <iframe
