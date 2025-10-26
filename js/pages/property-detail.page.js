@@ -253,7 +253,7 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       }).addTo(map);
 
       // --- ⭐️ FIX (FINAL): แก้ไข Syntax $ ให้ถูกต้อง ---
-      const gmapsUrl = `http://google.com/maps?q=$${lat},${lng}`;
+      const gmapsUrl = `http://google.com/maps?q=${lat},${lng}`;
 
       L.marker([lat, lng])
         .addTo(map)
@@ -271,7 +271,7 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       console.error('Leaflet error → fallback to iframe:', err);
 
       // --- ⭐️ FIX (FINAL): แก้ไข Syntax $ ให้ถูกต้อง ---
-      const iframeUrl = `http://google.com/maps?q=$${lat},${lng}&output=embed&z=15`;
+      const iframeUrl = `http://google.com/maps?q=${lat},${lng}&output=embed&z=15`;
       
       mapEl.innerHTML = `
         <iframe
