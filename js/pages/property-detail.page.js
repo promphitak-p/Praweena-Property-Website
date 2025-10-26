@@ -197,72 +197,81 @@ function renderPropertyDetails(property) {
   if (ytSection) leftCol.append(ytSection);
 
   // ---------- Map ----------
-  const lat = parseFloat(property.lat ?? property.latitude ?? property.latitute);
-  const lng = parseFloat(property.lng ?? property.longitude ?? property.long);
+  // ---------- Map (always shows a section) ----------
+const latRaw = property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat;
+const lngRaw = property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng;
 
-  const mapWrap = el('div', { style: 'margin-top:1.5rem;' });
-  leftCol.append(mapWrap);
+const lat = Number.parseFloat(latRaw);
+const lng = Number.parseFloat(lngRaw);
 
-  function showNoCoordsNotice() {
-    const box = el('div', {
-      style: `
-        background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
-        padding:1rem 1.25rem;border-radius:12px;text-align:center;line-height:1.6;
-      `
-    });
-    box.innerHTML = `
-      <strong>ไม่พบพิกัดแผนที่</strong><br>
-      กรุณาเพิ่ม latitude/longitude ในแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
-    `;
-    mapWrap.append(box);
-  }
+const mapWrap = el('section', { style: 'margin-top:1.5rem;' });
+const mapTitle = el('h3', { textContent: 'ตำแหน่งแผนที่', style: 'margin-bottom:.75rem;' });
+leftCol.append(mapWrap);
+mapWrap.append(mapTitle);
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    console.warn('ℹ️ ไม่พบพิกัด lat/lng ของประกาศ:', { lat, lng, property });
-    showNoCoordsNotice();
-  } else {
-    const mapId = 'map-' + (property.id || 'detail');
-    const mapEl = el('div', {
-      attributes: { id: mapId },
-      style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;'
-    });
-    mapWrap.append(mapEl);
+console.debug('[Property Map] raw:', { latRaw, lngRaw }, 'parsed:', { lat, lng });
 
-    setTimeout(() => {
-      try {
-        if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
+function showNoCoordsNotice() {
+  const box = el('div', {
+    style: `
+      background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
+      padding:1rem 1.25rem;border-radius:12px;text-align:center;line-height:1.6;
+    `
+  });
+  box.innerHTML = `
+    <strong>ไม่พบพิกัดแผนที่</strong><br>
+    กรุณาเพิ่ม latitude/longitude ในแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
+  `;
+  mapWrap.append(box);
+}
 
-        const map = L.map(mapId, {
-          center: [lat, lng], zoom: 15,
-          dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-          touchZoom: false, boxZoom: false, keyboard: false, zoomControl: false
-        });
+if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  // ไม่มีพิกัด → แสดงกล่องแจ้งเตือนให้เห็นชัด
+  showNoCoordsNotice();
+} else {
+  // มีพิกัด → พยายามใช้ Leaflet ถ้าไม่มีจะ fallback เป็น iframe
+  const mapId = 'map-' + (property.id || 'detail');
+  const mapEl = el('div', {
+    attributes: { id: mapId },
+    style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;'
+  });
+  mapWrap.append(mapEl);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+  setTimeout(() => {
+    try {
+      if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
 
-        const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-        L.marker([lat, lng]).addTo(map).bindPopup(
-          `<b>${property.title || 'สถานที่'}</b><br>
-           <a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
-        ).openPopup();
+      const map = L.map(mapId, {
+        center: [lat, lng], zoom: 15,
+        dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+        touchZoom: false, boxZoom: false, keyboard: false, zoomControl: false
+      });
 
-        setTimeout(() => map.invalidateSize(), 300);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
 
-      } catch (err) {
-        console.warn('Leaflet ใช้ไม่ได้ → ใช้ iframe แทน:', err);
-        const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-        mapEl.innerHTML = `
-          <iframe
-            src="${iframeUrl}"
-            style="width:100%;height:100%;border:0;border-radius:12px;"
-            loading="lazy" title="Google Map"
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>`;
-      }
-    }, 0);
-  }
+      const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      L.marker([lat, lng]).addTo(map).bindPopup(
+        `<b>${property.title || 'สถานที่'}</b><br>
+         <a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
+      ).openPopup();
+
+      setTimeout(() => map.invalidateSize(), 300);
+    } catch (err) {
+      console.warn('Leaflet ใช้ไม่ได้ → iframe fallback', err);
+      const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+      mapEl.innerHTML = `
+        <iframe
+          src="${iframeUrl}"
+          style="width:100%;height:100%;border:0;border-radius:12px;"
+          loading="lazy" title="Google Map"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>`;
+    }
+  }, 0);
+}
+
 
   // ---------- Share ----------
   const shareContainer = el('div', { className: 'share-buttons' });
