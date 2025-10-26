@@ -9,8 +9,6 @@ import { formatPrice } from '../utils/format.js';
 import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
 
-import { supabase } from '../utils/supabaseClient.js';
-
 async function fillPOI(propertyId) {
   try {
     toast('กำลังสร้างสถานที่ใกล้เคียง...', 3000, 'info');
