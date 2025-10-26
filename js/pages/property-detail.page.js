@@ -50,6 +50,26 @@ function openLightbox(index) {
   return openLightbox;
 }
 
+// ---- YouTube Section (robust fields) ----
+function getYoutubeList(property) {
+  // รองรับชื่อฟิลด์หลายแบบในฐานข้อมูล
+  const raw =
+    property.youtube_video_ids ??
+    property.youtube_ids ??
+    property.youtube_urls ??
+    property.youtube ??
+    property.video_urls ??
+    property.videos ??
+    '';
+
+  return normalizeYoutubeIds(raw);
+}
+
+const ytIds = getYoutubeList(property);
+const ytSection = renderYouTubeGallery(ytIds);
+if (ytSection) leftCol.append(ytSection);
+
+
 // --- YouTube helpers ---
 function parseYouTubeId(input) {
   const raw = (input || '').trim();
@@ -195,9 +215,14 @@ function renderPropertyDetails(property) {
   if (ytSection) leftCol.append(ytSection);
 
 // Map
-// ===== Map Section (safe, non-interactive, with notice) =====
-const lat = parseFloat(property.lat ?? property.latitude);
-const lng = parseFloat(property.lng ?? property.longitude);
+// ---- Map Section (robust coords + reliable fallback) ----
+const latRaw =
+  property.lat ?? property.latitude ?? property.lat_deg ?? property.latDegree ?? property.lat_value;
+const lngRaw =
+  property.lng ?? property.longitude ?? property.lon ?? property.long ?? property.lng_deg ?? property.lngValue;
+
+const lat = parseFloat(latRaw);
+const lng = parseFloat(lngRaw);
 
 const mapWrap = el('div', { style: 'margin-top:1.5rem;' });
 leftCol.append(mapWrap);
@@ -205,25 +230,19 @@ leftCol.append(mapWrap);
 function showNoCoordsNotice() {
   const box = el('div', {
     style: `
-      background:#f9fafb;
-      border:1px solid #e5e7eb;
-      color:#374151;
-      padding:1rem 1.25rem;
-      border-radius:12px;
-      text-align:center;
-      line-height:1.6;
+      background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
+      padding:1rem 1.25rem;border-radius:12px;text-align:center;line-height:1.6;
     `
   });
   box.innerHTML = `
     <strong>ไม่พบพิกัดแผนที่</strong><br>
-    กรุณาเพิ่มค่าพิกัดละติจูด (latitude) และลองจิจูด (longitude)
-    ในหน้าแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
+    กรุณาเพิ่ม latitude/longitude ในแดชบอร์ดเพื่อแสดงตำแหน่งบนแผนที่
   `;
   mapWrap.append(box);
 }
 
 if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-  console.warn('⚠️ ไม่มีพิกัดใน property (อาจเป็นเพราะ RLS):', property);
+  console.warn('⚠️ ไม่มีพิกัด usable:', { latRaw, lngRaw, property });
   showNoCoordsNotice();
 } else {
   const mapId = 'map-' + (property.id || 'detail');
@@ -233,113 +252,89 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   });
   mapWrap.append(mapEl);
 
-  setTimeout(() => {
+  const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+  const fallback = () => {
+    const iframeUrl = `${gmapsUrl}&output=embed&z=15`;
+    mapEl.innerHTML = `
+      <iframe
+        src="${iframeUrl}"
+        style="width:100%;height:100%;border:0;border-radius:12px;"
+        loading="lazy" title="Google Map" referrerpolicy="no-referrer-when-downgrade">
+      </iframe>`;
+  };
+
+  // ถ้าไม่มี Leaflet ให้ใช้ iframe ทันที
+  if (typeof window.L === 'undefined') {
+    console.warn('Leaflet not loaded → use iframe fallback');
+    fallback();
+  } else {
     try {
-      if (typeof L === 'undefined') throw new Error('Leaflet is not loaded');
-
       const map = L.map(mapId, {
-        center: [lat, lng],
-        zoom: 15,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        touchZoom: false,
-        boxZoom: false,
-        keyboard: false,
-        zoomControl: false
+        center: [lat, lng], zoom: 15,
+        dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
+        touchZoom:false, boxZoom:false, keyboard:false, zoomControl:false
       });
-
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      // ✅ FIX: ใช้ https และลบ $ เกิน
-      const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-
-      L.marker([lat, lng])
-        .addTo(map)
-        .bindPopup(
-          `<b>${(property.title || 'สถานที่')}</b><br>
-           <a href="${gmapsUrl}" target="_blank" rel="noopener">
-             เปิดใน Google Maps เพื่อนำทาง
-           </a>`
-        )
-        .openPopup();
+      L.marker([lat, lng]).addTo(map).bindPopup(
+        `<b>${property.title || 'สถานที่'}</b><br><a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
+      ).openPopup();
 
       setTimeout(() => map.invalidateSize(), 300);
-
-    } catch (err) {
-      console.error('Leaflet error → fallback to iframe:', err);
-
-      // ✅ FIX: ใช้ https และลบ $ เกิน
-      const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-
-      mapEl.innerHTML = `
-        <iframe
-          src="${iframeUrl}"
-          style="width:100%;height:100%;border:0;border-radius:12px;"
-          loading="lazy"
-          title="Google Map"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>`;
+    } catch (e) {
+      console.error('Leaflet init error → fallback to iframe:', e);
+      fallback();
     }
-  }, 0);
+  }
 }
 
-// Share Section
-const shareContainer = el('div', { className: 'share-buttons' });
-shareContainer.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
 
-// ✅ ประกาศตัวแปรไว้ตรงนี้ ก่อนสร้างปุ่มทั้งหมด
+// ---- Share Section (visible + robust) ----
+const shareContainer = el('div', {
+  className: 'share-buttons',
+  style: 'margin:1.25rem 0;padding:1rem;background:#fff;border:1px solid #eee;border-radius:12px;'
+});
+shareContainer.innerHTML = `<p style="margin:0 0 .5rem 0;color:#374151;font-weight:600;">แชร์ประกาศนี้:</p>`;
+
 const currentPageUrl = window.location.href;
 const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
 
-const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`;
-const lineMessage = `${shareText}\n${currentPageUrl}`;
-const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(lineMessage)}`;
+const facebookIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>`;
+const messengerIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.14 0 11.432c0 3.43.987 6.558 2.634 8.94.06.09.11.19.14.29l-1.07 4.267c-.12.48.33.93.81.81l4.267-1.07c.1.03.2.08.29.14a12.02 12 0 008.94 2.634C18.86 24 24 18.627 24 12S18.627 0 12 0zm1.14 15.192l-2.4-2.4-5.28 2.4c-.48 .24-.96-.48-.6-.84l3.12-3.12-3.12-3.12c-.36-.36 .12-.96 .6-.84l5.28 2.4 2.4-2.4c.36-.36 .96 .12 .84 .6l-2.4 5.28 2.4 2.4c.36 .36-.12 .96-.84 .6z"/></svg>`;
+const lineIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.13 6.13c-2.8-2.5-6.7-3.2-10.4-1.8-3.3 1.2-5.7 4.3-6 7.8-.3 4.1 2.2 7.7 5.9 8.9 4.3 1.4 8.6-.3 11.3-3.8 2.9-4 2.5-9.3-1.8-11.1zM9.33 16.93h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4.3-.7.7-.7h1.6c.4 0 .7.3 .7 .7v5.9c0 .4-.3 .7-.7 .7zm3.1-3.6c-.4 0-.7-.3-.7-.7v-2.1c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v2.1c0 .4-.3 .7-.7 .7h-1.6zm4.9 3.6h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v5.9c0 .4-.3 .7-.7 .7z"/></svg>`;
+const xIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 7.184L18.901 1.153Zm-1.653 19.499h2.606L6.856 2.554H4.046l13.2 18.1z"/></svg>`;
+
+const btnWrap = el('div', { style: 'display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;' });
+
+// URLs
+const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`; // อาจไม่ทำงานบนเดสก์ท็อป
+const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(`${shareText}\n${currentPageUrl}`)}`;
 const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
 const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
 
-// ✅ สร้างปุ่มแบบ object literal ถูกต้อง (ไม่มี = ใน object, ไม่มีเครื่องหมายเกิน)
-const messengerBtn = el('a', {
-  className: 'share-btn messenger',
-  attributes: {
-    href: messengerShareUrl,
-    target: '_blank',
-    rel: 'noopener',
-    'aria-label': 'Share on Messenger'
-  }
-});
+// Buttons
+function iconBtn(href, label, svg) {
+  const a = el('a', {
+    className: 'share-btn',
+    attributes: { href, target: '_blank', rel: 'noopener', 'aria-label': label },
+    style: 'display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #e5e7eb;border-radius:10px;color:#111827;background:#fff;'
+  });
+  a.innerHTML = svg;
+  return a;
+}
 
-const lineBtn = el('a', {
-  className: 'share-btn line',
-  attributes: {
-    href: lineShareUrl,
-    target: '_blank',
-    rel: 'noopener',
-    'aria-label': 'Share on LINE'
-  }
-});
+btnWrap.append(
+  iconBtn(messengerShareUrl, 'Share on Messenger', messengerIcon),
+  iconBtn(lineShareUrl, 'Share on LINE', lineIcon),
+  iconBtn(facebookShareUrl, 'Share on Facebook', facebookIcon),
+  iconBtn(twitterShareUrl, 'Share on Twitter/X', xIcon),
+);
 
-const facebookBtn = el('a', {
-  className: 'share-btn facebook',
-  attributes: {
-    href: facebookShareUrl,
-    target: '_blank',
-    rel: 'noopener',
-    'aria-label': 'Share on Facebook'
-  }
-});
+shareContainer.append(btnWrap);
+rightCol.append(shareContainer);
 
-const twitterBtn = el('a', {
-  className: 'share-btn twitter',
-  attributes: {
-    href: twitterShareUrl,
-    target: '_blank',
-    rel: 'noopener',
-    'aria-label': 'Share on Twitter/X'
-  }
-});
 
 
   // Lead form
