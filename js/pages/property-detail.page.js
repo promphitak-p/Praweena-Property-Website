@@ -199,7 +199,7 @@ const lat = parseFloat(property.lat ?? property.latitude);
 const lng = parseFloat(property.lng ?? property.longitude);
 
 const mapWrap = el('div', { style: 'margin-top:1.5rem;' });
-leftCol.append(mapWrap);
+leftCol.append(mapWrap); // เพิ่ม wrapper ลงใน DOM ทันที
 
 function showNoCoordsNotice() {
   const box = el('div', {
@@ -252,8 +252,8 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      // --- ⭐️ FIX 1: แก้ไข URL และ Syntax ของ Template Literal ---
-      const gmapsUrl = `https://maps.google.com/maps?q=${lat},${lng}`;
+      // --- ⭐️ FIX 3.1: แก้ไข Syntax และ URL ให้ถูกต้อง ---
+      const gmapsUrl = `http://google.com/maps?q=${lat},${lng}`;
 
       L.marker([lat, lng])
         .addTo(map)
@@ -270,8 +270,8 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     } catch (err) {
       console.error('Leaflet error → fallback to iframe:', err);
 
-      // --- ⭐️ FIX 2: แก้ไข URL และ Syntax ของ iframe ---
-      const iframeUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+      // --- ⭐️ FIX 3.2: แก้ไข Syntax และ URL ของ iframe ให้ถูกต้อง ---
+      const iframeUrl = `http://google.com/maps?q=${lat},${lng}&output=embed&z=15`;
       
       mapEl.innerHTML = `
         <iframe
