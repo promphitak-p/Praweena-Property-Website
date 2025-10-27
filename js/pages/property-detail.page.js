@@ -14,9 +14,7 @@ async function fillPOI(propertyId) {
   try {
     toast('กำลังสร้างสถานที่ใกล้เคียง...', 3000, 'info');
 
-    if (error) throw error;
-
-    toast(`สร้างข้อมูลสถานที่ใกล้เคียง ${data.count} จุดสำเร็จ!`, 4000, 'success');
+     toast(`สร้างข้อมูลสถานที่ใกล้เคียง ${data.count} จุดสำเร็จ!`, 4000, 'success');
   } catch (err) {
     console.error(err);
     toast('เกิดข้อผิดพลาด: ' + err.message, 5000, 'error');
@@ -181,7 +179,7 @@ function colorOf(t='') {
 
 
 /** แสดงผลข้อมูลอสังหาฯ */
-function renderPropertyDetails(property) {
+async function renderPropertyDetails(property) {
   // Meta
   const pageTitle = `${property.title} - Praweena Property`;
   const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province} สนใจติดต่อ Praweena Property`;
@@ -262,18 +260,6 @@ const mapTitle = el('h3', { textContent: 'ตำแหน่งแผนที�
 leftCol.append(mapWrap);
 mapWrap.append(mapTitle);
 
-const style = colorOf(p.type);
-const marker = L.circleMarker([p.lat, p.lng], {
-  radius: 6, color: style.stroke, fillColor: style.fill, fillOpacity: .9, weight: 2
-}).bindPopup(
-  `<strong>${p.name}</strong><br>${p.type || 'poi'}<br>${p.distance_km?.toFixed(2)} กม.`
-);
-marker.__baseStyle = style; // เก็บไว้สำหรับรีเซ็ต
-marker.addTo(map);
-poiMarkers.push(marker);
-bounds.push([p.lat, p.lng]);
-
-
 if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   const box = el('div', {
     style: `
@@ -329,9 +315,21 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       if (pois && pois.length) {
         pois.forEach((p, index) => {
           if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-          const marker = L.circleMarker([p.lat, p.lng], {
-            radius: 6, color: '#16a34a', fillColor: '#4ade80', fillOpacity: .9
-          }).bindPopup(`<strong>${p.name}</strong><br>${p.type}<br>${p.distance_km?.toFixed(2)} กม.`);
+		  
+const baseStyle = colorOf(p.type);
+const marker = L.circleMarker([p.lat, p.lng], {
+  radius: 6,
+  color: baseStyle.stroke,
+  fillColor: baseStyle.fill,
+  fillOpacity: .9,
+  weight: 2
+}).bindPopup(
+  `<strong>${p.name}</strong><br>${p.type || 'poi'}<br>${(p.distance_km ?? 0).toFixed(2)} กม.`
+);
+// เก็บสไตล์ไว้ใช้ตอนรีเซ็ตไฮไลต์
+marker.__baseStyle = baseStyle;
+
+		  
           marker.addTo(map);
           poiMarkers.push(marker);
           bounds.push([p.lat, p.lng]);
@@ -361,9 +359,9 @@ listEl.querySelectorAll('li').forEach((li, i) => {
     map.setView(marker.getLatLng(), 16, { animate: true });
     marker.openPopup();
     // ทำให้ “เด่น” (แดง) และรีเซ็ตตัวอื่นเป็นสีตามประเภทเดิม
-    poiMarkers.forEach(m => m.setStyle({ color: m.__baseStyle.stroke, fillColor: m.__baseStyle.fill }));
-    marker.setStyle({ color: '#ef4444', fillColor: '#f87171' });
-	setTimeout(() => marker.setStyle({ color: marker.__baseStyle.stroke, fillColor: marker.__baseStyle.fill }), 3000);
+poiMarkers.forEach(m => {
+  const s = m.__baseStyle || { stroke:'#16a34a', fill:'#4ade80' };
+  m.setStyle({ color: s.stroke, fillColor: s.fill });
   });
 });
 		
@@ -485,7 +483,7 @@ async function loadProperty() {
     return;
   }
 
-  renderPropertyDetails(data);
+await renderPropertyDetails(data);
 // ✅ โหลดและแสดงสถานที่ใกล้เคียง (มินิ-แมพ + รายการ)
 loadNearby(data).catch(console.error);
 
