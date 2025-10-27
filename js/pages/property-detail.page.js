@@ -619,4 +619,3 @@ async function loadNearby(property) {
         <span style="color:#6b7280;">(${p.type})</span> ${gmaps}</span>
       </li>`;
   }).join('');
-}
