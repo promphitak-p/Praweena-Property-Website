@@ -272,4 +272,5 @@ tbody tr:last-child td{ border-bottom:none; }
 #poi-modal li{ padding:.35rem 0; border-bottom:1px solid var(--border-color); }
 #poi-modal li:last-child{ border-bottom:none; }
 
-#poi-modal .modal-content { color: var(--text); }
+#poi-modal .modal-content,
+#poi-modal .modal-content * { color: var(--text); }

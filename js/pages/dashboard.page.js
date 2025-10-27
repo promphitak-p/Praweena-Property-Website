@@ -654,32 +654,49 @@ const poiModalOk = $('#poi-modal-ok');
 
 function showPOIModal(title, pois = []) {
   if (!poiModal) return;
+
+  // ชื่อหัวโมดัล
   poiModalTitle.textContent = `🏠 ${title}`;
   clear(poiModalBody);
 
-  if (!pois.length) {
-    poiModalBody.innerHTML = '<p style="color:var(--text-light);">ไม่พบสถานที่ใกล้เคียง</p>';
-  } else {
-    const list = el('ul', { style: 'list-style:none;padding:0;margin:0;' });
-    pois.slice(0,5).forEach(p => {
-      // รองรับทั้ง distance_km (จากฟังก์ชัน) และ distance_m (กรณีอ่านตรงจากตาราง)
-      const km = (typeof p.distance_km === 'number')
-        ? p.distance_km
-        : (typeof p.distance_m === 'number' ? p.distance_m / 1000 : NaN);
-      const kmText = Number.isFinite(km) ? km.toFixed(2) : '-';
-      const typeText = p.type || p.category || 'poi';
-      const nameText = p.name || '(ไม่ทราบชื่อ)';
-
-      const li = el('li', {
-        innerHTML: `• <strong>${nameText}</strong> — ${kmText} กม. (${typeText})`
-      });
-      list.append(li);
-    });
-    poiModalBody.append(list);
+  // ไม่มีข้อมูล
+  if (!Array.isArray(pois) || pois.length === 0) {
+    poiModalBody.innerHTML = '<p style="color:var(--text-light);margin:0;">ไม่พบสถานที่ใกล้เคียง</p>';
+    poiModal.classList.add('open');
+    return;
   }
+
+  // ป้องกัน XSS ง่าย ๆ
+  const esc = (s='') => String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+  const itemsHtml = pois.slice(0,5).map(p => {
+    const name = esc(p.name || '(ไม่ทราบชื่อ)');
+    const type = esc(p.type || p.category || 'poi');
+    const km = (typeof p.distance_km === 'number')
+      ? p.distance_km
+      : (typeof p.distance_m === 'number' ? p.distance_m/1000 : NaN);
+    const kmText = Number.isFinite(km) ? km.toFixed(2) : '-';
+    return `<li>• <strong>${name}</strong> — ${kmText} กม. (${type})</li>`;
+  }).join('');
+
+  poiModalBody.innerHTML = `
+    <ul style="list-style:none;padding:0;margin:0;line-height:1.6;color:var(--text);">
+      ${itemsHtml}
+    </ul>
+  `;
+
+  // เผื่อธีมบางกรณีทำให้สีหาย
+  poiModal.querySelector('.modal-content')?.setAttribute('style',
+    (poiModal.querySelector('.modal-content')?.getAttribute('style') || '') + ';color:var(--text);');
+
+  // debug เผื่ออยากดู HTML ที่ถูกเติม
+  console.debug('POI modal HTML:', poiModalBody.innerHTML);
 
   poiModal.classList.add('open');
 }
+
 
 function closePOIModal() {
   if (poiModal) poiModal.classList.remove('open');
