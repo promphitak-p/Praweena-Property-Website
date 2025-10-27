@@ -159,11 +159,12 @@ Deno.serve(async (req) => {
     }
 
     // 10) respond พร้อม POI 5 อันดับแรกสำหรับ UI
-    const top5 = pois.slice(0, 5).map(p => ({
-      name: p.name,
-      type: p.type,
-      distance_km: Number((p.distance_m / 1000).toFixed(3)),
-    }));
+// ใน Edge Function ตอน map POI -> items
+const top5 = pois.slice(0,5).map(p => ({
+  name: p.name, type: p.type, distance_km: Number((p.distance_m/1000).toFixed(3)),
+  lat: p.lat, lng: p.lng
+}));
+
 
     return new Response(JSON.stringify({
       ok: true,
@@ -181,3 +182,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+
