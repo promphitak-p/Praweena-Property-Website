@@ -8,15 +8,11 @@ import { toast } from '../ui/toast.js';
 import { formatPrice } from '../utils/format.js';
 import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
+import { supabase } from '../utils/supabaseClient.js';
 
 async function fillPOI(propertyId) {
   try {
     toast('กำลังสร้างสถานที่ใกล้เคียง...', 3000, 'info');
-
-const { data, error } = await supabase.functions.invoke('fill_poi', {
-  body: { property_id: prop.id, radius_m: 2000 }
-});
-
 
     if (error) throw error;
 
@@ -423,6 +419,9 @@ async function loadProperty() {
   }
 
   renderPropertyDetails(data);
+// ✅ โหลดและแสดงสถานที่ใกล้เคียง (มินิ-แมพ + รายการ)
+loadNearby(data).catch(console.error);
+
 }
 
 /** ส่ง lead */
@@ -455,3 +454,65 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMobileNav();
   loadProperty();
 });
+
+// === ฟังก์ชันใหม่ ===
+async function loadNearby(property) {
+  const sec = document.getElementById('nearby-section');
+  const listEl = document.getElementById('poi-list');
+  const mapEl = document.getElementById('poi-map');
+  if (!sec || !listEl || !mapEl) return;
+
+  const { data: pois, error } = await supabase
+    .from('property_poi')
+    .select('name,type,distance_km,lat,lng')
+    .eq('property_id', property.id)
+    .order('distance_km', { ascending: true })
+    .limit(50);
+
+  if (error || !pois || !pois.length) {
+    sec.style.display = 'none';
+    return;
+  }
+
+  sec.style.display = ''; // แสดง section
+
+  const map = L.map('poi-map', { zoomControl: true, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  const group = L.layerGroup().addTo(map);
+  const bounds = [];
+
+  // หมุดบ้าน
+  if (Number.isFinite(property.latitude) && Number.isFinite(property.longitude)) {
+    const home = L.circleMarker([property.latitude, property.longitude], {
+      radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
+    }).bindTooltip('ตำแหน่งบ้าน', { direction:'top' });
+    home.addTo(group);
+    bounds.push([property.latitude, property.longitude]);
+  }
+
+  // หมุด POI
+  pois.forEach(p => {
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+    const marker = L.circleMarker([p.lat, p.lng], {
+      radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
+    }).bindTooltip(`${p.name} (${p.type})`, { direction:'top' });
+    marker.addTo(group);
+    bounds.push([p.lat, p.lng]);
+  });
+
+  if (bounds.length >= 2) map.fitBounds(bounds, { padding:[16,16], maxZoom: 16 });
+  else if (bounds.length === 1) map.setView(bounds[0], 15);
+  else map.setView([13.736, 100.523], 12);
+
+  // รายการล่างแผนที่
+  listEl.innerHTML = pois.slice(0, 10).map(p => {
+    const km = typeof p.distance_km === 'number' ? p.distance_km.toFixed(2) : '-';
+    const gmaps = (p.lat && p.lng)
+      ? `<a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank">ดูแผนที่</a>` : '';
+    return `
+      <li>
+        <strong>${p.name}</strong> — ${km} กม.
+        <span class="poi-type">(${p.type})</span> ${gmaps}
+      </li>`;
+  }).join('');
+}

@@ -296,3 +296,30 @@ tbody tr:last-child td{ border-bottom:none; }
   border-top: 1px solid #eee;
   margin: .25rem 0;
 }
+
+.mini-map {
+  width: 100%;
+  height: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: .5rem 0 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+
+.poi-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1.7;
+}
+
+.poi-list li + li {
+  border-top: 1px solid #eee;
+  margin-top: .35rem;
+  padding-top: .35rem;
+}
+
+.poi-type {
+  color: var(--text-light);
+  font-size: .9rem;
+}
