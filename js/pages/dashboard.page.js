@@ -615,24 +615,23 @@ async function fillPOI(propertyId) {
     });
     if (error) throw error;
 
-    // ใช้ค่าที่ function ส่งกลับมาเลย
+    // ✅ ใช้ผลลัพธ์จาก Edge Function ทันที
     let pois = Array.isArray(data?.items) ? data.items : [];
     const count = typeof data?.inserted === 'number' ? data.inserted : pois.length;
 
-    // ถ้าอยากเผื่อ fallback ค่อยอ่าน DB (จะอ่านได้ต้องมี policy ด้านล่าง)
+    // (ออปชัน) เปิดใช้เมื่อคุณทำ RLS policy เสร็จแล้ว
     // if (!pois.length) {
-    //   const { data: rows } = await supabase
+    //   const { data: rows, error: poiErr } = await supabase
     //     .from('property_poi')
     //     .select('name, type, distance_km')
     //     .eq('property_id', propertyId)
     //     .order('distance_km', { ascending: true })
     //     .limit(5);
-    //   pois = rows ?? [];
+    //   if (!poiErr && Array.isArray(rows)) pois = rows;
     // }
 
     toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${count} จุดสำเร็จ!`, 2000, 'success');
 
-    // ชื่อประกาศเพื่อแสดงหัวโมดัล
     const row = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`);
     const title = row ? row.textContent.trim() : 'ประกาศ';
 
