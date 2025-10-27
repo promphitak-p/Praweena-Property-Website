@@ -13,8 +13,6 @@ import { supabase } from '../utils/supabaseClient.js';
 async function fillPOI(propertyId) {
   try {
     toast('กำลังสร้างสถานที่ใกล้เคียง...', 3000, 'info');
-
-     toast(`สร้างข้อมูลสถานที่ใกล้เคียง ${data.count} จุดสำเร็จ!`, 4000, 'success');
   } catch (err) {
     console.error(err);
     toast('เกิดข้อผิดพลาด: ' + err.message, 5000, 'error');
@@ -243,6 +241,14 @@ async function renderPropertyDetails(property) {
   const details = el('p', { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
 
   leftCol.append(galleryWrapper, thumbnailContainer, title, price, address, details);
+  // --- Nearby section (สร้าง DOM ให้ loadNearby เจอแน่ ๆ) ---
+const nearbySec = el('section', { id:'nearby-section', className:'card', style:'margin-top:16px; display:none;' });
+nearbySec.innerHTML = `
+  <h2 class="card-title">สถานที่ใกล้เคียง</h2>
+  <div id="poi-map" class="mini-map" style="height:220px;border-radius:12px;overflow:hidden;background:#f3f4f6;"></div>
+  <ul id="poi-list" class="poi-list" style="margin:8px 0 0 0; padding:0; list-style:none;"></ul>
+`;
+leftCol.append(nearbySec);
 
   // ---------- YouTube ----------
   const ytIds = collectYoutubeValues(property).map(parseYouTubeId).filter(Boolean);
@@ -351,17 +357,24 @@ listEl.innerHTML = pois.map((p, i) => {
   `;
 }).join('');
 
+// ✨ คลิกที่รายการ → โฟกัสหมุด + เปิด popup + เปลี่ยนสีหมุดให้เด่น
 listEl.querySelectorAll('li').forEach((li, i) => {
   li.addEventListener('click', () => {
     const marker = poiMarkers[i];
     if (!marker) return;
+
     // โฟกัส + เปิด popup
     map.setView(marker.getLatLng(), 16, { animate: true });
     marker.openPopup();
-    // ทำให้ “เด่น” (แดง) และรีเซ็ตตัวอื่นเป็นสีตามประเภทเดิม
-poiMarkers.forEach(m => {
-  const s = m.__baseStyle || { stroke:'#16a34a', fill:'#4ade80' };
-  m.setStyle({ color: s.stroke, fillColor: s.fill });
+
+    // รีเซ็ตสีหมุดทั้งหมดกลับเป็นสีตามประเภทเดิม
+    poiMarkers.forEach(m => {
+      const s = m.__baseStyle || { stroke:'#16a34a', fill:'#4ade80' };
+      m.setStyle({ color: s.stroke, fillColor: s.fill });
+    });
+
+    // ไฮไลต์หมุดที่เลือก (แดง)
+    marker.setStyle({ color: '#ef4444', fillColor: '#f87171' });
   });
 });
 		
@@ -542,18 +555,28 @@ async function loadNearby(property) {
   sec.style.display = ''; // แสดง section
 
   const map = L.map('poi-map', { zoomControl: true, attributionControl: false });
+  setTimeout(() => map.invalidateSize(true), 50);
+  setTimeout(() => map.invalidateSize(true), 300);
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   const group = L.layerGroup().addTo(map);
   const bounds = [];
 
-  // หมุดบ้าน
-  if (Number.isFinite(property.latitude) && Number.isFinite(property.longitude)) {
-    const home = L.circleMarker([property.latitude, property.longitude], {
-      radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
-    }).bindTooltip('ตำแหน่งบ้าน', { direction:'top' });
-    home.addTo(group);
-    bounds.push([property.latitude, property.longitude]);
-  }
+ // หมุดบ้าน (normalize key ให้ครอบคลุม)
+const lat0 = Number.parseFloat(
+  property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat
+);
+const lng0 = Number.parseFloat(
+  property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng
+);
+
+if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
+  const home = L.circleMarker([lat0, lng0], {
+    radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
+  }).bindTooltip('ตำแหน่งบ้าน', { direction:'top' });
+  home.addTo(group);
+  bounds.push([lat0, lng0]);
+}
 
   // หมุด POI
   pois.forEach(p => {
