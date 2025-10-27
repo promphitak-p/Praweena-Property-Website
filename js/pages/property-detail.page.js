@@ -305,15 +305,15 @@ setTimeout(() => {
     const bounds = [[lat, lng]];
 
     // ✅ กรองเฉพาะ 4 กลุ่มหลัก (รพ./โรงเรียน/ห้าง/ราชการ)
-    const allowed = (pois || []).filter(p => {
-      const t = (p.type || '').toLowerCase();
-      return (
-        t.includes('hospital') || t.includes('clinic') || t.includes('pharmacy') ||                 // โรงพยาบาล/คลินิก
-        t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
-        t.includes('supermarket') || t.includes('convenience') || t.includes('mall') || t.includes('department') || // ห้าง/ซูเปอร์/คอนวีเนียน
-        t.includes('government') || t.includes('police') || t.includes('post_office')              // ราชการ
-      );
-    });
+const allowed = (pois || []).filter(p => {
+  const t = (p.type || '').toLowerCase();
+  return (
+    t.includes('hospital') || t.includes('clinic') || t.includes('pharmacy') ||            // โรงพยาบาล
+    t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
+    t.includes('supermarket') || t.includes('mall') || t.includes('department') ||        // ห้าง/ซูเปอร์
+    t.includes('government') || t.includes('police') || t.includes('post_office')         // ราชการ
+  );
+});
 
     if (allowed.length) {
       allowed.forEach((p, index) => {
@@ -376,6 +376,7 @@ setTimeout(() => {
     mapEl.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
   }
 }, 0);
+}
 
 
   // ---------- Share ----------
@@ -619,3 +620,4 @@ async function loadNearby(property) {
         <span style="color:#6b7280;">(${p.type})</span> ${gmaps}</span>
       </li>`;
   }).join('');
+}
