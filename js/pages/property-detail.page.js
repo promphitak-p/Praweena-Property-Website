@@ -10,22 +10,6 @@ import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { supabase } from '../utils/supabaseClient.js';
 
-async function fillPOI(propertyId) {
-  try {
-    toast('กำลังสร้างสถานที่ใกล้เคียง...', 3000, 'info');
-  } catch (err) {
-    console.error(err);
-    toast('เกิดข้อผิดพลาด: ' + err.message, 5000, 'error');
-  }
-}
-
-document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('btn-fill-poi')) {
-    const id = e.target.dataset.id;
-    fillPOI(id);
-  }
-});
-
 const container = $('#property-detail-container');
 
 // --- Lightbox ---
