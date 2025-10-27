@@ -612,14 +612,20 @@ async function fillPOI(propertyId) {
     btn && (btn.disabled = true, btn.textContent = 'กำลังสร้าง…');
     toast('⏳ กำลังสร้างข้อมูลสถานที่ใกล้เคียง...', 3000, 'info');
 
-    const { data, error } = await supabase.functions.invoke('fill_poi', { body:{ property_id: propertyId }});
+    const { data, error } = await supabase.functions.invoke('fill_poi', {
+      body: { property_id: propertyId },
+    });
     if (error) throw error;
 
     const pois = Array.isArray(data?.items) ? data.items : [];
     toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${data?.inserted ?? pois.length} จุดสำเร็จ!`, 2000, 'success');
 
-    const title = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`)?.textContent?.trim() || 'ประกาศ';
-    showPOIModal(title, pois);
+    const title  = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`)?.textContent?.trim() || 'ประกาศ';
+    const center = (typeof data?.lat === 'number' && typeof data?.lng === 'number')
+      ? { lat: data.lat, lng: data.lng }
+      : null;
+
+    showPOIModal(title, pois, center);
   } catch (err) {
     console.error('fillPOI error:', err);
     toast('❌ เกิดข้อผิดพลาด: ' + err.message, 4000, 'error');
@@ -637,69 +643,128 @@ const poiModalTitle = $('#poi-modal-title');
 const poiModalClose = $('#poi-modal-close');
 const poiModalOk = $('#poi-modal-ok');
 
-function showPOIModal(title, pois = []) {
+// วางไว้ใกล้ ๆ ส่วน Modal แสดงผล POI
+let poiMiniMap = null;
+let poiMiniMapLayerGroup = null;
+
+// แปลประเภทให้เป็นไทยแบบกว้าง ๆ
+function thaiType(t = '') {
+  const m = t.toLowerCase();
+  if (m.includes('convenience')) return 'ร้านสะดวกซื้อ';
+  if (m.includes('supermarket') || m.includes('mall') || m.includes('department')) return 'ซูเปอร์/ห้าง';
+  if (m.includes('cafe')) return 'คาเฟ่';
+  if (m.includes('restaurant')) return 'ร้านอาหาร';
+  if (m.includes('school') || m.includes('college') || m.includes('university') || m.includes('kindergarten')) return 'สถานศึกษา';
+  if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return 'สถานพยาบาล';
+  if (m.includes('bank') || m.includes('atm')) return 'ธนาคาร/เอทีเอ็ม';
+  if (m.includes('police')) return 'สถานีตำรวจ';
+  if (m.includes('post_office')) return 'ไปรษณีย์';
+  if (m.includes('fuel')) return 'ปั๊มน้ำมัน';
+  if (m.includes('bus') || m.includes('taxi')) return 'ขนส่งสาธารณะ';
+  if (m.includes('library')) return 'ห้องสมุด';
+  if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return 'แหล่งท่องเที่ยว';
+  return 'สถานที่';
+}
+
+function typeEmoji(t = '') {
+  const m = t.toLowerCase();
+  if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
+  if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return '🏥';
+  if (m.includes('bank') || m.includes('atm')) return '🏧';
+  if (m.includes('police')) return '👮';
+  if (m.includes('post_office')) return '📮';
+  if (m.includes('fuel')) return '⛽';
+  if (m.includes('cafe')) return '☕';
+  if (m.includes('restaurant')) return '🍽️';
+  if (m.includes('supermarket') || m.includes('convenience') || m.includes('mall')) return '🛒';
+  if (m.includes('bus') || m.includes('taxi')) return '🚌';
+  if (m.includes('library')) return '📚';
+  if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return '🎡';
+  return '📍';
+}
+
+function renderMiniMap(containerId, center, pois = []) {
+  // ทำลายของเก่าถ้ามี
+  if (poiMiniMap) { poiMiniMap.remove(); poiMiniMap = null; poiMiniMapLayerGroup = null; }
+
+  poiMiniMap = L.map(containerId, { zoomControl: false, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(poiMiniMap);
+
+  poiMiniMapLayerGroup = L.layerGroup().addTo(poiMiniMap);
+
+  const bounds = [];
+
+  // พินบ้าน (ถ้ามีพิกัด)
+  if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
+    const homeMarker = L.circleMarker([center.lat, center.lng], {
+      radius: 6, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9
+    }).bindTooltip('ตำแหน่งบ้าน', { direction: 'top' });
+    homeMarker.addTo(poiMiniMapLayerGroup);
+    bounds.push([center.lat, center.lng]);
+  }
+
+  // พิน POI เล็ก ๆ
+  pois.forEach(p => {
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+    const marker = L.circleMarker([p.lat, p.lng], {
+      radius: 4, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: 0.9
+    }).bindTooltip(`${p.name || 'สถานที่'} — ${thaiType(p.type || p.category)}`, { direction: 'top' });
+    marker.addTo(poiMiniMapLayerGroup);
+    bounds.push([p.lat, p.lng]);
+  });
+
+  if (bounds.length >= 2) poiMiniMap.fitBounds(bounds, { padding: [12, 12], maxZoom: 16 });
+  else if (bounds.length === 1) poiMiniMap.setView(bounds[0], 15);
+  else poiMiniMap.setView([13.736, 100.523], 12); // fallback กรุงเทพ
+}
+
+function showPOIModal(title, pois = [], center = null) {
   if (!poiModal) return;
 
   poiModalTitle.textContent = `🏠 ${title}`;
   clear(poiModalBody);
 
-  if (!Array.isArray(pois) || pois.length === 0) {
-    poiModalBody.innerHTML = '<p style="color:var(--text-light);margin:0;">ไม่พบสถานที่ใกล้เคียง</p>';
-    poiModal.classList.add('open');
-    return;
-  }
+  // ถ้าไม่มีข้อมูลเลย ก็ยังแสดงมินิแมพตำแหน่งบ้านได้
+  const hasPOI = Array.isArray(pois) && pois.length > 0;
 
+  // ทำลิสต์ (แสดง 5 รายการแรก)
   const esc = (s='') => String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
-  const iconOf = (t) => {
-    const m = String(t || '').toLowerCase();
-    if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
-    if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return '🏥';
-    if (m.includes('bank') || m.includes('atm')) return '🏧';
-    if (m.includes('police')) return '👮';
-    if (m.includes('post_office')) return '📮';
-    if (m.includes('fuel')) return '⛽';
-    if (m.includes('cafe')) return '☕';
-    if (m.includes('restaurant')) return '🍽️';
-    if (m.includes('supermarket') || m.includes('convenience') || m.includes('mall')) return '🛒';
-    if (m.includes('bus') || m.includes('taxi')) return '🚌';
-    if (m.includes('library')) return '📚';
-    if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return '🎡';
-    return '📍';
-  };
-
-  const itemsHtml = pois.slice(0,5).map((p, i) => {
-    const type = p.type || p.category || 'poi';
+  const itemsHtml = hasPOI ? pois.slice(0,5).map((p, idx) => {
     const km = typeof p.distance_km === 'number' ? p.distance_km
               : typeof p.distance_m === 'number' ? p.distance_m/1000 : NaN;
-
-    const mapLink = (p.lat && p.lng)
-      ? ` <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener">ดูแผนที่</a>`
-      : '';
-
+    const t  = thaiType(p.type || p.category || '');
+    const gmaps = (Number.isFinite(p.lat) && Number.isFinite(p.lng))
+      ? ` <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener">ดูแผนที่</a>` : '';
     const line = `
       <li style="padding:.35rem 0;">
-        <strong>${iconOf(type)} ${esc(p.name||'(ไม่ทราบชื่อ)')}</strong>
+        <strong>${typeEmoji(p.type || p.category)} ${esc(p.name || '(ไม่ทราบชื่อ)')}</strong>
         — ${Number.isFinite(km) ? km.toFixed(2) : '-'} กม.
-        <span style="color:var(--text-light)">(${esc(type)})</span>${mapLink}
+        <span style="color:var(--text-light)">(${esc(t)})</span>${gmaps}
       </li>`;
-    return i < 4 ? line + '<hr style="border:none;border-top:1px solid #eee;margin:.25rem 0;" />' : line;
-  }).join('');
+    return idx < 4 ? line + '<hr class="poi-hr"/>' : line;
+  }).join('') : '<li style="color:var(--text-light);padding:.35rem 0;">ไม่พบสถานที่ใกล้เคียง</li>';
 
+  // เติม HTML: มินิแมพ + รายการ
   poiModalBody.innerHTML = `
-    <ul style="list-style:none;padding:0;margin:0;line-height:1.6;color:var(--text);">
-      ${itemsHtml}
-    </ul>
+    <div id="poi-mini-map" class="mini-map"></div>
+    <ul class="poi-list">${itemsHtml}</ul>
   `;
+
+  // สร้างมินิแมพ
+  setTimeout(() => renderMiniMap('poi-mini-map', center, pois), 0);
 
   poiModal.classList.add('open');
 }
 
+
 function closePOIModal() {
   if (poiModal) poiModal.classList.remove('open');
+  if (poiMiniMap) { poiMiniMap.remove(); poiMiniMap = null; poiMiniMapLayerGroup = null; }
 }
+
 if (poiModalClose) poiModalClose.addEventListener('click', closePOIModal);
 if (poiModalOk) poiModalOk.addEventListener('click', closePOIModal);
 window.addEventListener('click', (e) => { if (e.target === poiModal) closePOIModal(); });
@@ -815,3 +880,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
   window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 });
+

@@ -274,3 +274,25 @@ tbody tr:last-child td{ border-bottom:none; }
 
 #poi-modal .modal-content,
 #poi-modal .modal-content * { color: var(--text); }
+
+.mini-map {
+  width: 100%;
+  height: 220px;            /* ปรับได้ 160–260 ก็สวย */
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 0 .75rem 0;
+  box-shadow: 0 1px 0 rgba(0,0,0,.03) inset;
+}
+
+.poi-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.poi-hr {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: .25rem 0;
+}
