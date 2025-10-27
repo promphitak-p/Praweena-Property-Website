@@ -1,21 +1,21 @@
 /* ===============================
-   Components.css (Optimized)
+   components.css — CLEAN VERSION
    =============================== */
 
 /* ============ Property Card ============ */
 .property-card{
-  position: relative;
-  background: var(--surface);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-  display: flex;
-  flex-direction: column;
-  transition: transform .2s, box-shadow .2s;
+  position:relative;
+  background:var(--surface);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+  display:flex;
+  flex-direction:column;
+  transition:transform .2s, box-shadow .2s;
 }
 .property-card:hover{
-  transform: translateY(-5px);
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+  transform:translateY(-5px);
+  box-shadow:0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
 }
 .property-card__image{ width:100%; height:200px; object-fit:cover; }
 .property-card__body{ padding:1.25rem; display:flex; flex-direction:column; flex-grow:1; }
@@ -23,7 +23,7 @@
 .property-card__address{ color:var(--text-light); margin-bottom:1rem; }
 .property-card__price{ font-size:1.5rem; font-weight:700; color:var(--brand); margin-top:auto; }
 
-/* Sold badge on card */
+/* Sold badge */
 .sold-badge{
   position:absolute; top:1rem; right:1rem;
   background:rgba(20,20,20,.75); color:#fff;
@@ -31,22 +31,36 @@
   font-size:.875rem; font-weight:600; backdrop-filter:blur(4px);
 }
 
-/* =============== Modal =============== */
+/* =============== Modal (Unified) =============== */
 .modal{
-  display:none; position:fixed; inset:0; z-index:100;
-  background:rgba(0,0,0,.5); align-items:center; justify-content:center;
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  background:rgba(0,0,0,.5);
+  overflow-y:auto;
+  align-items:flex-start;
+  justify-content:center;
 }
 .modal.open{ display:flex; }
 .modal-content{
-  background:var(--surface); width:90%; max-width:100%;
-  margin:auto; padding:2rem; border-radius:var(--radius);
-  position:relative; box-shadow:0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+  position:relative;
+  margin:2rem auto;
+  width:90%;
+  max-width:100%;
+  background:var(--surface);
+  border-radius:var(--radius);
+  box-shadow:0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+  padding:2rem;
+  max-height:calc(100vh - 4rem);
+  overflow:auto;
 }
 .modal-close{
   position:absolute; top:1rem; right:1.5rem;
   font-size:2rem; font-weight:700; color:var(--text-light); cursor:pointer;
 }
 .modal-close:hover{ color:var(--text); }
+body.no-scroll{ overflow:hidden; }
 
 /* ============== Table ============== */
 .table-wrapper{
@@ -61,11 +75,23 @@ thead th{
 }
 tbody tr:last-child td{ border-bottom:none; }
 
+/* ======= Role / Admin helpers ======= */
+.btn-disabled{ opacity:.45; cursor:not-allowed !important; }
+#role-indicator{
+  display:inline-block;
+  margin:.25rem 0 1rem 0;
+  padding:.35rem .6rem;
+  border-radius:999px;
+  font-size:.9rem; line-height:1;
+  background:#e5e7eb; color:#374151; border:1px solid #d1d5db;
+}
+#properties-table .btn + .btn { margin-left:.5rem; }
+
 /* ============== Toast ============== */
 .toast{
   position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
   background:var(--text); color:#fff; padding:1rem 1.5rem; border-radius:8px;
-  box-shadow:var(--shadow-md); z-index:1000; opacity:0; visibility:hidden;
+  box-shadow:var(--shadow-md); z-index:1200; opacity:0; visibility:hidden;
   transition:opacity .3s, visibility .3s, transform .3s;
 }
 .toast.show{ opacity:1; visibility:visible; transform:translate(-50%,-10px); }
@@ -76,7 +102,7 @@ tbody tr:last-child td{ border-bottom:none; }
   border-radius:12px; box-shadow:var(--shadow-md); background:#eee;
 }
 
-/* ================= Media/Gallery (listing page) ================ */
+/* ================= Gallery (detail page) ================ */
 .image-gallery{
   display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
   -webkit-overflow-scrolling:touch; margin-top:1rem;
@@ -88,7 +114,7 @@ tbody tr:last-child td{ border-bottom:none; }
   scroll-snap-align:start; border-radius:var(--radius); background:#eee;
 }
 
-/* Thumbnails (listing) */
+/* Thumbnails */
 .thumbnail-container{
   display:flex; gap:.75rem; overflow-x:auto; padding:.75rem 0; margin-top:.5rem;
 }
@@ -102,7 +128,7 @@ tbody tr:last-child td{ border-bottom:none; }
 
 /* =============== Lightbox =============== */
 .lightbox-overlay{
-  position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000;
+  position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1100;
   display:none; padding:5vh 5vw; box-sizing:border-box;
 }
 .lightbox-overlay.show{ display:block; }
@@ -129,12 +155,10 @@ tbody tr:last-child td{ border-bottom:none; }
 }
 .lightbox-nav:hover{ background:rgba(0,0,0,.7); }
 .lightbox-prev{ left:15px; } .lightbox-next{ right:15px; }
-
 /* Hide arrows on touch devices */
 @media (pointer:coarse),(hover:none){
   .gallery-wrapper .gallery-nav, .lightbox-overlay .lightbox-nav{ display:none; }
 }
-
 /* Dots */
 .gallery-dots{ text-align:center; padding:10px 0; }
 .dot{
@@ -169,8 +193,7 @@ tbody tr:last-child td{ border-bottom:none; }
   display:flex; align-items:center; justify-content:center; color:var(--text-light); font-size:.95rem;
 }
 .yt-thumb{ width:100%; height:100%; object-fit:cover; display:block; }
-
-/* Reusable delete button (used by video & gallery) */
+/* Reusable delete button */
 .yt-remove-btn{
   position:absolute; top:8px; right:8px; width:34px; height:34px; border-radius:50%;
   border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2;
@@ -188,11 +211,10 @@ tbody tr:last-child td{ border-bottom:none; }
   background:#f8fafc; display:flex; align-items:center; justify-content:center;
 }
 .cropper-stage img{ max-width:100%; display:block; }
-#cover-crop-modal.modal{ display:none; }
 #cover-crop-modal.modal.open{ display:block; }
 #cover-crop-modal .modal-content{ max-width:900px; }
 
-/* Buttons (light touch) */
+/* ============= Buttons ============= */
 .btn.btn-primary{ background:var(--brand,#b1976b); color:#fff; border:none; padding:.6rem 1rem; border-radius:8px; }
 .btn.btn-secondary{ background:#f3f4f6; color:#111; border:1px solid #e5e7eb; padding:.6rem 1rem; border-radius:8px; }
 .cover-uploader .btn{ margin-top:.25rem; }
@@ -203,103 +225,49 @@ tbody tr:last-child td{ border-bottom:none; }
 }
 
 /* ============ Gallery Manager (dashboard modal) ============ */
-/* Container */
 #gallery-manager{ margin-top:12px; width:100%; }
-/* Wrapper: row → wrap, centered */
-.gm-wrap{
-  display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center;
-}
-/* Card */
+.gm-wrap{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center; }
 .gm-card{
   position:relative; width:132px; height:100px; border-radius:10px; overflow:hidden;
   background:#f3f4f6; box-shadow:var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
 }
 .gm-card img{ width:100%; height:100%; object-fit:cover; display:block; }
-/* Cover badge (first only) */
 .gm-cover-badge{
   position:absolute; left:6px; top:6px; background:rgba(0,0,0,.55);
   color:#fff; font-size:12px; padding:2px 6px; border-radius:6px;
 }
-/* Delete button (reuse) */
 .gm-card .yt-remove-btn{ right:6px; top:6px; padding:4px; border-radius:6px; width:auto; height:auto; }
-
-/* Small screens */
 @media (max-width:560px){
   .gm-card{ width:110px; height:84px; }
 }
 
-/* ============ Grid utilities (for form layout) ============ */
+/* ============ Grid utilities (form layout) ============ */
 .grid{ display:grid; gap:1rem; }
 .grid-cols-2{ grid-template-columns:1fr 1fr; }
 .col-span-2{ grid-column:1 / -1; }
 
-/* ===== Modal: allow inner scroll, lock page scroll ===== */
-.modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:100;
-  background:rgba(0,0,0,.5);
-  /* ให้ overlay เองเลื่อนได้เผื่อ content สูงมาก */
-  overflow-y:auto;
-  /* จัดวางให้ top มีระยะหายใจ เวลา content สูงกว่า viewport */
-  align-items:flex-start;
-}
+/* ======= Notices ======= */
+.alert{ border-radius:10px; padding:12px 14px; line-height:1.5; }
+.alert.info{ background:#f1f5f9; border:1px solid #e2e8f0; color:#334155; }
 
-.modal.open{ display:flex; }
-
-/* กล่องด้านในเลื่อนแยกจากหน้าเว็บ */
-.modal-content{
-  position:relative;
-  margin:2rem auto;              /* เผื่อพื้นที่ด้านบน/ล่าง */
-  width:90%;
-  max-width:100%;
-  background:var(--surface);
-  border-radius:var(--radius);
-  box-shadow:0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
-  padding:2rem;
-
-  /* สำคัญ: ให้เลื่อนภายในกล่องได้ */
-  max-height:calc(100vh - 4rem); /* = viewport - marginแนวตั้ง */
-  overflow:auto;                 /* เปิดสกรอลในกล่อง */
-}
-
-/* เมื่อปิดการสกรอลของ body */
-body.no-scroll{
+/* --- Leaflet hardening & map tweaks --- */
+#modal-map { pointer-events:none; }               /* ปิดอินเตอร์แอคทีฟเฉพาะในฟอร์ม */
+#property-detail-container .leaflet-container{
+  height:400px !important;
+  width:100% !important;
+  border-radius:12px;
   overflow:hidden;
+  background:#f3f4f6;
 }
-
-#map {
-  pointer-events: none;
-}
-
-/* Notice box (optional) */
-.alert { border-radius: 10px; padding: 12px 14px; line-height: 1.5; }
-.alert.info { background:#f1f5f9; border:1px solid #e2e8f0; color:#334155; }
-
-/* --- Leaflet hardening --- */
-#property-detail-container .leaflet-container {
-  height: 400px !important;
-  width: 100% !important;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #f3f4f6; /* สีเทาอ่อนถ้ายังโหลดไม่ทัน */
-}
-
-/* กัน max-width:100% ทั่วเว็บไปยืด/บิด tile ของ Leaflet */
-.leaflet-container img {
-  max-width: none !important;
-}
-
-/* กัน element อื่นทับ (เช่น pseudo-element) */
+.leaflet-container img{ max-width:none !important; }
 #property-detail-container .leaflet-container,
 #property-detail-container .leaflet-pane,
 #property-detail-container .leaflet-top,
-#property-detail-container .leaflet-bottom {
-  z-index: 0;
-}
+#property-detail-container .leaflet-bottom{ z-index:0; }
 
-/* debug ชั่วคราว: ขอบแดงช่วยดูว่ากล่องแผนที่อยู่จริง */
-#property-detail-container [id^="map-"] {
-  /* border: 2px solid red;  <- เปิดใช้ชั่วคราวได้ */
-}
+/* --- POI Modal (compact) --- */
+#poi-modal .modal-content{ max-width:480px; }
+#poi-modal h3{ margin:0; }
+#poi-modal ul{ list-style:none; padding:0; margin:.75rem 0 0 0; }
+#poi-modal li{ padding:.35rem 0; border-bottom:1px solid var(--border-color); }
+#poi-modal li:last-child{ border-bottom:none; }

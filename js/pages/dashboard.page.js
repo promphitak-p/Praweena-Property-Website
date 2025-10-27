@@ -10,15 +10,6 @@ import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js'; // เพิ่มบรรทัดนี้
 
-async function fillPOI(propertyId) {
-const { data, error } = await supabase.functions.invoke('fill_poi', {
-  body: { property_id: prop.id, radius_m: 2000 }
-});
-
-  if (error) throw error;
-  return data;
-}
-
 /* =====================================================
    DOM Elements
 ===================================================== */
@@ -137,7 +128,8 @@ function renderPropertyRow(prop) {
   `;
   tr.querySelector('.edit-btn').addEventListener('click', () => handleEdit(prop));
   tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(prop.id, prop.title));
-  tr.querySelector('.btn-fill-poi').addEventListener('click', () => fillPOI(prop.id));
+  tr.querySelector('.btn-fill-poi')
+	.addEventListener('click', () => fillPOI(prop.id));
 
   tableBody.append(tr);
   
