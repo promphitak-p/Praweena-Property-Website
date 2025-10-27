@@ -607,42 +607,27 @@ function setupModalMap(lat, lng) {
    เติมสถานที่ใกล้เคียง (Edge Function)
 ===================================================== */
 async function fillPOI(propertyId) {
+  const btn = document.querySelector(`tr[data-id="${propertyId}"] .btn-fill-poi`);
   try {
+    btn && (btn.disabled = true, btn.textContent = 'กำลังสร้าง…');
     toast('⏳ กำลังสร้างข้อมูลสถานที่ใกล้เคียง...', 3000, 'info');
 
-    const { data, error } = await supabase.functions.invoke('fill_poi', {
-      body: { property_id: propertyId },
-    });
+    const { data, error } = await supabase.functions.invoke('fill_poi', { body:{ property_id: propertyId }});
     if (error) throw error;
 
-    console.debug('fill_poi result:', data); // <— ดูโครงสร้างจริง
+    const pois = Array.isArray(data?.items) ? data.items : [];
+    toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${data?.inserted ?? pois.length} จุดสำเร็จ!`, 2000, 'success');
 
-    // ใช้ผลลัพธ์จาก Edge Function ก่อน
-    let pois = Array.isArray(data?.items) ? data.items : [];
-
-    // ถ้ายังว่าง ลองดึงจากตาราง (เปิดใช้ได้เมื่อทำ RLS แล้ว)
-    if (!pois.length) {
-      const { data: rows, error: poiErr } = await supabase
-        .from('property_poi')
-        .select('name, type, distance_km, distance_m')
-        .eq('property_id', propertyId)
-        .order('distance_km', { ascending: true })
-        .limit(5);
-      if (!poiErr && Array.isArray(rows)) pois = rows;
-    }
-
-    const inserted = Number(data?.inserted ?? pois.length) || 0;
-    toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${inserted} จุดสำเร็จ!`, 2000, 'success');
-
-    const row = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`);
-    const title = row ? row.textContent.trim() : 'ประกาศ';
-
+    const title = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`)?.textContent?.trim() || 'ประกาศ';
     showPOIModal(title, pois);
   } catch (err) {
     console.error('fillPOI error:', err);
     toast('❌ เกิดข้อผิดพลาด: ' + err.message, 4000, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'เติมสถานที่ใกล้เคียง'; }
   }
 }
+
 /* =====================================================
    Modal แสดงผล POI ใกล้เคียง
 ===================================================== */
@@ -655,30 +640,52 @@ const poiModalOk = $('#poi-modal-ok');
 function showPOIModal(title, pois = []) {
   if (!poiModal) return;
 
-  // ชื่อหัวโมดัล
   poiModalTitle.textContent = `🏠 ${title}`;
   clear(poiModalBody);
 
-  // ไม่มีข้อมูล
   if (!Array.isArray(pois) || pois.length === 0) {
     poiModalBody.innerHTML = '<p style="color:var(--text-light);margin:0;">ไม่พบสถานที่ใกล้เคียง</p>';
     poiModal.classList.add('open');
     return;
   }
 
-  // ป้องกัน XSS ง่าย ๆ
   const esc = (s='') => String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
-  const itemsHtml = pois.slice(0,5).map(p => {
-    const name = esc(p.name || '(ไม่ทราบชื่อ)');
-    const type = esc(p.type || p.category || 'poi');
-    const km = (typeof p.distance_km === 'number')
-      ? p.distance_km
-      : (typeof p.distance_m === 'number' ? p.distance_m/1000 : NaN);
-    const kmText = Number.isFinite(km) ? km.toFixed(2) : '-';
-    return `<li>• <strong>${name}</strong> — ${kmText} กม. (${type})</li>`;
+  const iconOf = (t) => {
+    const m = String(t || '').toLowerCase();
+    if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
+    if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return '🏥';
+    if (m.includes('bank') || m.includes('atm')) return '🏧';
+    if (m.includes('police')) return '👮';
+    if (m.includes('post_office')) return '📮';
+    if (m.includes('fuel')) return '⛽';
+    if (m.includes('cafe')) return '☕';
+    if (m.includes('restaurant')) return '🍽️';
+    if (m.includes('supermarket') || m.includes('convenience') || m.includes('mall')) return '🛒';
+    if (m.includes('bus') || m.includes('taxi')) return '🚌';
+    if (m.includes('library')) return '📚';
+    if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return '🎡';
+    return '📍';
+  };
+
+  const itemsHtml = pois.slice(0,5).map((p, i) => {
+    const type = p.type || p.category || 'poi';
+    const km = typeof p.distance_km === 'number' ? p.distance_km
+              : typeof p.distance_m === 'number' ? p.distance_m/1000 : NaN;
+
+    const mapLink = (p.lat && p.lng)
+      ? ` <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener">ดูแผนที่</a>`
+      : '';
+
+    const line = `
+      <li style="padding:.35rem 0;">
+        <strong>${iconOf(type)} ${esc(p.name||'(ไม่ทราบชื่อ)')}</strong>
+        — ${Number.isFinite(km) ? km.toFixed(2) : '-'} กม.
+        <span style="color:var(--text-light)">(${esc(type)})</span>${mapLink}
+      </li>`;
+    return i < 4 ? line + '<hr style="border:none;border-top:1px solid #eee;margin:.25rem 0;" />' : line;
   }).join('');
 
   poiModalBody.innerHTML = `
@@ -687,16 +694,8 @@ function showPOIModal(title, pois = []) {
     </ul>
   `;
 
-  // เผื่อธีมบางกรณีทำให้สีหาย
-  poiModal.querySelector('.modal-content')?.setAttribute('style',
-    (poiModal.querySelector('.modal-content')?.getAttribute('style') || '') + ';color:var(--text);');
-
-  // debug เผื่ออยากดู HTML ที่ถูกเติม
-  console.debug('POI modal HTML:', poiModalBody.innerHTML);
-
   poiModal.classList.add('open');
 }
-
 
 function closePOIModal() {
   if (poiModal) poiModal.classList.remove('open');
