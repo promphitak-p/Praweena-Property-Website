@@ -529,62 +529,90 @@ async function loadNearby(property) {
     .select('name,type,distance_km,lat,lng')
     .eq('property_id', property.id)
     .order('distance_km', { ascending: true })
-    .limit(50);
+    .limit(100);
 
   if (error || !pois || !pois.length) {
     sec.style.display = 'none';
     return;
   }
 
+  // ✅ กรองเฉพาะ 4 กลุ่มหลัก
+  const allowed = pois.filter(p => {
+    const t = (p.type || '').toLowerCase();
+    return (
+      t.includes('hospital') || t.includes('clinic') || // โรงพยาบาล
+      t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
+      t.includes('supermarket') || t.includes('convenience') || t.includes('mall') || t.includes('department') || // ห้าง
+      t.includes('government') || t.includes('police') || t.includes('post_office') // ราชการ
+    );
+  });
+
+  if (!allowed.length) {
+    sec.style.display = 'none';
+    return;
+  }
+
   sec.style.display = ''; // แสดง section
 
-  const map = L.map('poi-map', { zoomControl: true, attributionControl: false });
-  setTimeout(() => map.invalidateSize(true), 50);
-  setTimeout(() => map.invalidateSize(true), 300);
+  // 🔹 ฟังก์ชันเลือกไอคอนตามประเภท
+  function iconOf(t = '') {
+    const m = String(t).toLowerCase();
+    if (m.includes('hospital') || m.includes('clinic')) return '🏥';
+    if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
+    if (m.includes('supermarket') || m.includes('convenience') || m.includes('mall') || m.includes('department')) return '🛒';
+    if (m.includes('government') || m.includes('police') || m.includes('post_office')) return '🏛️';
+    return '📍';
+  }
 
+  // 🔹 สร้างแผนที่
+  const map = L.map('poi-map', { zoomControl: true, attributionControl: false });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   const group = L.layerGroup().addTo(map);
   const bounds = [];
 
- // หมุดบ้าน (normalize key ให้ครอบคลุม)
-const lat0 = Number.parseFloat(
-  property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat
-);
-const lng0 = Number.parseFloat(
-  property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng
-);
+  // 🔹 หมุดบ้าน
+  const lat0 = Number.parseFloat(
+    property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat
+  );
+  const lng0 = Number.parseFloat(
+    property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng
+  );
 
-if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
-  const home = L.circleMarker([lat0, lng0], {
-    radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
-  }).bindTooltip('ตำแหน่งบ้าน', { direction:'top' });
-  home.addTo(group);
-  bounds.push([lat0, lng0]);
-}
+  if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
+    const home = L.circleMarker([lat0, lng0], {
+      radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
+    }).bindTooltip('🏠 ตำแหน่งบ้าน', { direction: 'top' });
+    home.addTo(group);
+    bounds.push([lat0, lng0]);
+  }
 
-  // หมุด POI
-  pois.forEach(p => {
+  // 🔹 หมุดสถานที่ใกล้เคียง
+  allowed.forEach(p => {
     if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+    const icon = iconOf(p.type);
     const marker = L.circleMarker([p.lat, p.lng], {
       radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
-    }).bindTooltip(`${p.name} (${p.type})`, { direction:'top' });
+    }).bindTooltip(`${icon} ${p.name} (${p.type})`, { direction: 'top' });
     marker.addTo(group);
     bounds.push([p.lat, p.lng]);
   });
 
-  if (bounds.length >= 2) map.fitBounds(bounds, { padding:[16,16], maxZoom: 16 });
+  // 🔹 ปรับมุมมอง
+  if (bounds.length >= 2) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
   else if (bounds.length === 1) map.setView(bounds[0], 15);
   else map.setView([13.736, 100.523], 12);
 
-  // รายการล่างแผนที่
-  listEl.innerHTML = pois.slice(0, 10).map(p => {
+  // 🔹 รายการล่างแผนที่ (มีไอคอนด้วย)
+  listEl.innerHTML = allowed.slice(0, 20).map(p => {
     const km = typeof p.distance_km === 'number' ? p.distance_km.toFixed(2) : '-';
     const gmaps = (p.lat && p.lng)
-      ? `<a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank">ดูแผนที่</a>` : '';
+      ? `<a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">ดูแผนที่</a>` : '';
+    const icon = iconOf(p.type);
     return `
-      <li>
-        <strong>${p.name}</strong> — ${km} กม.
-        <span class="poi-type">(${p.type})</span> ${gmaps}
+      <li style="margin-bottom:.5rem; display:flex; align-items:center; gap:.5rem;">
+        <span style="font-size:1.2rem;">${icon}</span>
+        <span><strong>${p.name}</strong> — ${km} กม.
+        <span style="color:#6b7280;">(${p.type})</span> ${gmaps}</span>
       </li>`;
   }).join('');
 }
