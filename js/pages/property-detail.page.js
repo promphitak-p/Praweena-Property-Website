@@ -540,9 +540,9 @@ async function loadNearby(property) {
   const allowed = pois.filter(p => {
     const t = (p.type || '').toLowerCase();
     return (
-      t.includes('hospital') || t.includes('clinic') || // โรงพยาบาล
+      t.includes('hospital') || // โรงพยาบาล
       t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
-      t.includes('supermarket') || t.includes('convenience') || t.includes('mall') || t.includes('department') || // ห้าง
+      t.includes('supermarket') || // ห้าง
       t.includes('government') || t.includes('police') || t.includes('post_office') // ราชการ
     );
   });
