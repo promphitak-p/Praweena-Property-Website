@@ -615,22 +615,24 @@ async function fillPOI(propertyId) {
     });
     if (error) throw error;
 
-    // ✅ ใช้ผลลัพธ์จาก Edge Function ทันที
+    console.debug('fill_poi result:', data); // <— ดูโครงสร้างจริง
+
+    // ใช้ผลลัพธ์จาก Edge Function ก่อน
     let pois = Array.isArray(data?.items) ? data.items : [];
-    const count = typeof data?.inserted === 'number' ? data.inserted : pois.length;
 
-    // (ออปชัน) เปิดใช้เมื่อคุณทำ RLS policy เสร็จแล้ว
-    // if (!pois.length) {
-    //   const { data: rows, error: poiErr } = await supabase
-    //     .from('property_poi')
-    //     .select('name, type, distance_km')
-    //     .eq('property_id', propertyId)
-    //     .order('distance_km', { ascending: true })
-    //     .limit(5);
-    //   if (!poiErr && Array.isArray(rows)) pois = rows;
-    // }
+    // ถ้ายังว่าง ลองดึงจากตาราง (เปิดใช้ได้เมื่อทำ RLS แล้ว)
+    if (!pois.length) {
+      const { data: rows, error: poiErr } = await supabase
+        .from('property_poi')
+        .select('name, type, distance_km, distance_m')
+        .eq('property_id', propertyId)
+        .order('distance_km', { ascending: true })
+        .limit(5);
+      if (!poiErr && Array.isArray(rows)) pois = rows;
+    }
 
-    toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${count} จุดสำเร็จ!`, 2000, 'success');
+    const inserted = Number(data?.inserted ?? pois.length) || 0;
+    toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${inserted} จุดสำเร็จ!`, 2000, 'success');
 
     const row = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`);
     const title = row ? row.textContent.trim() : 'ประกาศ';
@@ -641,8 +643,6 @@ async function fillPOI(propertyId) {
     toast('❌ เกิดข้อผิดพลาด: ' + err.message, 4000, 'error');
   }
 }
-
-
 /* =====================================================
    Modal แสดงผล POI ใกล้เคียง
 ===================================================== */
@@ -662,8 +662,16 @@ function showPOIModal(title, pois = []) {
   } else {
     const list = el('ul', { style: 'list-style:none;padding:0;margin:0;' });
     pois.slice(0,5).forEach(p => {
+      // รองรับทั้ง distance_km (จากฟังก์ชัน) และ distance_m (กรณีอ่านตรงจากตาราง)
+      const km = (typeof p.distance_km === 'number')
+        ? p.distance_km
+        : (typeof p.distance_m === 'number' ? p.distance_m / 1000 : NaN);
+      const kmText = Number.isFinite(km) ? km.toFixed(2) : '-';
+      const typeText = p.type || p.category || 'poi';
+      const nameText = p.name || '(ไม่ทราบชื่อ)';
+
       const li = el('li', {
-        innerHTML: `• <strong>${p.name}</strong> — ${p.distance_km.toFixed(2)} กม. (${p.type})`
+        innerHTML: `• <strong>${nameText}</strong> — ${kmText} กม. (${typeText})`
       });
       list.append(li);
     });
@@ -672,6 +680,7 @@ function showPOIModal(title, pois = []) {
 
   poiModal.classList.add('open');
 }
+
 function closePOIModal() {
   if (poiModal) poiModal.classList.remove('open');
 }
