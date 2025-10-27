@@ -143,6 +143,40 @@ function renderYouTubeGallery(videoIds = []) {
   wrap.append(heading, list);
   return wrap;
 }
+
+// ไอคอนตามประเภท (อ่านจาก p.type)
+function iconOf(t='') {
+  const m = String(t).toLowerCase();
+  if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
+  if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return '🏥';
+  if (m.includes('bank') || m.includes('atm')) return '🏧';
+  if (m.includes('police')) return '👮';
+  if (m.includes('post_office')) return '📮';
+  if (m.includes('fuel')) return '⛽';
+  if (m.includes('cafe')) return '☕';
+  if (m.includes('restaurant')) return '🍽️';
+  if (m.includes('supermarket') || m.includes('convenience') || m.includes('mall') || m.includes('department')) return '🛒';
+  if (m.includes('bus') || m.includes('taxi')) return '🚌';
+  if (m.includes('library')) return '📚';
+  if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return '🎡';
+  return '📍';
+}
+// สีหมุดตามประเภท
+function colorOf(t='') {
+  const m = String(t).toLowerCase();
+  if (m.includes('cafe')) return { stroke:'#a16207', fill:'#facc15' };        // เหลืองน้ำตาล
+  if (m.includes('restaurant')) return { stroke:'#b91c1c', fill:'#f87171' };  // แดง
+  if (m.includes('convenience') || m.includes('supermarket') || m.includes('mall')) return { stroke:'#065f46', fill:'#34d399' }; // เขียว
+  if (m.includes('school') || m.includes('university') || m.includes('library') || m.includes('kindergarten')) return { stroke:'#1d4ed8', fill:'#93c5fd' }; // น้ำเงิน
+  if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return { stroke:'#7e22ce', fill:'#c4b5fd' }; // ม่วง
+  if (m.includes('bank') || m.includes('atm')) return { stroke:'#92400e', fill:'#fbbf24' }; // ทอง
+  if (m.includes('bus') || m.includes('taxi') || m.includes('fuel') || m.includes('post_office')) return { stroke:'#0369a1', fill:'#67e8f9' }; // ฟ้า
+  if (m.includes('police')) return { stroke:'#111827', fill:'#9ca3af' }; // เทาเข้ม
+  if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return { stroke:'#047857', fill:'#86efac' }; // เขียวอ่อน
+  return { stroke:'#16a34a', fill:'#4ade80' }; // ดีฟอลต์
+}
+
+
 // ---------- /helpers ----------
 
 
@@ -217,11 +251,9 @@ function renderPropertyDetails(property) {
   const ytSection = renderYouTubeGallery(ytIds);
   if (ytSection) leftCol.append(ytSection);
 
-  // ---------- Map ----------
-  // ---------- Map (always shows a section) ----------
+// ---------- Map with Nearby ----------
 const latRaw = property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat;
 const lngRaw = property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng;
-
 const lat = Number.parseFloat(latRaw);
 const lng = Number.parseFloat(lngRaw);
 
@@ -230,87 +262,122 @@ const mapTitle = el('h3', { textContent: 'ตำแหน่งแผนที�
 leftCol.append(mapWrap);
 mapWrap.append(mapTitle);
 
-console.debug('[Property Map] raw:', { latRaw, lngRaw }, 'parsed:', { lat, lng });
+const style = colorOf(p.type);
+const marker = L.circleMarker([p.lat, p.lng], {
+  radius: 6, color: style.stroke, fillColor: style.fill, fillOpacity: .9, weight: 2
+}).bindPopup(
+  `<strong>${p.name}</strong><br>${p.type || 'poi'}<br>${p.distance_km?.toFixed(2)} กม.`
+);
+marker.__baseStyle = style; // เก็บไว้สำหรับรีเซ็ต
+marker.addTo(map);
+poiMarkers.push(marker);
+bounds.push([p.lat, p.lng]);
 
-function showNoCoordsNotice() {
+
+if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   const box = el('div', {
     style: `
       background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
       padding:1rem 1.25rem;border-radius:12px;text-align:center;line-height:1.6;
+    `,
+    innerHTML: `
+      <strong>ไม่พบพิกัดแผนที่</strong><br>
+      กรุณาเพิ่ม latitude/longitude ในแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
     `
   });
-  box.innerHTML = `
-    <strong>ไม่พบพิกัดแผนที่</strong><br>
-    กรุณาเพิ่ม latitude/longitude ในแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
-  `;
   mapWrap.append(box);
-}
-
-if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-  // ไม่มีพิกัด → แสดงกล่องแจ้งเตือนให้เห็นชัด
-  showNoCoordsNotice();
 } else {
-  // มีพิกัด → พยายามใช้ Leaflet ถ้าไม่มีจะ fallback เป็น iframe
   const mapId = 'map-' + (property.id || 'detail');
-  const mapEl = el('div', {
-    attributes: { id: mapId },
-    style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;'
-  });
+  const mapEl = el('div', { attributes: { id: mapId }, style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;' });
   mapWrap.append(mapEl);
 
+  const listEl = el('ul', { id: 'poi-list', style: 'margin-top:1rem; list-style:none; padding:0; line-height:1.7;' });
+  mapWrap.append(listEl);
+
+  // ดึงข้อมูล POI
+  const { data: pois, error } = await supabase
+    .from('property_poi')
+    .select('name,type,distance_km,lat,lng')
+    .eq('property_id', property.id)
+    .order('distance_km', { ascending: true })
+    .limit(50);
+
   setTimeout(() => {
-try {
-  if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
+    try {
+      if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
 
-  const map = L.map(mapId, {
-    center: [lat, lng],
-    zoom: 15,
-    dragging: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    touchZoom: false,
-    boxZoom: false,
-    keyboard: false,
-    zoomControl: false
+      const map = L.map(mapId, {
+        center: [lat, lng],
+        zoom: 15,
+        zoomControl: true,
+        attributionControl: false,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // หมุดบ้านหลัก
+      const homeMarker = L.marker([lat, lng], { title: property.title })
+        .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
+        .addTo(map)
+        .openPopup();
+
+      const poiMarkers = [];
+      const bounds = [[lat, lng]];
+
+      if (pois && pois.length) {
+        pois.forEach((p, index) => {
+          if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+          const marker = L.circleMarker([p.lat, p.lng], {
+            radius: 6, color: '#16a34a', fillColor: '#4ade80', fillOpacity: .9
+          }).bindPopup(`<strong>${p.name}</strong><br>${p.type}<br>${p.distance_km?.toFixed(2)} กม.`);
+          marker.addTo(map);
+          poiMarkers.push(marker);
+          bounds.push([p.lat, p.lng]);
+        });
+      }
+
+      if (bounds.length > 1) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
+
+      // สร้างรายการด้านล่าง
+      if (pois && pois.length) {
+listEl.innerHTML = pois.map((p, i) => {
+  const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
+  const icon = iconOf(p.type);
+  return `
+    <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
+      <span style="font-size:1.1rem;">${icon}</span>
+      <span><strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span></span>
+    </li>
+  `;
+}).join('');
+
+listEl.querySelectorAll('li').forEach((li, i) => {
+  li.addEventListener('click', () => {
+    const marker = poiMarkers[i];
+    if (!marker) return;
+    // โฟกัส + เปิด popup
+    map.setView(marker.getLatLng(), 16, { animate: true });
+    marker.openPopup();
+    // ทำให้ “เด่น” (แดง) และรีเซ็ตตัวอื่นเป็นสีตามประเภทเดิม
+    poiMarkers.forEach(m => m.setStyle({ color: m.__baseStyle.stroke, fillColor: m.__baseStyle.fill }));
+    marker.setStyle({ color: '#ef4444', fillColor: '#f87171' });
+	setTimeout(() => marker.setStyle({ color: marker.__baseStyle.stroke, fillColor: marker.__baseStyle.fill }), 3000);
   });
+});
+		
+      } else {
+        listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงในระยะ 2 กม.</li>`;
+      }
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-
-  const gmapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-  L.marker([lat, lng]).addTo(map).bindPopup(
-    `<b>${property.title || 'สถานที่'}</b><br>
-     <a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>`
-  ).openPopup();
-
-  // ✅ บังคับให้ Leaflet คำนวณขนาดใหม่หลายจังหวะ
-  const fixSize = () => map.invalidateSize(true);
-  setTimeout(fixSize, 50);
-  setTimeout(fixSize, 300);
-  setTimeout(fixSize, 800);
-  window.addEventListener('load', fixSize, { once: true });
-
-  // ถ้ากล่อง/กริดมีการยืดขนาดภายหลัง (เช่นโหลดรูปเสร็จ) ให้ปรับตาม
-  if ('ResizeObserver' in window) {
-    const ro = new ResizeObserver(() => fixSize());
-    ro.observe(mapEl);
-  }
-} catch (err) {
-  console.warn('Leaflet ใช้ไม่ได้ → iframe fallback', err);
-  const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-  mapEl.innerHTML = `
-    <iframe
-      src="${iframeUrl}"
-      style="width:100%;height:100%;border:0;border-radius:12px;"
-      loading="lazy" title="Google Map"
-      referrerpolicy="no-referrer-when-downgrade"
-    ></iframe>`;
-}
-
+    } catch (err) {
+      console.warn('Leaflet fallback', err);
+      const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+      mapEl.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
+    }
   }, 0);
 }
-
 
   // ---------- Share ----------
   const shareContainer = el('div', { className: 'share-buttons' });
