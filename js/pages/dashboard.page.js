@@ -613,23 +613,26 @@ async function fillPOI(propertyId) {
     const { data, error } = await supabase.functions.invoke('fill_poi', {
       body: { property_id: propertyId },
     });
-
     if (error) throw error;
 
-    // ดึงข้อมูล POI ที่เพิ่งสร้างจากฐานข้อมูล
-    const { data: pois, error: poiErr } = await supabase
-      .from('property_poi')
-      .select('name, type, distance_km')
-      .eq('property_id', propertyId)
-      .order('distance_km', { ascending: true })
-      .limit(5);
+    // ใช้ค่าที่ function ส่งกลับมาเลย
+    let pois = Array.isArray(data?.items) ? data.items : [];
+    const count = typeof data?.inserted === 'number' ? data.inserted : pois.length;
 
-    if (poiErr) throw poiErr;
+    // ถ้าอยากเผื่อ fallback ค่อยอ่าน DB (จะอ่านได้ต้องมี policy ด้านล่าง)
+    // if (!pois.length) {
+    //   const { data: rows } = await supabase
+    //     .from('property_poi')
+    //     .select('name, type, distance_km')
+    //     .eq('property_id', propertyId)
+    //     .order('distance_km', { ascending: true })
+    //     .limit(5);
+    //   pois = rows ?? [];
+    // }
 
-    const count = data?.count ?? pois?.length ?? 0;
     toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${count} จุดสำเร็จ!`, 2000, 'success');
 
-    // ดึงชื่อบ้านจากตาราง
+    // ชื่อประกาศเพื่อแสดงหัวโมดัล
     const row = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`);
     const title = row ? row.textContent.trim() : 'ประกาศ';
 
@@ -639,6 +642,7 @@ async function fillPOI(propertyId) {
     toast('❌ เกิดข้อผิดพลาด: ' + err.message, 4000, 'error');
   }
 }
+
 
 /* =====================================================
    Modal แสดงผล POI ใกล้เคียง
