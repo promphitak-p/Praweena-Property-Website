@@ -356,50 +356,14 @@ if (ENABLE_POI_EDIT_ON_DETAIL) {
 }
   
   // ...สร้าง addPoiWrap, addBtn, formBox เสร็จแล้ว...
-addPoiWrap.style.display = 'none';    // ซ่อนเป็นค่าเริ่มต้น
-formBox.style.display   = 'none';
+if (addPoiWrap && formBox) {
+  addPoiWrap.style.display = 'none';
+  formBox.style.display = 'none';
+}
 
 // ประกาศตัวแปรไว้ข้างบนก่อนใช้ (กัน TDZ)
 let addMode = false;
 let clickMarker = null;
-
-// ⬇️ อนุญาตเฉพาะแอดมิน
-(async () => {
-  const role = await getCurrentRole();
-  const isAdmin = role === 'admin';
-
-  if (isAdmin) {
-    addPoiWrap.style.display = ''; // โชว์ปุ่มให้แอดมินเท่านั้น
-
-    addBtn.addEventListener('click', () => {
-      addMode = true;
-      toast('โหมดเพิ่มสถานที่: คลิกจุดบนแผนที่เพื่อเลือกพิกัด', 3000, 'info');
-      formBox.style.display = '';
-    });
-
-    document.getElementById('poi-cancel').addEventListener('click', () => {
-      addMode = false;
-      formBox.style.display = 'none';
-      if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
-    });
-
-    // คลิกเลือกพิกัดบนแผนที่
-    map.on('click', (e) => {
-      if (!addMode) return;
-      const { lat: clat, lng: clng } = e.latlng;
-      document.getElementById('poi-lat').value = clat.toFixed(6);
-      document.getElementById('poi-lng').value = clng.toFixed(6);
-      if (clickMarker) map.removeLayer(clickMarker);
-      clickMarker = L.circleMarker([clat, clng], {
-        radius: 6, color:'#111827', fillColor:'#9CA3AF', fillOpacity:.9, weight:2
-      }).bindTooltip('ตำแหน่งที่เลือก', { direction:'top' }).addTo(map);
-    });
-
-    // บันทึก POI (โค้ด save เดิมของกุ้งวางไว้ตรงนี้ได้เลย)
-    document.getElementById('poi-save').addEventListener('click', onSavePoi);
-  }
-})();
-
 
   // ดึงข้อมูล POI เดิม
   const { data: pois } = await supabase
@@ -602,6 +566,7 @@ if (ENABLE_POI_EDIT_ON_DETAIL) {
           listEl.appendChild(li);
         }
       });
+}
       // ====== /โหมดเพิ่ม POI ======
 
     } catch (err) {
