@@ -11,6 +11,8 @@ import { signOutIfAny } from '../auth/auth.js';
 import { supabase } from '../utils/supabaseClient.js';
 
 const container = $('#property-detail-container');
+// เปิด= true, ปิด= false  (ค่าเริ่มต้นปิดเพื่อไม่ให้ผู้ใช้ทั่วไปเห็น)
+const ENABLE_POI_EDIT_ON_DETAIL = false;
 
 // ⬇️ วางไว้ใกล้ๆ imports ได้เลย (มี supabase อยู่แล้ว)
 async function getCurrentRole() {
@@ -313,31 +315,36 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   const listEl = el('ul', { id: 'poi-list-main', style: 'margin-top:1rem; list-style:none; padding:0; line-height:1.7;' });
   mapWrap.append(listEl);
 
-  // UI เพิ่ม POI (ถ้าต้องการให้ใส่จากหน้า detail)
-  const addPoiWrap = el('div', { style:'margin-top:.5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;' });
-  const addBtn = el('button', { className:'btn', textContent:'＋ เพิ่มสถานที่ใกล้เคียง' });
+// ▼▼▼ สร้าง UI เพิ่ม POI เฉพาะเมื่อเปิดแฟล็ก ▼▼▼
+let addPoiWrap, addBtn, formBox; // ประกาศไว้ก่อน เผื่อใช้ในส่วนถัดไป
+if (ENABLE_POI_EDIT_ON_DETAIL) {
+  addPoiWrap = el('div', { style:'margin-top:.5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;' });
+  addBtn = el('button', { className:'btn', textContent:'＋ เพิ่มสถานที่ใกล้เคียง' });
   const hint = el('span', { style:'color:#6b7280;', textContent:'(คลิกปุ่มแล้วไปคลิกที่ตำแหน่งบนแผนที่เพื่อเลือกพิกัด)' });
   addPoiWrap.append(addBtn, hint);
   mapWrap.append(addPoiWrap);
 
-  const formBox = el('div', { id:'poi-create-form', style:'display:none;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-top:8px;' });
+  formBox = el('div', { id:'poi-create-form', style:'display:none;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-top:8px;' });
   formBox.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <label style="grid-column:1 / -1;">
         ชื่อสถานที่
-        <input id="poi-name" class="form-control" type="text" required placeholder="เช่น โรงพยาบาล...">
+        <input id="poi-name" class="form-control" type="text" required placeholder="เช่น โรงพยาบาลสมิติเวช">
       </label>
       <label>
         ประเภท
         <select id="poi-type" class="form-control">
-          <option value="hospital">โรงพยาบาล/คลินิก</option>
-          <option value="school">โรงเรียน/มหาวิทยาลัย</option>
-          <option value="supermarket">ห้าง/ซูเปอร์/คอนวีเนียน</option>
-          <option value="government">ราชการ/ตำรวจ/ไปรษณีย์</option>
+          ${POI_TYPES.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
         </select>
       </label>
-      <label>Latitude <input id="poi-lat" class="form-control" type="number" step="any" required></label>
-      <label>Longitude <input id="poi-lng" class="form-control" type="number" step="any" required></label>
+      <label>
+        Latitude
+        <input id="poi-lat" class="form-control" type="number" step="any" required>
+      </label>
+      <label>
+        Longitude
+        <input id="poi-lng" class="form-control" type="number" step="any" required>
+      </label>
     </div>
     <div style="margin-top:8px;display:flex;gap:8px;">
       <button id="poi-save" class="btn">บันทึก</button>
@@ -346,6 +353,7 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     </div>
   `;
   mapWrap.append(formBox);
+}
   
   // ...สร้าง addPoiWrap, addBtn, formBox เสร็จแล้ว...
 addPoiWrap.style.display = 'none';    // ซ่อนเป็นค่าเริ่มต้น
@@ -487,40 +495,33 @@ let clickMarker = null;
       }
 
       // ====== โหมดเพิ่ม POI ======
-      let addMode = false;
-      let clickMarker = null;
+if (ENABLE_POI_EDIT_ON_DETAIL) {
+  let addMode = false;
+  let clickMarker = null;
 
-      addBtn.addEventListener('click', () => {
-        addMode = true;
-        toast('โหมดเพิ่มสถานที่: คลิกจุดบนแผนที่เพื่อเลือกพิกัด', 3000, 'info');
-        formBox.style.display = '';
-      });
+  addBtn.addEventListener('click', () => {
+    addMode = true;
+    toast('โหมดเพิ่มสถานที่: คลิกจุดบนแผนที่เพื่อเลือกพิกัด', 3000, 'info');
+    formBox.style.display = '';
+  });
 
-      document.getElementById('poi-cancel').addEventListener('click', () => {
-        addMode = false;
-        formBox.style.display = 'none';
-        if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
-      });
+  document.getElementById('poi-cancel').addEventListener('click', () => {
+    addMode = false;
+    formBox.style.display = 'none';
+    if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
+  });
 
-      // คลิกเลือกพิกัด
-      map.on('click', (e) => {
-        if (!addMode) return;
-        const { lat:clat, lng:clng } = e.latlng;
-        document.getElementById('poi-lat').value = clat.toFixed(6);
-        document.getElementById('poi-lng').value = clng.toFixed(6);
-        if (clickMarker) map.removeLayer(clickMarker);
-        clickMarker = L.circleMarker([clat, clng], {
-          radius: 6, color:'#111827', fillColor:'#9CA3AF', fillOpacity:.9, weight:2
-        }).bindTooltip('ตำแหน่งที่เลือก', {direction:'top'}).addTo(map);
-      });
+  map.on('click', (e) => {
+    if (!addMode) return;
+    const { lat:clat, lng:clng } = e.latlng;
+    document.getElementById('poi-lat').value = clat.toFixed(6);
+    document.getElementById('poi-lng').value = clng.toFixed(6);
 
-      // คำนวณระยะทางแบบ Haversine
-      const haversineKm = (a,b,c,d)=>{
-        const R = 6371, toRad = x=>x*Math.PI/180;
-        const dLat = toRad(c-a), dLon = toRad(d-b);
-        const A = Math.sin(dLat/2)**2 + Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2;
-        return 2*R*Math.atan2(Math.sqrt(A), Math.sqrt(1-A));
-      };
+    if (clickMarker) map.removeLayer(clickMarker);
+    clickMarker = L.circleMarker([clat, clng], {
+      radius: 6, color:'#111827', fillColor:'#9CA3AF', fillOpacity:.9, weight:2
+    }).bindTooltip('ตำแหน่งที่เลือก', {direction:'top'}).addTo(map);
+  });
 
       document.getElementById('poi-save').addEventListener('click', async (ev) => {
         ev.preventDefault();
