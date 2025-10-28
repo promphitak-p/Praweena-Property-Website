@@ -12,6 +12,28 @@ import { supabase } from '../utils/supabaseClient.js';
 
 const container = $('#property-detail-container');
 
+// ⬇️ วางไว้ใกล้ๆ imports ได้เลย (มี supabase อยู่แล้ว)
+async function getCurrentRole() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 'guest';
+
+  // ดึงจากตาราง profiles
+  const { data: prof, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    console.warn('getCurrentRole error', error);
+    return 'user';
+  }
+
+  return String(prof?.role || 'user').toLowerCase();
+}
+
+
+
 // --- Lightbox ---
 function setupLightbox(imageUrls) {
   let overlay = $('#lightbox-overlay');
@@ -282,274 +304,312 @@ if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
   });
   mapWrap.append(box);
 } else {
-// ...ใน renderPropertyDetails() ตำแหน่ง Map with Nearby ...
-const mapId = 'map-' + (property.id || 'detail');
-const mapEl = el('div', { attributes: { id: mapId }, style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;' });
-mapWrap.append(mapEl);
+  // แผนที่หลัก
+  const mapId = 'map-' + (property.id || 'detail');
+  const mapEl = el('div', { attributes: { id: mapId }, style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;' });
+  mapWrap.append(mapEl);
 
-// ❗️เปลี่ยน id รายการใต้แผนที่ใหญ่ ให้ไม่ชนกับมินิแมพ
-const listEl = el('ul', { id: 'poi-list-main', style: 'margin-top:1rem; list-style:none; padding:0; line-height:1.7;' });
-mapWrap.append(listEl);
+  // รายการใต้แผนที่ใหญ่ (กันชนกับมินิแมพ)
+  const listEl = el('ul', { id: 'poi-list-main', style: 'margin-top:1rem; list-style:none; padding:0; line-height:1.7;' });
+  mapWrap.append(listEl);
 
-// UI เพิ่ม POI
-const addPoiWrap = el('div', { style:'margin-top:.5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;' });
-const addBtn = el('button', { className:'btn', textContent:'＋ เพิ่มสถานที่ใกล้เคียง' });
-const hint = el('span', { style:'color:#6b7280;', textContent:'(คลิกปุ่มแล้วไปคลิกที่ตำแหน่งบนแผนที่เพื่อเลือกพิกัด)' });
-addPoiWrap.append(addBtn, hint);
-mapWrap.append(addPoiWrap);
+  // UI เพิ่ม POI (ถ้าต้องการให้ใส่จากหน้า detail)
+  const addPoiWrap = el('div', { style:'margin-top:.5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;' });
+  const addBtn = el('button', { className:'btn', textContent:'＋ เพิ่มสถานที่ใกล้เคียง' });
+  const hint = el('span', { style:'color:#6b7280;', textContent:'(คลิกปุ่มแล้วไปคลิกที่ตำแหน่งบนแผนที่เพื่อเลือกพิกัด)' });
+  addPoiWrap.append(addBtn, hint);
+  mapWrap.append(addPoiWrap);
 
-// ฟอร์ม (ซ่อนไว้ก่อน)
-const formBox = el('div', { id:'poi-create-form', style:'display:none;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-top:8px;' });
-formBox.innerHTML = `
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <label style="grid-column:1 / -1;">
-      ชื่อสถานที่
-      <input id="poi-name" class="form-control" type="text" required placeholder="เช่น โรงพยาบาลสมิติเวช">
-    </label>
-    <label>
-      ประเภท
-      <select id="poi-type" class="form-control">
-        ${POI_TYPES.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
-      </select>
-    </label>
-    <label>
-      Latitude
-      <input id="poi-lat" class="form-control" type="number" step="any" required>
-    </label>
-    <label>
-      Longitude
-      <input id="poi-lng" class="form-control" type="number" step="any" required>
-    </label>
-  </div>
-  <div style="margin-top:8px;display:flex;gap:8px;">
-    <button id="poi-save" class="btn">บันทึก</button>
-    <button id="poi-cancel" class="btn btn-secondary" type="button">ยกเลิก</button>
-    <span style="color:#6b7280;">ระยะทางจะคำนวณให้อัตโนมัติ</span>
-  </div>
-`;
-mapWrap.append(formBox);
+  const formBox = el('div', { id:'poi-create-form', style:'display:none;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-top:8px;' });
+  formBox.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <label style="grid-column:1 / -1;">
+        ชื่อสถานที่
+        <input id="poi-name" class="form-control" type="text" required placeholder="เช่น โรงพยาบาล...">
+      </label>
+      <label>
+        ประเภท
+        <select id="poi-type" class="form-control">
+          <option value="hospital">โรงพยาบาล/คลินิก</option>
+          <option value="school">โรงเรียน/มหาวิทยาลัย</option>
+          <option value="supermarket">ห้าง/ซูเปอร์/คอนวีเนียน</option>
+          <option value="government">ราชการ/ตำรวจ/ไปรษณีย์</option>
+        </select>
+      </label>
+      <label>Latitude <input id="poi-lat" class="form-control" type="number" step="any" required></label>
+      <label>Longitude <input id="poi-lng" class="form-control" type="number" step="any" required></label>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;">
+      <button id="poi-save" class="btn">บันทึก</button>
+      <button id="poi-cancel" class="btn btn-secondary" type="button">ยกเลิก</button>
+      <span style="color:#6b7280;">ระยะทางจะคำนวณให้อัตโนมัติ</span>
+    </div>
+  `;
+  mapWrap.append(formBox);
+  
+  // ...สร้าง addPoiWrap, addBtn, formBox เสร็จแล้ว...
+addPoiWrap.style.display = 'none';    // ซ่อนเป็นค่าเริ่มต้น
+formBox.style.display   = 'none';
 
-
-// ดึงข้อมูล POI
-const { data: pois, error } = await supabase
-  .from('property_poi')
-  .select('name,type,distance_km,lat,lng')
-  .eq('property_id', property.id)
-  .order('distance_km', { ascending: true })
-  .limit(100);
-
-setTimeout(() => {
-  try {
-    if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
-
-    const map = L.map(mapId, {
-      center: [lat, lng],
-      zoom: 15,
-      zoomControl: true,
-      attributionControl: false,
-    });
-	
-	let addMode = false;
+// ประกาศตัวแปรไว้ข้างบนก่อนใช้ (กัน TDZ)
+let addMode = false;
 let clickMarker = null;
 
-addBtn.addEventListener('click', () => {
-  addMode = true;
-  toast('โหมดเพิ่มสถานที่: คลิกจุดบนแผนที่เพื่อเลือกพิกัด', 3000, 'info');
-  formBox.style.display = '';
-});
+// ⬇️ อนุญาตเฉพาะแอดมิน
+(async () => {
+  const role = await getCurrentRole();
+  const isAdmin = role === 'admin';
 
-document.getElementById('poi-cancel').addEventListener('click', () => {
-  addMode = false;
-  formBox.style.display = 'none';
-  if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
-});
+  if (isAdmin) {
+    addPoiWrap.style.display = ''; // โชว์ปุ่มให้แอดมินเท่านั้น
 
-// เมื่อคลิกบนแผนที่ให้ดึง lat,lng มาใส่ช่องฟอร์ม
-map.on('click', (e) => {
-  if (!addMode) return;
-  const { lat:clat, lng:clng } = e.latlng;
-  document.getElementById('poi-lat').value = clat.toFixed(6);
-  document.getElementById('poi-lng').value = clng.toFixed(6);
-
-  if (clickMarker) map.removeLayer(clickMarker);
-  clickMarker = L.circleMarker([clat, clng], {
-    radius: 6, color:'#111827', fillColor:'#9CA3AF', fillOpacity:.9, weight:2
-  }).bindTooltip('ตำแหน่งที่เลือก', {direction:'top'}).addTo(map);
-});
-
-document.getElementById('poi-save').addEventListener('click', async (ev) => {
-  ev.preventDefault();
-  const nameEl = document.getElementById('poi-name');
-  const typeEl = document.getElementById('poi-type');
-  const latEl  = document.getElementById('poi-lat');
-  const lngEl  = document.getElementById('poi-lng');
-
-  const name = nameEl.value.trim();
-  const type = typeEl.value;
-  const plat = parseFloat(latEl.value);
-  const plng = parseFloat(lngEl.value);
-
-  if (!name || !Number.isFinite(plat) || !Number.isFinite(plng)) {
-    toast('กรุณากรอกชื่อและตำแหน่งให้ครบ', 3000, 'error');
-    return;
-  }
-
-  // คำนวณระยะจากบ้าน
-  const distance_km = (Number.isFinite(lat) && Number.isFinite(lng))
-    ? haversineKm(lat, lng, plat, plng)
-    : null;
-
-  // บันทึก
-  const payload = { property_id: property.id, name, type, lat: plat, lng: plng, distance_km };
-  const { data:inserted, error:insErr } = await supabase
-    .from('property_poi')
-    .insert([payload])
-    .select('name,type,distance_km,lat,lng')
-    .single();
-
-  if (insErr) {
-    console.error(insErr);
-    toast('บันทึกไม่สำเร็จ: ' + insErr.message, 4000, 'error');
-    return;
-  }
-
-  toast('เพิ่มสถานที่เรียบร้อย', 2500, 'success');
-  addMode = false;
-  formBox.style.display = 'none';
-  nameEl.value = ''; latEl.value = ''; lngEl.value = '';
-  if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
-
-  // --- อัปเดตแผนที่/รายการทันที (ใช้กติกากรองเดิม) ---
-  const t = (inserted.type || '').toLowerCase();
-  const isAllowed =
-    t.includes('hospital') || t.includes('clinic') || t.includes('pharmacy') ||
-    t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') ||
-    t.includes('supermarket') || t.includes('convenience') || t.includes('mall') || t.includes('department') ||
-    t.includes('government') || t.includes('police') || t.includes('post_office');
-
-  if (isAllowed) {
-    const style = colorOf(inserted.type);
-    const m = L.circleMarker([inserted.lat, inserted.lng], {
-      radius: 6, color: style.stroke, fillColor: style.fill, fillOpacity:.9, weight:2
-    }).bindPopup(`${iconOf(inserted.type)} <strong>${inserted.name}</strong><br>${inserted.type}<br>${(inserted.distance_km ?? 0).toFixed(2)} กม.`);
-    m.__baseStyle = style;
-    m.addTo(map);
-    poiMarkers.push(m);
-    bounds.push([inserted.lat, inserted.lng]);
-    map.fitBounds(bounds, { padding:[16,16], maxZoom: 16 });
-
-    // แทรกรายการใหม่ด้านล่าง (id: poi-list-main)
-    const km = (typeof inserted.distance_km === 'number') ? inserted.distance_km.toFixed(2) : '-';
-    const li = document.createElement('li');
-    li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
-    li.innerHTML = `
-      <span style="font-size:1.1rem;">${iconOf(inserted.type)}</span>
-      <span><strong>${inserted.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${inserted.type})</span></span>
-    `;
-    // bind โฟกัส/ไฮไลต์
-    const thisIndex = poiMarkers.length - 1;
-    li.addEventListener('click', () => {
-      const mm = poiMarkers[thisIndex];
-      if (!mm) return;
-      map.setView(mm.getLatLng(), 16, { animate: true });
-      mm.openPopup();
-      poiMarkers.forEach(mk => {
-        const s = mk.__baseStyle || { stroke:'#16a34a', fill:'#4ade80' };
-        mk.setStyle({ color:s.stroke, fillColor:s.fill });
-      });
-      mm.setStyle({ color:'#ef4444', fillColor:'#f87171' });
+    addBtn.addEventListener('click', () => {
+      addMode = true;
+      toast('โหมดเพิ่มสถานที่: คลิกจุดบนแผนที่เพื่อเลือกพิกัด', 3000, 'info');
+      formBox.style.display = '';
     });
-    listEl.appendChild(li);
+
+    document.getElementById('poi-cancel').addEventListener('click', () => {
+      addMode = false;
+      formBox.style.display = 'none';
+      if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
+    });
+
+    // คลิกเลือกพิกัดบนแผนที่
+    map.on('click', (e) => {
+      if (!addMode) return;
+      const { lat: clat, lng: clng } = e.latlng;
+      document.getElementById('poi-lat').value = clat.toFixed(6);
+      document.getElementById('poi-lng').value = clng.toFixed(6);
+      if (clickMarker) map.removeLayer(clickMarker);
+      clickMarker = L.circleMarker([clat, clng], {
+        radius: 6, color:'#111827', fillColor:'#9CA3AF', fillOpacity:.9, weight:2
+      }).bindTooltip('ตำแหน่งที่เลือก', { direction:'top' }).addTo(map);
+    });
+
+    // บันทึก POI (โค้ด save เดิมของกุ้งวางไว้ตรงนี้ได้เลย)
+    document.getElementById('poi-save').addEventListener('click', onSavePoi);
   }
-});
+})();
 
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+  // ดึงข้อมูล POI เดิม
+  const { data: pois } = await supabase
+    .from('property_poi')
+    .select('name,type,distance_km,lat,lng')
+    .eq('property_id', property.id)
+    .order('distance_km', { ascending: true })
+    .limit(100);
 
-    // หมุดบ้าน
-    L.marker([lat, lng], { title: property.title })
-      .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
-      .addTo(map)
-      .openPopup();
+  setTimeout(() => {
+    try {
+      if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
 
-    const poiMarkers = [];
-    const bounds = [[lat, lng]];
+      const map = L.map(mapId, {
+        center: [lat, lng],
+        zoom: 15,
+        zoomControl: true,
+        attributionControl: false,
+      });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
 
-    // ✅ กรองเฉพาะ 4 กลุ่มหลัก (รพ./โรงเรียน/ห้าง/ราชการ)
-const allowed = (pois || []).filter(p => {
-  const t = (p.type || '').toLowerCase();
-  return (
-    t.includes('hospital') || t.includes('clinic') || t.includes('pharmacy') ||            // โรงพยาบาล
-    t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
-    t.includes('supermarket') || t.includes('mall') || t.includes('department') ||        // ห้าง/ซูเปอร์
-    t.includes('government') || t.includes('police') || t.includes('post_office')         // ราชการ
-  );
-});
+      // หมุดบ้าน
+      L.marker([lat, lng], { title: property.title })
+        .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
+        .addTo(map)
+        .openPopup();
 
-    if (allowed.length) {
-      allowed.forEach((p, index) => {
-        if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+      // ตัวแปรที่ใช้ทั้งบล็อก (ต้องประกาศก่อนใช้งานใน handlers)
+      const poiMarkers = [];
+      const bounds = [[lat, lng]];
 
-        const baseStyle = colorOf(p.type);
-        const marker = L.circleMarker([p.lat, p.lng], {
-          radius: 6,
-          color: baseStyle.stroke,
-          fillColor: baseStyle.fill,
-          fillOpacity: .9,
-          weight: 2
-        }).bindPopup(
-          `${iconOf(p.type)} <strong>${p.name}</strong><br>${p.type || 'poi'}<br>${(p.distance_km ?? 0).toFixed(2)} กม.`
+      // กรองเฉพาะ 4 กลุ่มหลัก
+      const allowed = (pois || []).filter(p => {
+        const t = (p.type || '').toLowerCase();
+        return (
+          t.includes('hospital') || t.includes('clinic') || t.includes('pharmacy') ||                 // โรงพยาบาล
+          t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
+          t.includes('supermarket') || t.includes('convenience') || t.includes('mall') || t.includes('department') || // ห้าง/ซูเปอร์/คอนวีเนียน
+          t.includes('government') || t.includes('police') || t.includes('post_office')              // ราชการ
         );
-
-        marker.__baseStyle = baseStyle;
-        marker.addTo(map);
-        poiMarkers.push(marker);
-        bounds.push([p.lat, p.lng]);
       });
-    }
 
-    if (bounds.length > 1) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
-
-    // ✅ รายการใต้แผนที่ใหญ่ ใช้ allowed เท่านั้น
-    if (allowed.length) {
-      listEl.innerHTML = allowed.map((p, i) => {
-        const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
-        const icon = iconOf(p.type);
-        return `
-          <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
-            <span style="font-size:1.1rem;">${icon}</span>
-            <span><strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span></span>
-          </li>
-        `;
-      }).join('');
-
-      // ไฮไลต์เมื่อคลิกรายการ
-      listEl.querySelectorAll('li').forEach((li, i) => {
-        li.addEventListener('click', () => {
-          const marker = poiMarkers[i];
-          if (!marker) return;
-          map.setView(marker.getLatLng(), 16, { animate: true });
-          marker.openPopup();
-          poiMarkers.forEach(m => {
-            const s = m.__baseStyle || { stroke:'#16a34a', fill:'#4ade80' };
-            m.setStyle({ color: s.stroke, fillColor: s.fill });
-          });
-          marker.setStyle({ color: '#ef4444', fillColor: '#f87171' });
+      // วาด POI เดิม
+      if (allowed.length) {
+        allowed.forEach((p, i) => {
+          if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+          const baseStyle = colorOf(p.type);
+          const marker = L.circleMarker([p.lat, p.lng], {
+            radius: 6,
+            color: baseStyle.stroke,
+            fillColor: baseStyle.fill,
+            fillOpacity: .9,
+            weight: 2
+          }).bindPopup(`${iconOf(p.type)} <strong>${p.name}</strong><br>${p.type || 'poi'}<br>${(p.distance_km ?? 0).toFixed(2)} กม.`);
+          marker.__baseStyle = baseStyle;
+          marker.addTo(map);
+          poiMarkers.push(marker);
+          bounds.push([p.lat, p.lng]);
         });
-      });
-    } else {
-      listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
-    }
+      }
 
-  } catch (err) {
-    console.warn('Leaflet fallback', err);
-    const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-    mapEl.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
-  }
-}, 0);
-}
+      if (bounds.length > 1) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
+
+      // ลิสต์ใต้แผนที่ใหญ่ (ใช้ allowed)
+      if (allowed.length) {
+        listEl.innerHTML = allowed.map((p, i) => {
+          const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
+          const icon = iconOf(p.type);
+          return `
+            <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
+              <span style="font-size:1.1rem;">${icon}</span>
+              <span><strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span></span>
+            </li>`;
+        }).join('');
+
+        listEl.querySelectorAll('li').forEach((li, i) => {
+          li.addEventListener('click', () => {
+            const marker = poiMarkers[i];
+            if (!marker) return;
+            map.setView(marker.getLatLng(), 16, { animate: true });
+            marker.openPopup();
+            poiMarkers.forEach(m => {
+              const s = m.__baseStyle || { stroke:'#16a34a', fill:'#4ade80' };
+              m.setStyle({ color: s.stroke, fillColor: s.fill });
+            });
+            marker.setStyle({ color: '#ef4444', fillColor: '#f87171' });
+          });
+        });
+      } else {
+        listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
+      }
+
+      // ====== โหมดเพิ่ม POI ======
+      let addMode = false;
+      let clickMarker = null;
+
+      addBtn.addEventListener('click', () => {
+        addMode = true;
+        toast('โหมดเพิ่มสถานที่: คลิกจุดบนแผนที่เพื่อเลือกพิกัด', 3000, 'info');
+        formBox.style.display = '';
+      });
+
+      document.getElementById('poi-cancel').addEventListener('click', () => {
+        addMode = false;
+        formBox.style.display = 'none';
+        if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
+      });
+
+      // คลิกเลือกพิกัด
+      map.on('click', (e) => {
+        if (!addMode) return;
+        const { lat:clat, lng:clng } = e.latlng;
+        document.getElementById('poi-lat').value = clat.toFixed(6);
+        document.getElementById('poi-lng').value = clng.toFixed(6);
+        if (clickMarker) map.removeLayer(clickMarker);
+        clickMarker = L.circleMarker([clat, clng], {
+          radius: 6, color:'#111827', fillColor:'#9CA3AF', fillOpacity:.9, weight:2
+        }).bindTooltip('ตำแหน่งที่เลือก', {direction:'top'}).addTo(map);
+      });
+
+      // คำนวณระยะทางแบบ Haversine
+      const haversineKm = (a,b,c,d)=>{
+        const R = 6371, toRad = x=>x*Math.PI/180;
+        const dLat = toRad(c-a), dLon = toRad(d-b);
+        const A = Math.sin(dLat/2)**2 + Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2;
+        return 2*R*Math.atan2(Math.sqrt(A), Math.sqrt(1-A));
+      };
+
+      document.getElementById('poi-save').addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        const nameEl = document.getElementById('poi-name');
+        const typeEl = document.getElementById('poi-type');
+        const latEl  = document.getElementById('poi-lat');
+        const lngEl  = document.getElementById('poi-lng');
+
+        const name = nameEl.value.trim();
+        const type = typeEl.value;
+        const plat = parseFloat(latEl.value);
+        const plng = parseFloat(lngEl.value);
+        if (!name || !Number.isFinite(plat) || !Number.isFinite(plng)) {
+          toast('กรุณากรอกชื่อและตำแหน่งให้ครบ', 3000, 'error');
+          return;
+        }
+
+        const distance_km = (Number.isFinite(lat) && Number.isFinite(lng))
+          ? haversineKm(lat, lng, plat, plng) : null;
+
+        const payload = { property_id: property.id, name, type, lat: plat, lng: plng, distance_km };
+        const { data: inserted, error: insErr } = await supabase
+          .from('property_poi')
+          .insert([payload])
+          .select('name,type,distance_km,lat,lng')
+          .single();
+
+        if (insErr) {
+          console.error(insErr);
+          toast('บันทึกไม่สำเร็จ: ' + insErr.message, 4000, 'error');
+          return;
+        }
+
+        toast('เพิ่มสถานที่เรียบร้อย', 2500, 'success');
+        addMode = false;
+        formBox.style.display = 'none';
+        nameEl.value = ''; latEl.value = ''; lngEl.value = '';
+        if (clickMarker) { map.removeLayer(clickMarker); clickMarker = null; }
+
+        // แสดงบนแผนที่/รายการทันทีถ้าเข้า 4 หมวด
+        const t = (inserted.type || '').toLowerCase();
+        const isAllowed =
+          t.includes('hospital') || t.includes('clinic') || t.includes('pharmacy') ||
+          t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') ||
+          t.includes('supermarket') || t.includes('convenience') || t.includes('mall') || t.includes('department') ||
+          t.includes('government') || t.includes('police') || t.includes('post_office');
+
+        if (isAllowed) {
+          const style = colorOf(inserted.type);
+          const m = L.circleMarker([inserted.lat, inserted.lng], {
+            radius: 6, color: style.stroke, fillColor: style.fill, fillOpacity:.9, weight:2
+          }).bindPopup(`${iconOf(inserted.type)} <strong>${inserted.name}</strong><br>${inserted.type}<br>${(inserted.distance_km ?? 0).toFixed(2)} กม.`);
+          m.__baseStyle = style;
+          m.addTo(map);
+          poiMarkers.push(m);
+          bounds.push([inserted.lat, inserted.lng]);
+          map.fitBounds(bounds, { padding:[16,16], maxZoom: 16 });
+
+          const km = (typeof inserted.distance_km === 'number') ? inserted.distance_km.toFixed(2) : '-';
+          const li = document.createElement('li');
+          li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
+          li.innerHTML = `
+            <span style="font-size:1.1rem;">${iconOf(inserted.type)}</span>
+            <span><strong>${inserted.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${inserted.type})</span></span>
+          `;
+          const thisIndex = poiMarkers.length - 1;
+          li.addEventListener('click', () => {
+            const mm = poiMarkers[thisIndex];
+            if (!mm) return;
+            map.setView(mm.getLatLng(), 16, { animate: true });
+            mm.openPopup();
+            poiMarkers.forEach(mk => {
+              const s = mk.__baseStyle || { stroke:'#16a34a', fill:'#4ade80' };
+              mk.setStyle({ color:s.stroke, fillColor:s.fill });
+            });
+            mm.setStyle({ color:'#ef4444', fillColor:'#f87171' });
+          });
+          listEl.appendChild(li);
+        }
+      });
+      // ====== /โหมดเพิ่ม POI ======
+
+    } catch (err) {
+      console.warn('Leaflet fallback', err);
+      const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+      mapEl.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
+    }
+  }, 0);
+} // ⬅️ ปิด else ให้ครบ
 
 
   // ---------- Share ----------
