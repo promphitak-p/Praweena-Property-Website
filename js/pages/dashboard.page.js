@@ -881,3 +881,277 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 });
 
+// ⬇️ ถ้ายังไม่มี ให้เพิ่ม import นี้ไว้ด้านบนของ dashboard.page.js
+import {
+  ensureLeafletLoaded, initMap, createMiniMap,
+  addPrecisionControl, addCopyButton, addOpenInGoogleControl,
+  addPoiLegendControl, addCopyMenuControl, iconForPoiType, brandIcon
+} from '../ui/leafletMap.js';
+
+
+// === POI Manager (Dashboard Modal) ===
+
+function kmDistance(lat1, lon1, lat2, lon2){
+  const toRad = (d)=> d*Math.PI/180;
+  const R=6371, dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function createPoiModal(){
+  const backdrop = document.createElement('div');
+  backdrop.className = 'poi-modal-backdrop';
+  const modal = document.createElement('div');
+  modal.className = 'poi-modal';
+  backdrop.appendChild(modal);
+
+  modal.innerHTML = `
+    <div class="poi-modal-header">
+      <div class="poi-modal-title">จัดการสถานที่ใกล้เคียง (POI)</div>
+      <button class="poi-modal-close">ปิด</button>
+    </div>
+    <div class="poi-modal-body">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:12px;">Property ID:
+          <input id="poi-prop-id" class="form-control" style="width:140px;margin-left:6px" placeholder="เช่น 395">
+        </label>
+        <label style="font-size:12px;">Latitude:
+          <input id="poi-prop-lat" class="form-control" style="width:140px;margin-left:6px" placeholder="บ้าน lat">
+        </label>
+        <label style="font-size:12px;">Longitude:
+          <input id="poi-prop-lng" class="form-control" style="width:140px;margin-left:6px" placeholder="บ้าน lng">
+        </label>
+        <button id="poi-load" class="poi-btn">โหลด POI</button>
+      </div>
+
+      <div class="poi-grid" style="margin-top:10px">
+        <div>
+          <div id="poi-map" style="height:380px;border-radius:12px;overflow:hidden;background:#f3f4f6"></div>
+
+          <div class="poi-form">
+            <label>ชื่อสถานที่
+              <input id="poi-name" class="form-control" placeholder="เช่น โรงพยาบาลทักษิณ">
+            </label>
+            <label>ประเภท
+              <select id="poi-type" class="form-control">
+                <option value="hospital">โรงพยาบาล/คลินิก</option>
+                <option value="school">โรงเรียน/มหาวิทยาลัย</option>
+                <option value="supermarket">ห้าง/ซูเปอร์/คอนวีเนียน</option>
+                <option value="government">ราชการ/ตำรวจ/ไปรษณีย์</option>
+              </select>
+            </label>
+            <label>Latitude <input id="poi-lat" class="form-control" type="number" step="any"></label>
+            <label>Longitude <input id="poi-lng" class="form-control" type="number" step="any"></label>
+          </div>
+          <div class="poi-actions">
+            <button id="poi-add" class="poi-btn">เพิ่ม</button>
+            <button id="poi-update" class="poi-btn" style="display:none">อัปเดต</button>
+            <button id="poi-cancel" class="poi-btn secondary" type="button">ล้างฟอร์ม</button>
+          </div>
+        </div>
+        <div>
+          <table class="poi-table">
+            <thead>
+              <tr><th>ชื่อ</th><th>ประเภท</th><th>ระยะ (กม.)</th><th></th></tr>
+            </thead>
+            <tbody id="poi-tbody"><tr><td colspan="4" style="color:#6b7280">ยังไม่มีข้อมูล</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.querySelector('.poi-modal-close').addEventListener('click', ()=> backdrop.remove());
+  backdrop.addEventListener('click', (e)=> { if (e.target===backdrop) backdrop.remove(); });
+  document.body.appendChild(backdrop);
+  return { backdrop, modal };
+}
+
+async function openPoiManager(prefill={}){
+  const { backdrop, modal } = createPoiModal();
+  const propIdEl = modal.querySelector('#poi-prop-id');
+  const propLatEl = modal.querySelector('#poi-prop-lat');
+  const propLngEl = modal.querySelector('#poi-prop-lng');
+  const loadBtn  = modal.querySelector('#poi-load');
+  const nameEl   = modal.querySelector('#poi-name');
+  const typeEl   = modal.querySelector('#poi-type');
+  const latEl    = modal.querySelector('#poi-lat');
+  const lngEl    = modal.querySelector('#poi-lng');
+  const addBtn   = modal.querySelector('#poi-add');
+  const updBtn   = modal.querySelector('#poi-update');
+  const cancelBtn= modal.querySelector('#poi-cancel');
+  const tbody    = modal.querySelector('#poi-tbody');
+  const mapDiv   = modal.querySelector('#poi-map');
+
+  // prefill (ถ้ามี)
+  if (prefill.property_id) propIdEl.value = prefill.property_id;
+  if (prefill.lat) propLatEl.value = prefill.lat;
+  if (prefill.lng) propLngEl.value = prefill.lng;
+
+  // init Leaflet map
+  ensureLeafletLoaded();
+  const { map, marker } = initMap({
+    el: mapDiv,
+    lat: Number(propLatEl.value || '13.736'),
+    lng: Number(propLngEl.value || '100.523'),
+    zoom: 15
+  });
+  try { marker.setIcon(brandIcon({ url: '/assets/img/praweena-pin.png' })); } catch {}
+
+  // เครื่องมือบนแผนที่
+  const getPrec = addPrecisionControl(map, { defaultPrecision: 6 });
+  addCopyButton(map, { precision: getPrec, getLatLng: ()=> map.getCenter() });
+  addCopyMenuControl(map, { precision: getPrec, getLatLng: ()=> map.getCenter(), defaultFormat:'leaflet' });
+  addOpenInGoogleControl(map, { precision: 6 });
+  addPoiLegendControl(map);
+
+  // คลิกวางหมุดเพื่อกรอก lat/lng
+  let poiMarker = null;
+  map.on('click', (e)=>{
+    const { lat, lng } = e.latlng;
+    latEl.value = Number(lat).toFixed(getPrec());
+    lngEl.value = Number(lng).toFixed(getPrec());
+    if (poiMarker) map.removeLayer(poiMarker);
+    poiMarker = L.marker([lat, lng], { icon: iconForPoiType(typeEl.value) }).addTo(map);
+  });
+
+  // state
+  let editingId = null;
+  let cache = [];
+
+  function renderRows(){
+    if (!cache.length){
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#6b7280">ยังไม่มีข้อมูล</td></tr>';
+      return;
+    }
+    tbody.innerHTML = cache.map((p, i)=>{
+      const km = (typeof p.distance_km==='number') ? p.distance_km.toFixed(2) : '-';
+      return `<tr data-i="${i}">
+        <td><span class="poi-chip"><span>${p.name}</span></span></td>
+        <td><span class="poi-badge">${p.type}</span></td>
+        <td>${km}</td>
+        <td>
+          <button class="poi-btn" data-act="edit" data-i="${i}">แก้ไข</button>
+          <button class="poi-btn secondary" data-act="del" data-i="${i}">ลบ</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function loadList(){
+    const pid = Number(propIdEl.value);
+    if (!pid){ alert('กรุณาใส่ Property ID'); return; }
+    const { data, error } = await supabase
+      .from('property_poi')
+      .select('id,property_id,name,type,lat,lng,distance_km')
+      .eq('property_id', pid)
+      .order('distance_km', { ascending: true });
+    if (error){ console.error(error); alert(error.message); return; }
+    cache = data || [];
+    renderRows();
+  }
+
+  function resetForm(){
+    editingId = null;
+    updBtn.style.display = 'none';
+    addBtn.style.display = '';
+    nameEl.value=''; typeEl.value='hospital'; latEl.value=''; lngEl.value='';
+    if (poiMarker){ map.removeLayer(poiMarker); poiMarker=null; }
+  }
+
+  loadBtn.addEventListener('click', async ()=>{
+    const la = Number(propLatEl.value), ln = Number(propLngEl.value);
+    if (Number.isFinite(la) && Number.isFinite(ln)) map.setView([la, ln], 15);
+    await loadList();
+  });
+
+  cancelBtn.addEventListener('click', resetForm);
+
+  tbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button'); if (!btn) return;
+    const i = Number(btn.dataset.i); const act = btn.dataset.act;
+    const row = cache[i]; if (!row) return;
+
+    if (act==='edit'){
+      editingId = row.id;
+      nameEl.value = row.name || '';
+      typeEl.value = row.type || 'hospital';
+      latEl.value = row.lat ?? '';
+      lngEl.value = row.lng ?? '';
+      updBtn.style.display = '';
+      addBtn.style.display = 'none';
+      if (poiMarker){ map.removeLayer(poiMarker); poiMarker=null; }
+      if (Number.isFinite(row.lat) && Number.isFinite(row.lng)){
+        poiMarker = L.marker([row.lat, row.lng], { icon: iconForPoiType(row.type) }).addTo(map);
+        map.setView([row.lat, row.lng], 16);
+      }
+    }
+
+    if (act==='del'){
+      if (!confirm('ลบรายการนี้?')) return;
+      const { error } = await supabase.from('property_poi').delete().eq('id', row.id);
+      if (error){ alert(error.message); return; }
+      cache.splice(i,1); renderRows();
+    }
+  });
+
+  addBtn.addEventListener('click', async ()=>{
+    const pid = Number(propIdEl.value);
+    const la = Number(propLatEl.value), ln = Number(propLngEl.value);
+    const name = nameEl.value.trim(); const type = typeEl.value;
+    const plat = Number(latEl.value), plng = Number(lngEl.value);
+    if (!pid || !name || !Number.isFinite(plat) || !Number.isFinite(plng)){
+      alert('กรุณากรอก Property ID, ชื่อ, และพิกัดให้ครบ'); return;
+    }
+    const dist = (Number.isFinite(la)&&Number.isFinite(ln)) ? kmDistance(la, ln, plat, plng) : null;
+    const { data, error } = await supabase.from('property_poi')
+      .insert([{ property_id: pid, name, type, lat: plat, lng: plng, distance_km: dist }])
+      .select('*').single();
+    if (error){ alert(error.message); return; }
+    cache.push(data);
+    cache.sort((a,b)=>(a.distance_km??1e9)-(b.distance_km??1e9));
+    renderRows(); resetForm();
+  });
+
+  updBtn.addEventListener('click', async ()=>{
+    if (!editingId){ return; }
+    const la = Number(propLatEl.value), ln = Number(propLngEl.value);
+    const name = nameEl.value.trim(); const type = typeEl.value;
+    const plat = Number(latEl.value), plng = Number(lngEl.value);
+    if (!name || !Number.isFinite(plat) || !Number.isFinite(plng)){
+      alert('กรุณากรอกชื่อ และพิกัดให้ครบ'); return;
+    }
+    const dist = (Number.isFinite(la)&&Number.isFinite(ln)) ? kmDistance(la, ln, plat, plng) : null;
+    const { data, error } = await supabase.from('property_poi')
+      .update({ name, type, lat: plat, lng: plng, distance_km: dist })
+      .eq('id', editingId)
+      .select('*').single();
+    if (error){ alert(error.message); return; }
+    const idx = cache.findIndex(x=>x.id===editingId); if (idx>-1) cache[idx]=data;
+    cache.sort((a,b)=>(a.distance_km??1e9)-(b.distance_km??1e9));
+    renderRows(); resetForm();
+  });
+
+  return { close: ()=> backdrop.remove() };
+}
+
+// ปุ่มลอยเปิด POI Manager (มุมขวาล่าง)
+function installPoiLaunchButtons(){
+  if (document.querySelector('.poi-launch')) return;
+  const box = document.createElement('div');
+  box.className = 'poi-launch';
+  const btn = document.createElement('button');
+  btn.className = 'poi-btn';
+  btn.textContent = 'Manage Nearby (POI)';
+  btn.addEventListener('click', ()=> openPoiManager());
+  box.appendChild(btn);
+  document.body.appendChild(box);
+}
+
+// ติดตั้งปุ่มหลัง DOM พร้อม
+document.addEventListener('DOMContentLoaded', () => {
+  try { installPoiLaunchButtons(); } catch(_) {}
+});
+
+// เผื่อเรียกเปิดพร้อม prefill จากส่วนอื่น ๆ
+window.openPoiManager = openPoiManager;

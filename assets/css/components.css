@@ -322,3 +322,25 @@ tbody tr:last-child td{ border-bottom:none; }
 .skel-line{height:14px;margin:8px 0;background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:skel 1.2s infinite;border-radius:8px}
 .skel-box{height:180px;background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:skel 1.2s infinite;border-radius:12px}
 @keyframes skel {0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* POI Manager Modal */
+.poi-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.poi-modal{width:min(980px,96vw);background:#fff;border-radius:14px;box-shadow:0 25px 80px rgba(0,0,0,.2);overflow:hidden;}
+.poi-modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,#f5efe4,#e9dcc4);border-bottom:1px solid #e5e7eb;}
+.poi-modal-title{font-weight:700;font-size:16px;color:#111827;}
+.poi-modal-close{appearance:none;border:0;background:#111827;color:#fff;border-radius:10px;padding:6px 10px;cursor:pointer;}
+.poi-modal-body{padding:14px 16px;}
+.poi-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:12px;}
+.poi-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.poi-form label{font-size:12px;color:#374151;}
+.poi-form .form-control{width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;}
+.poi-actions{display:flex;gap:8px;margin-top:10px;}
+.poi-btn{appearance:none;border:0;background:#111827;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;}
+.poi-btn.secondary{background:#6b7280;}
+.poi-table{width:100%;border-collapse:collapse;margin-top:10px;}
+.poi-table th,.poi-table td{border-bottom:1px solid #e5e7eb;padding:8px 6px;font-size:13px;text-align:left;}
+.poi-table th{color:#374151;font-weight:600;background:#f9fafb;}
+.poi-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;background:#f3f4f6;font-size:12px;}
+.poi-badge{font-weight:700;color:#111827;}
+.poi-launch{position:fixed;right:16px;bottom:16px;z-index:900;display:flex;gap:8px;}
+.poi-launch .poi-btn{box-shadow:0 6px 22px rgba(0,0,0,.15)}
