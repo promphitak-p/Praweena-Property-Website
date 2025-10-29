@@ -631,6 +631,7 @@ if (ENABLE_POI_EDIT_ON_DETAIL) {
     formHeader.textContent = 'สนใจนัดชม / สอบถามข้อมูล';
     form.innerHTML = `
       <input type="hidden" name="property_id" value="${property.id}">
+      <input type="hidden" name="property_slug" value="${property.slug || \'\'}">
       <div class="form-group"><label for="name">ชื่อ</label><input type="text" id="name" name="name" class="form-control" required></div>
       <div class="form-group"><label for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" name="phone" class="form-control" required pattern="^0\\d{8,9}$" inputmode="tel" autocomplete="tel-national"></div>
       <div class="form-group"><label for="note">ข้อความเพิ่มเติม</label><textarea id="note" name="note" class="form-control" rows="3"></textarea></div>
@@ -699,6 +700,19 @@ async function handleLeadSubmit(event) {
   submitBtn.textContent = 'กำลังส่ง...';
 
   const payload = getFormData(form);
+  // Append UTM info into note (safe for DB without new columns)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const utmKeys = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"];
+    const utmPairs = utmKeys
+      .map(k => params.get(k) ? `${k}=${params.get(k)}` : null)
+      .filter(Boolean);
+    if (utmPairs.length) {
+      const utmLine = ` [UTM] ` + utmPairs.join("&");
+      payload.note = (payload.note ? payload.note + " " : "") + utmLine;
+    }
+  } catch(e) { /* ignore */ }
+
   const { error } = await createLead(payload);
 
   if (error) {

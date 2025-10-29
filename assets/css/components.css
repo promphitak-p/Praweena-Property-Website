@@ -308,3 +308,17 @@ tbody tr:last-child td{ border-bottom:none; }
 .poi-list { list-style: none; padding: 0; margin: 0; line-height: 1.7; }
 .poi-list li + li { border-top: 1px solid #eee; margin-top: .35rem; padding-top: .35rem; }
 .poi-type { color: var(--text-light); font-size: .9rem; }
+
+
+/* === Map Empty & Actions (added) === */
+.map-empty{display:flex;align-items:center;justify-content:center;width:100%;height:280px;border:1px dashed #C7D2FE;color:#556;background:#FAFBFF;border-radius:12px;padding:16px;text-align:center;line-height:1.6;}
+.map-empty strong{display:block;font-weight:700;margin-bottom:6px;}
+.map-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.map-btn{background:#111827;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
+.map-btn[disabled]{opacity:.4;cursor:not-allowed}
+
+/* === Skeleton (added) === */
+.skeleton{position:relative;overflow:hidden;background:#eee;border-radius:10px}
+.skel-line{height:14px;margin:8px 0;background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:skel 1.2s infinite;border-radius:8px}
+.skel-box{height:180px;background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:skel 1.2s infinite;border-radius:12px}
+@keyframes skel {0%{background-position:200% 0}100%{background-position:-200% 0}}
