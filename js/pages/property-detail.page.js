@@ -631,7 +631,7 @@ if (ENABLE_POI_EDIT_ON_DETAIL) {
     formHeader.textContent = 'สนใจนัดชม / สอบถามข้อมูล';
     form.innerHTML = `
       <input type="hidden" name="property_id" value="${property.id}">
-      <input type="hidden" name="property_slug" value="${property.slug || \'\'}">
+	  <input type="hidden" name="property_slug" value="${property.slug || ''}">
       <div class="form-group"><label for="name">ชื่อ</label><input type="text" id="name" name="name" class="form-control" required></div>
       <div class="form-group"><label for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" name="phone" class="form-control" required pattern="^0\\d{8,9}$" inputmode="tel" autocomplete="tel-national"></div>
       <div class="form-group"><label for="note">ข้อความเพิ่มเติม</label><textarea id="note" name="note" class="form-control" rows="3"></textarea></div>
