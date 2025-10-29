@@ -64,30 +64,36 @@ export function createMiniMap(el, center=[13.736,100.523], points=[]) {
 }
 
 // --- Brand Icons ---
-export function brandIcon({ url = '/assets/img/praweena-pin.png', size=[32,32], anchor=[16,32] } = {}) {
-  ensureLeafletLoaded();
-  return L.icon({ iconUrl:url, iconSize:size, iconAnchor:anchor, popupAnchor:[0,-28] });
-}
-
-// POI icon by type (PNG/SVG per brand later)
-export function iconForPoiType(type='') {
-  const t = String(type).toLowerCase();
-  const base = '/assets/img/poi';
-  let name = 'poi-default.png';
-  if (/(hospital|clinic|pharmacy)/.test(t)) name = 'poi-hospital.png';
-  else if (/(school|university|college|kindergarten)/.test(t)) name = 'poi-school.png';
-  else if (/(supermarket|convenience|mall|department)/.test(t)) name = 'poi-mart.png';
-  else if (/(government|police|post_office)/.test(t)) name = 'poi-gov.png';
-  else if (/(cafe)/.test(t)) name = 'poi-cafe.png';
-  else if (/(restaurant)/.test(t)) name = 'poi-food.png';
-
+export function brandIcon(opts = {}) {
   return L.icon({
-    iconUrl: `${base}/${name}`,
-    iconSize: [26, 30],
-    iconAnchor: [13, 30],
-    popupAnchor: [0, -26]
+    iconUrl: opts.url || '/assets/img/praweena-pin.png',
+    iconSize: [38, 46],
+    iconAnchor: [19, 46],
+    popupAnchor: [0, -44],
+    className: 'praweena-main-pin'
   });
 }
+
+
+// POI icon by type (PNG/SVG per brand later)
+export function iconForPoiType(type = '') {
+  const basePath = '/assets/img/poi/';
+  let file = 'poi-mart.png'; // default
+
+  const t = type.toLowerCase();
+  if (t.includes('school') || t.includes('university')) file = 'poi-school.png';
+  else if (t.includes('hospital') || t.includes('clinic')) file = 'poi-hospital.png';
+  else if (t.includes('gov') || t.includes('police') || t.includes('post')) file = 'poi-gov.png';
+
+  return L.icon({
+    iconUrl: `${basePath}${file}`,
+    iconSize: [36, 44],
+    iconAnchor: [18, 44],
+    popupAnchor: [0, -42],
+    className: 'praweena-poi-icon'
+  });
+}
+
 
 // --- Controls ---
 function controlBox(html, className='praweena-ctl') {

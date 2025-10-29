@@ -344,3 +344,10 @@ tbody tr:last-child td{ border-bottom:none; }
 .poi-badge{font-weight:700;color:#111827;}
 .poi-launch{position:fixed;right:16px;bottom:16px;z-index:900;display:flex;gap:8px;}
 .poi-launch .poi-btn{box-shadow:0 6px 22px rgba(0,0,0,.15)}
+
+.leaflet-marker-icon.praweena-poi-icon {
+  transition: transform .15s ease;
+}
+.leaflet-marker-icon.praweena-poi-icon:hover {
+  transform: scale(1.1);
+}
