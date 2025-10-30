@@ -21,7 +21,6 @@ import { supabase } from '../utils/supabaseClient.js';
 const propertyModal = document.getElementById('property-modal');
 const propertyForm  = document.getElementById('property-form');
 const addPropertyBtn = document.getElementById('add-property-btn');
-const propertiesTableBody = document.querySelector('#properties-table tbody');
 
 // ============================================================
 // State
@@ -54,6 +53,36 @@ function poiEmoji(type = '') {
   return '📍';
 }
 
+// fallback POI ถ้าเรียก edge function ไม่ผ่าน
+function getFallbackPoi(baseLat, baseLng) {
+  return [
+    {
+      name: 'ตลาดสดสุราษฎร์',
+      type: 'market',
+      lat: baseLat ? Number(baseLat) + 0.002 : 9.1337,
+      lng: baseLng ? Number(baseLng) + 0.002 : 99.3325,
+      distance_km: 0.25,
+      __saved: false
+    },
+    {
+      name: 'โรงเรียนสุราษฎร์พิทยา (ใกล้เคียง)',
+      type: 'school',
+      lat: baseLat ? Number(baseLat) + 0.0015 : 9.1337,
+      lng: baseLng ? Number(baseLng) - 0.001 : 99.3325,
+      distance_km: 0.4,
+      __saved: false
+    },
+    {
+      name: 'Tesco / Lotus ใกล้บ้าน',
+      type: 'convenience',
+      lat: baseLat ? Number(baseLat) - 0.0015 : 9.1337,
+      lng: baseLng ? Number(baseLng) + 0.0015 : 99.3325,
+      distance_km: 0.6,
+      __saved: false
+    }
+  ];
+}
+
 // ============================================================
 // Map ในโมดัล
 // ============================================================
@@ -63,7 +92,6 @@ function setupModalMap(lat, lng) {
   let latInput = propertyForm.elements.latitude;
   let lngInput = propertyForm.elements.longitude;
 
-  // ถ้าใน form ไม่มี input lat/lng ให้สร้างซ่อนไว้เลย
   if (!latInput) {
     latInput = document.createElement('input');
     latInput.type = 'hidden';
@@ -82,7 +110,6 @@ function setupModalMap(lat, lng) {
 
   let startLat = parseFloat(lat);
   let startLng = parseFloat(lng);
-  // fallback → สุราษฎร์ฯ
   startLat = !isNaN(startLat) ? startLat : 9.1337;
   startLng = !isNaN(startLng) ? startLng : 99.3325;
 
@@ -106,8 +133,6 @@ function setupModalMap(lat, lng) {
         const pos = event.target.getLatLng();
         latInput.value = pos.lat.toFixed(6);
         lngInput.value = pos.lng.toFixed(6);
-        // ถ้าลากตำแหน่งใหม่ แล้วอยาก refresh POI อัตโนมัติ ก็เรียกตรงนี้ได้
-        // fetchNearbyPOIInline(pos.lat, pos.lng);
       });
     }
   } catch (err) {
@@ -117,7 +142,7 @@ function setupModalMap(lat, lng) {
 }
 
 // ============================================================
-// ดึง POI จาก edge function (ตอนเพิ่ม / ตอนแก้ไขก็ใช้ร่วมได้)
+// ดึง POI จาก edge function
 // ============================================================
 async function fetchNearbyPOIInline(lat, lng) {
   const listEl = document.getElementById('poi-candidate-list');
@@ -125,68 +150,67 @@ async function fetchNearbyPOIInline(lat, lng) {
     listEl.innerHTML = '<li style="color:#6b7280;">กำลังค้นหาสถานที่ใกล้เคียง...</li>';
   }
 
-  try {
-    const latNum = Number(lat);
-    const lngNum = Number(lng);
-    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
-      throw new Error('พิกัดไม่ถูกต้อง');
-    }
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
 
+  if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+    console.warn('พิกัดไม่ถูกต้อง ตอน fetchNearbyPOIInline');
+    poiCandidatesInline = [];
+    renderPOIInlineList();
+    return;
+  }
+
+  try {
     const { data, error } = await supabase.functions.invoke('fill_poi', {
       body: { lat: latNum, lng: lngNum, limit: 5 },
     });
 
     if (error) throw error;
+
     poiCandidatesInline = data?.items || [];
     renderPOIInlineList();
   } catch (err) {
     console.error('fetchNearbyPOIInline error:', err);
-    toast('ค้นหาสถานที่ใกล้เคียงไม่สำเร็จ', 2500, 'error');
-    poiCandidatesInline = [];
+    // ถ้าเรียกไม่ได้ ให้ใช้ fallback
+    poiCandidatesInline = getFallbackPoi(latNum, lngNum);
+    toast('โหลดจากระบบไม่สำเร็จ แสดงรายการตัวอย่างให้ก่อน', 2500, 'error');
     renderPOIInlineList();
   }
 }
 
-// รวมรายการ POI ที่ "เคยบันทึก" + "ระบบแนะนำ" แล้วตัดซ้ำ
+// ============================================================
+// รวม saved + suggested
+// ============================================================
 function mergePoiLists(savedList = [], suggestedList = []) {
   const out = [];
   const keySet = new Set();
 
-  // ตัวช่วยสร้าง key กันซ้ำ (ใช้ชื่อ+lat+lng)
   const makeKey = (p) => {
     const name = (p.name || '').trim().toLowerCase();
-    const lat  = Number(p.lat).toFixed(6);
-    const lng  = Number(p.lng).toFixed(6);
+    const lat  = Number(p.lat || 0).toFixed(6);
+    const lng  = Number(p.lng || 0).toFixed(6);
     return `${name}|${lat}|${lng}`;
   };
 
-  // 1) ใส่ที่บันทึกจริงก่อน (พวกนี้ต้องติ๊ก)
   savedList.forEach(p => {
     const k = makeKey(p);
     if (keySet.has(k)) return;
     keySet.add(k);
-    out.push({
-      ...p,
-      __saved: true,   // <<== ตัวบอกว่ามาจากฐาน
-    });
+    out.push({ ...p, __saved: true });
   });
 
-  // 2) ใส่ที่ระบบแนะนำ (แต่ยังไม่บันทึกจริง)
   suggestedList.forEach(p => {
     const k = makeKey(p);
     if (keySet.has(k)) return;
     keySet.add(k);
-    out.push({
-      ...p,
-      __saved: false,
-    });
+    out.push({ ...p, __saved: false });
   });
 
   return out;
 }
 
 // ============================================================
-// โหลด POI ที่เคยบันทึกของบ้านนี้ — สำหรับตอนแก้ไข
+// โหลด POI ของบ้านนี้ตอนกด "แก้ไข"
 // ============================================================
 async function loadPoisForProperty(propertyId, baseLat, baseLng) {
   const listEl = document.getElementById('poi-candidate-list');
@@ -194,7 +218,7 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     listEl.innerHTML = '<li style="color:#6b7280;">กำลังโหลดสถานที่ที่บันทึกไว้...</li>';
   }
 
-  // 1) ดึงจากตารางจริงก่อน (อันนี้คือที่เคยติ๊กแล้ว)
+  // 1) โหลดของที่บันทึกในตาราง
   let saved = [];
   if (propertyId) {
     const { data, error } = await supabase
@@ -215,33 +239,35 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     }
   }
 
-// 2) เรียก edge function มาแนะนำเพิ่ม
-let suggested = [];
-if (Number.isFinite(Number(baseLat)) && Number.isFinite(Number(baseLng))) {
-  try {
-    const latNum = Number(baseLat);
-    const lngNum = Number(baseLng);
-    const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
-      body: { lat: latNum, lng: lngNum, limit: 5 },
-    });
-    if (!sErr && Array.isArray(sData?.items)) {
-      suggested = sData.items;
+  // 2) ลองเรียก edge function
+  let suggested = [];
+  const latNum = Number(baseLat);
+  const lngNum = Number(baseLng);
+
+  if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
+    try {
+      const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
+        body: { lat: latNum, lng: lngNum, limit: 5 },
+      });
+      if (!sErr && Array.isArray(sData?.items)) {
+        suggested = sData.items;
+      } else {
+        // ถ้าเรียกไม่ผ่าน → ใช้ fallback
+        suggested = getFallbackPoi(latNum, lngNum);
+      }
+    } catch (e) {
+      console.warn('แนะนำ POI ไม่สำเร็จ → ใช้ fallback', e);
+      suggested = getFallbackPoi(latNum, lngNum);
     }
-  } catch (e) {
-    console.warn('แนะนำ POI ไม่สำเร็จ', e);
   }
-}
 
-  // 3) รวมสองกอง แล้วเก็บลง state กลาง
+  // 3) รวมสองชุด
   poiCandidatesInline = mergePoiLists(saved, suggested);
-
-  // 4) วาดใหม่
   renderPOIInlineList();
 }
 
-
 // ============================================================
-// แสดงลิสต์ POI ในฟอร์ม
+// วาดลิสต์ POI
 // ============================================================
 function renderPOIInlineList() {
   const list = document.getElementById('poi-candidate-list');
@@ -271,7 +297,7 @@ function renderPOIInlineList() {
 }
 
 // ============================================================
-// บันทึก POI ที่ติ๊กไว้ลงตาราง property_poi
+// บันทึก POI
 // ============================================================
 async function saveInlinePois(propertyId, baseLat, baseLng) {
   if (!propertyId) return;
@@ -283,7 +309,8 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
     if (poi) checked.push(poi);
   });
 
-  // ไม่ได้เลือกอะไร → ไม่ต้องแตะ POI
+  // ถ้าไม่เลือกเลย → ล้างให้โล่ง
+  await supabase.from('property_poi').delete().eq('property_id', propertyId);
   if (!checked.length) return;
 
   const rows = checked.map(p => {
@@ -301,13 +328,11 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
     };
   });
 
-  // ลบทิ้งแล้วลงใหม่
-  await supabase.from('property_poi').delete().eq('property_id', propertyId);
   await supabase.from('property_poi').insert(rows);
 }
 
 // ============================================================
-// ฟอร์ม → Submit
+// Submit ฟอร์ม
 // ============================================================
 async function handleSubmit(e) {
   e.preventDefault();
@@ -360,13 +385,12 @@ async function handleDelete(id, title) {
 }
 
 // ============================================================
-// Modal open/close
+// Modal
 // ============================================================
 function openModal() {
   if (!propertyModal) return;
   propertyModal.classList.add('open');
 }
-
 function closeModal() {
   if (!propertyModal) return;
   propertyModal.classList.remove('open');
@@ -375,32 +399,24 @@ function closeModal() {
     propertyForm.reset();
     if (propertyForm.elements.id) propertyForm.elements.id.value = '';
   }
-
-  // ล้าง POI ลิสต์
   const poiList = document.getElementById('poi-candidate-list');
   if (poiList) poiList.innerHTML = '';
 }
 
-// ผูกปุ่มปิดทุกแบบ
 function installModalCloseHandlers() {
-  // ปุ่ม X
   document.querySelectorAll('#property-modal .modal-close').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       closeModal();
     });
   });
-
-  // ปุ่มยกเลิก
-  document.querySelectorAll('#property-modal .modal-cancel, #property-modal .btn-cancel, #property-modal [data-dismiss="modal"]').forEach(btn => {
+  document.querySelectorAll('#property-modal .modal-cancel, #property-modal .btn-cancel').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       closeModal();
     });
   });
-
-  // คลิกนอกกล่อง
   window.addEventListener('click', (e) => {
     if (e.target === propertyModal) {
       closeModal();
@@ -409,7 +425,7 @@ function installModalCloseHandlers() {
 }
 
 // ============================================================
-// เติมค่าลงฟอร์มตอนแก้ไข
+// เติมฟอร์มตอนแก้ไข
 // ============================================================
 function fillFormFromProperty(p = {}) {
   if (!propertyForm) return;
@@ -423,14 +439,13 @@ function fillFormFromProperty(p = {}) {
       propertyForm.elements[k].value = p[k] ?? '';
     }
   });
-
   if (propertyForm.elements.published) {
     propertyForm.elements.published.checked = !!p.published;
   }
 }
 
 // ============================================================
-// โหลดตารางประกาศ
+// โหลดรายการประกาศ
 // ============================================================
 async function loadProperties() {
   const tbody = document.querySelector('#properties-table tbody');
@@ -442,7 +457,6 @@ async function loadProperties() {
     if (error) throw error;
 
     clear(tbody);
-
     if (!data || !data.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ไม่มีข้อมูล</td></tr>';
       return;
@@ -464,16 +478,8 @@ async function loadProperties() {
       // แก้ไข
       tr.querySelector('.edit-btn').addEventListener('click', async () => {
         openModal();
-
-        // เติมค่าลงฟอร์ม
         fillFormFromProperty(p);
-
-        // เปิดแผนที่
-        setTimeout(() => {
-          setupModalMap(p.latitude, p.longitude);
-        }, 100);
-
-        // โหลด POI ที่เคยบันทึก
+        setTimeout(() => setupModalMap(p.latitude, p.longitude), 80);
         await loadPoisForProperty(p.id, p.latitude, p.longitude);
       });
 
@@ -499,21 +505,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   installModalCloseHandlers();
 
-  // ปุ่มเพิ่ม
   addPropertyBtn?.addEventListener('click', () => {
-    if (propertyForm) {
-      propertyForm.reset();
-      if (propertyForm.elements.id) propertyForm.elements.id.value = '';
-    }
+    propertyForm?.reset();
+    if (propertyForm?.elements.id) propertyForm.elements.id.value = '';
     poiCandidatesInline = [];
     renderPOIInlineList();
     openModal();
-    setTimeout(() => setupModalMap(), 100);
+    setTimeout(() => setupModalMap(), 80);
   });
 
-  // submit form
   propertyForm?.addEventListener('submit', handleSubmit);
 
-  // โหลดรายการ
   await loadProperties();
 });
