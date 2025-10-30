@@ -1,7 +1,7 @@
 // js/pages/dashboard.page.js
 //------------------------------------------------------------
 // Praweena Property Dashboard Page
-// เพิ่มระบบเลือกตำแหน่งบ้าน + ดึงสถานที่ใกล้เคียง (POI)
+// เลือกตำแหน่งบ้าน + ดึงสถานที่ใกล้เคียง (POI)
 //------------------------------------------------------------
 
 import { setupMobileNav } from '../ui/mobileNav.js';
@@ -14,6 +14,14 @@ import { getFormData } from '../ui/forms.js';
 import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js';
+
+// ============================================================
+// DOM หลักที่ต้องมีไว้ก่อน
+// ============================================================
+const propertyForm   = $('#property-form');         // ← ตัวนี้แหละที่หาย
+const propertyModal  = $('#property-modal');
+const addPropertyBtn = $('#add-property-btn');
+const propsTableBody = $('#properties-table tbody');
 
 // ============================================================
 // Global state
