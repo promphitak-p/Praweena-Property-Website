@@ -351,3 +351,129 @@ tbody tr:last-child td{ border-bottom:none; }
 .leaflet-marker-icon.praweena-poi-icon:hover {
   transform: scale(1.1);
 }
+
+/* ============================================================
+   POI Section (สถานที่ใกล้เคียง)
+   ใช้ในหน้าเพิ่ม/แก้ไขบ้าน (dashboard.page.js)
+   ออกแบบให้เข้ากับโทน Praweena Property
+============================================================ */
+
+.poi-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
+}
+.poi-section:hover {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+}
+
+.poi-section h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#fetch-poi-btn {
+  background: #15803d;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+#fetch-poi-btn:hover {
+  background: #166534;
+}
+#fetch-poi-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== รายการสถานที่ใกล้เคียง ===== */
+#poi-candidate-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#poi-candidate-list li {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+}
+
+#poi-candidate-list li:hover {
+  border-color: #a7f3d0;
+  background: #f0fdf4;
+}
+
+#poi-candidate-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  font-size: 0.85rem;
+  color: #111827;
+  cursor: pointer;
+}
+
+#poi-candidate-list input[type="checkbox"] {
+  accent-color: #15803d;
+  transform: scale(1.1);
+}
+
+#poi-candidate-list small {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* เมื่อไม่มีสถานที่ */
+.poi-inline-empty {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  padding: 6px;
+  text-align: center;
+}
+
+/* ระหว่างโหลด */
+.poi-section.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ป้ายสถานะบนตาราง */
+.badge-green {
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-red {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
