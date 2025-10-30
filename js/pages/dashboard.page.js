@@ -240,7 +240,7 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     }
   }
 
-  // 2) ลองเรียก edge function
+  // 2) ลองเรียก edge function (ให้มันเป็น preview เสมอ)
   let suggested = [];
   const latNum = Number(baseLat);
   const lngNum = Number(baseLng);
@@ -248,12 +248,11 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
   if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
     try {
       const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
-        body: { lat: latNum, lng: lngNum, limit: 5 },
+        body: { lat: latNum, lng: lngNum, limit: 5, preview: true },  // 👈 เพิ่ม preview: true
       });
       if (!sErr && Array.isArray(sData?.items)) {
         suggested = sData.items;
       } else {
-        // ถ้าเรียกไม่ผ่าน → ใช้ fallback
         suggested = getFallbackPoi(latNum, lngNum);
       }
     } catch (e) {
@@ -266,6 +265,7 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
   poiCandidatesInline = mergePoiLists(saved, suggested);
   renderPOIInlineList();
 }
+
 
 // ============================================================
 // วาดลิสต์ POI
