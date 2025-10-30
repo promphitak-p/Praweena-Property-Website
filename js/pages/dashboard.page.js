@@ -117,22 +117,30 @@ function setupModalMap(lat, lng) {
 }
 
 // ============================================================
-// ดึง POI จากฟังก์ชัน (ค้นรอบบ้าน 5 จุด) — สำหรับตอนเพิ่ม
+// ดึง POI จาก edge function (ตอนเพิ่ม / ตอนแก้ไขก็ใช้ร่วมได้)
 // ============================================================
 async function fetchNearbyPOIInline(lat, lng) {
   const listEl = document.getElementById('poi-candidate-list');
   if (listEl) {
     listEl.innerHTML = '<li style="color:#6b7280;">กำลังค้นหาสถานที่ใกล้เคียง...</li>';
   }
+
   try {
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+      throw new Error('พิกัดไม่ถูกต้อง');
+    }
+
     const { data, error } = await supabase.functions.invoke('fill_poi', {
-      body: { lat, lng, preview: true, limit: 5 }
+      body: { lat: latNum, lng: lngNum, limit: 5 },
     });
+
     if (error) throw error;
     poiCandidatesInline = data?.items || [];
     renderPOIInlineList();
   } catch (err) {
-    console.error(err);
+    console.error('fetchNearbyPOIInline error:', err);
     toast('ค้นหาสถานที่ใกล้เคียงไม่สำเร็จ', 2500, 'error');
     poiCandidatesInline = [];
     renderPOIInlineList();
@@ -207,20 +215,22 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     }
   }
 
-  // 2) เรียก edge function มาแนะนำเพิ่ม (แต่ไม่บังคับ ถ้าเรียก fail ก็ยังโชว์ของเดิม)
-  let suggested = [];
-  if (Number.isFinite(Number(baseLat)) && Number.isFinite(Number(baseLng))) {
-    try {
-      const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
-        body: { lat: baseLat, lng: baseLng, preview: true, limit: 5 }
-      });
-      if (!sErr && Array.isArray(sData?.items)) {
-        suggested = sData.items;
-      }
-    } catch (e) {
-      // ถ้าเรียกไม่สำเร็จก็แค่ใช้ saved อย่างเดียว
+// 2) เรียก edge function มาแนะนำเพิ่ม
+let suggested = [];
+if (Number.isFinite(Number(baseLat)) && Number.isFinite(Number(baseLng))) {
+  try {
+    const latNum = Number(baseLat);
+    const lngNum = Number(baseLng);
+    const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
+      body: { lat: latNum, lng: lngNum, limit: 5 },
+    });
+    if (!sErr && Array.isArray(sData?.items)) {
+      suggested = sData.items;
     }
+  } catch (e) {
+    console.warn('แนะนำ POI ไม่สำเร็จ', e);
   }
+}
 
   // 3) รวมสองกอง แล้วเก็บลง state กลาง
   poiCandidatesInline = mergePoiLists(saved, suggested);
