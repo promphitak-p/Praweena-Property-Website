@@ -1,4 +1,5 @@
 // js/pages/dashboard.page.js
+
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
@@ -8,7 +9,14 @@ import { formatPrice } from '../utils/format.js';
 import { getFormData } from '../ui/forms.js';
 import { el, $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
-import { supabase } from '../utils/supabaseClient.js'; // เพิ่มบรรทัดนี้
+import { supabase } from '../utils/supabaseClient.js';
+
+// 👇 เพิ่ม import ชุดแมพที่กุ้งมีอยู่
+import {
+  ensureLeafletLoaded, initMap, createMiniMap,
+  addPrecisionControl, addCopyButton, addOpenInGoogleControl,
+  addPoiLegendControl, addCopyMenuControl, iconForPoiType, brandIcon
+} from '../ui/leafletMap.js';
 
 /* =====================================================
    DOM Elements
@@ -33,9 +41,16 @@ const galleryImagesInput = $('#gallery-images-input');
 const youtubeIdsContainer = $('#youtube-ids-container');
 const addYoutubeIdBtn = $('#add-youtube-id-btn');
 
-// แผนที่
+// แผนที่ใน modal
 let modalMap = null;
 let draggableMarker = null;
+
+// ====== 👇 โซนใหม่: inline POI ในฟอร์ม ======
+const poiInlineBox = $('#poi-inline-box');      // div ครอบรายการ POI
+const poiInlineList = $('#poi-inline-list');    // ul / div แสดงรายการ
+const poiInlineBtn = $('#poi-inline-fetch');    // ปุ่ม “ค้นหาจากพิกัดนี้”
+let poiCandidatesInline = [];                   // เก็บรายการ POI ที่โหลดมา (สูงสุด 5)
+let currentPropertyIdEditing = null;            // เก็บ id ตอนแก้ เพื่อใช้บันทึก POI
 
 // Cloudinary (unsigned)
 const CLOUD_NAME = 'dupwjm8q2';
@@ -54,16 +69,16 @@ const cropAspectSelect = $('#crop-aspect');
 const rotateLeftBtn = $('#crop-rotate-left');
 const rotateRightBtn = $('#crop-rotate-right');
 
-let cropper = null;        // instance ของ Cropper.js
-let pickedFileURL = null;  // objectURL ชั่วคราว
-let coverUrl = null;       // URL หน้าปกหลังอัปโหลดเสร็จ
+let cropper = null;
+let pickedFileURL = null;
+let coverUrl = null;
 
 /* =====================================================
    Local state
 ===================================================== */
 let currentGallery = [];   // เก็บ URL ของรูปในแกลเลอรีตามลำดับ
 
-// กล่องแสดงตัวจัดการแกลเลอรี (thumbnail + ปุ่ม)
+// กล่องแสดงตัวจัดการแกลเลอรี
 let galleryManager = $('#gallery-manager');
 if (!galleryManager && galleryImagesInput) {
   galleryManager = el('div', { id: 'gallery-manager', style: 'margin-top:12px;' });
@@ -123,32 +138,26 @@ function renderPropertyRow(prop) {
     <td>
       <button class="btn btn-secondary edit-btn">แก้ไข</button>
       <button class="btn btn-secondary delete-btn" style="background:#fee2e2;color:#ef4444;border:none;">ลบ</button>
-	  <button class="btn btn-secondary btn-fill-poi" style="margin-left:.5rem;background:#dcfce7;color:#15803d;">เติมสถานที่ใกล้เคียง</button>
+      <button class="btn btn-secondary btn-fill-poi" style="margin-left:.5rem;background:#dcfce7;color:#15803d;">เติมสถานที่ใกล้เคียง</button>
     </td>
   `;
   tr.querySelector('.edit-btn').addEventListener('click', () => handleEdit(prop));
   tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(prop.id, prop.title));
-  tr.querySelector('.btn-fill-poi')
-	.addEventListener('click', () => fillPOI(prop.id));
+  tr.querySelector('.btn-fill-poi').addEventListener('click', () => fillPOI(prop.id));
 
   tableBody.append(tr);
-  
-    // ถ้าไม่ใช่แอดมิน ซ่อน/ปิดปุ่มแก้ไข-ลบ
+
+  // ถ้าไม่ใช่แอดมิน ซ่อนปุ่ม
   if (!IS_ADMIN) {
     tr.querySelector('.edit-btn')?.setAttribute('disabled', 'true');
     tr.querySelector('.edit-btn')?.classList.add('btn-disabled');
-    tr.querySelector('.edit-btn')?.setAttribute('title', 'เฉพาะแอดมิน');
-
     tr.querySelector('.delete-btn')?.setAttribute('disabled', 'true');
     tr.querySelector('.delete-btn')?.classList.add('btn-disabled');
-    tr.querySelector('.delete-btn')?.setAttribute('title', 'เฉพาะแอดมิน');
   }
-
-  
 }
 
 /* =====================================================
-   Cover: เลือกไฟล์ + ครอบรูป + อัปโหลด
+   Cover
 ===================================================== */
 if (pickCoverBtn && coverFileInput) {
   pickCoverBtn.addEventListener('click', () => coverFileInput.click());
@@ -167,9 +176,6 @@ function openCropModal() {
   cropModal.classList.add('open');
   cropperImage.onload = () => {
     if (cropper) cropper.destroy();
-    // ต้องมี <link/script> ของ cropperjs ใน HTML:
-    // https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css
-    // https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js
     cropper = new Cropper(cropperImage, {
       viewMode: 1,
       dragMode: 'move',
@@ -193,13 +199,13 @@ if (cropCancelBtn) cropCancelBtn.addEventListener('click', closeCropModal);
 if (cropAspectSelect) {
   cropAspectSelect.addEventListener('change', () => {
     if (!cropper) return;
-    const val = cropAspectSelect.value; // "16/9" | "4/3" | "1/1" | "NaN"
+    const val = cropAspectSelect.value;
     let ratio;
     try { ratio = eval(val); } catch { ratio = NaN; }
     cropper.setAspectRatio(isNaN(ratio) ? NaN : ratio);
   });
 }
-if (rotateLeftBtn)  rotateLeftBtn.addEventListener('click',  () => { if (cropper) cropper.rotate(-90); });
+if (rotateLeftBtn) rotateLeftBtn.addEventListener('click', () => { if (cropper) cropper.rotate(-90); });
 if (rotateRightBtn) rotateRightBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
 
 if (cropApplyBtn) {
@@ -233,7 +239,6 @@ if (cropApplyBtn) {
   });
 }
 
-// helper เอาไปใช้ก่อน upsert
 function applyCoverToPayload(payload, galleryArray) {
   if (coverUrl) {
     payload.cover_url = coverUrl;
@@ -243,7 +248,7 @@ function applyCoverToPayload(payload, galleryArray) {
 }
 
 /* =====================================================
-   Gallery Manager (UI + Upload)
+   Gallery Manager
 ===================================================== */
 function renderGalleryManager() {
   if (!galleryManager) return;
@@ -257,25 +262,20 @@ function renderGalleryManager() {
     return;
   }
 
-  // ใช้ .gm-wrap (flex + wrap) ไม่ใช้ inline-style แล้ว
   const wrap = el('div', { className: 'gm-wrap' });
 
   currentGallery.forEach((url, idx) => {
     const card = el('div', { className: 'gm-card' });
+    const img = el('img', {
+      attributes: { src: cldThumb(url, 220, 160), alt: 'gallery-image', loading: 'lazy' }
+    });
 
-const img = el('img', {
-  attributes: { src: cldThumb(url, 220, 160), alt: 'gallery-image', loading: 'lazy' }
-});
-
-
-    // badge "หน้าปก" เฉพาะรูปแรก
     if (idx === 0) {
       const badge = el('div', { className: 'gm-cover-badge' });
       badge.textContent = 'หน้าปก';
       card.append(badge);
     }
 
-    // ปุ่มลบ (ใช้สไตล์เดียวกับลบวิดีโอ)
     const removeBtn = el('button', {
       type: 'button',
       className: 'yt-remove-btn',
@@ -300,7 +300,6 @@ const img = el('img', {
 
   galleryManager.append(wrap);
 
-  // อัปเดตพรีวิวหน้าปกเป็นรูปแรกเสมอ
   const cover = currentGallery[0] || '';
   if (imagePreviewEl) {
     if (cover) { imagePreviewEl.src = cover; imagePreviewEl.style.display = 'block'; }
@@ -308,14 +307,10 @@ const img = el('img', {
   }
 }
 
-
-
-// อัปโหลดรูปเพิ่มเข้าแกลเลอรี (จากเครื่องผู้ใช้)
 if (galleryImagesInput) {
   galleryImagesInput.addEventListener('change', async () => {
     const files = galleryImagesInput.files || [];
     if (!files.length) return;
-
     try {
       const uploaded = await Promise.all(
         Array.from(files).map(async (file) => {
@@ -330,32 +325,27 @@ if (galleryImagesInput) {
           return res.json();
         })
       );
-
       const urls = uploaded.map(x => x.secure_url);
       currentGallery.push(...urls);
       renderGalleryManager();
 
-      // ถ้าไม่มีหน้าปก ให้ตั้งรูปแรกของแกลเลอรีที่เพิ่มมาเป็นพรีวิว
       if (imagePreviewEl && currentGallery.length && !imagePreviewEl.src) {
         imagePreviewEl.src = currentGallery[0];
         imagePreviewEl.style.display = 'block';
       }
 
-      galleryImagesInput.value = ''; // reset เพื่อเลือกไฟล์เดิมซ้ำได้
+      galleryImagesInput.value = '';
     } catch (e) {
       toast('อัปโหลดแกลเลอรีไม่สำเร็จ: ' + e.message, 4000, 'error');
     }
   });
 }
 
-// แปลง Cloudinary URL ให้เป็นรูปย่อ (ถ้าไม่ใช่ Cloudinary จะคืน url เดิม)
 function cldThumb(url, w = 240, h = 160) {
   try {
     const u = new URL(url);
     if (!u.hostname.includes('res.cloudinary.com')) return url;
-    // แทรกทรานส์ฟอร์ม c_fill, f_auto, q_auto, dpr_auto
-    // https://res.cloudinary.com/<cloud>/image/upload/<transforms>/<publicId>...
-    const parts = u.pathname.split('/'); // ["","<cloud>","image","upload", ... ]
+    const parts = u.pathname.split('/');
     const uploadIdx = parts.indexOf('upload');
     if (uploadIdx === -1) return url;
     const transforms = `c_fill,w_${w},h_${h},f_auto,q_auto,dpr_auto`;
@@ -367,21 +357,20 @@ function cldThumb(url, w = 240, h = 160) {
   }
 }
 
-
 /* =====================================================
    Modal Handling
 ===================================================== */
 function openModal() {
   if (modal) {
     modal.classList.add('open');
-    document.body.classList.add('no-scroll'); // <— ล็อกพื้นหลัง
+    document.body.classList.add('no-scroll');
   }
 }
 
 function closeModal() {
   if (!modal || !propertyForm) return;
   modal.classList.remove('open');
-  document.body.classList.remove('no-scroll'); // <— คืนสกรอลพื้นหลัง
+  document.body.classList.remove('no-scroll');
   propertyForm.reset();
   if (propertyForm.elements.id) propertyForm.elements.id.value = '';
   if (imagePreviewEl) { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
@@ -391,12 +380,15 @@ function closeModal() {
 
   if (youtubeIdsContainer) clear(youtubeIdsContainer);
 
-  // รีเซ็ต state
+  // reset state
   currentGallery = [];
   coverUrl = null;
   renderGalleryManager();
 
-  // ปิด + ทำลาย cropper ถ้ายังเปิดค้าง
+  // reset inline POI
+  poiCandidatesInline = [];
+  renderPOIInlineList();
+
   closeCropModal();
 }
 
@@ -421,7 +413,8 @@ function normalizeYoutubeIds(val) {
 function handleEdit(prop) {
   if (modalTitle) modalTitle.textContent = `แก้ไข: ${prop.title || 'ประกาศ'}`;
 
-  // เติมค่าให้ input ต่าง ๆ
+  currentPropertyIdEditing = prop.id || null;
+
   for (const key in prop) {
     if (key === 'youtube_video_ids') continue;
     const elmt = propertyForm.elements[key];
@@ -431,18 +424,15 @@ function handleEdit(prop) {
     else elmt.value = prop[key] ?? '';
   }
 
-  // โหลดแกลเลอรีเดิม
   currentGallery = Array.isArray(prop.gallery) ? [...prop.gallery] : [];
   renderGalleryManager();
 
-  // พรีวิว cover (ถ้าไม่มี ใช้รูปแรกของแกลเลอรี)
   if (imagePreviewEl) {
     const url = prop.cover_url || currentGallery[0] || '';
     if (url) { imagePreviewEl.src = url; imagePreviewEl.style.display = 'block'; }
     else imagePreviewEl.style.display = 'none';
   }
 
-  // YouTube IDs
   if (youtubeIdsContainer) {
     clear(youtubeIdsContainer);
     const ids = normalizeYoutubeIds(prop.youtube_video_ids);
@@ -450,7 +440,11 @@ function handleEdit(prop) {
   }
 
   openModal();
-  setTimeout(() => setupModalMap(prop.latitude, prop.longitude), 100);
+  setTimeout(() => {
+    setupModalMap(prop.latitude, prop.longitude);
+    // โหลด POI เก่าเข้ามาแสดงเป็นรายการติ๊ก (ดึงจาก table)
+    loadExistingPoiForProperty(prop.id, prop.latitude, prop.longitude);
+  }, 100);
 }
 
 /* =====================================================
@@ -484,13 +478,19 @@ propertyForm?.addEventListener('submit', async (e) => {
   const newIds = Array.from(videoIdInputs).map(i => parseYouTubeId(i.value)).filter(Boolean);
   payload.youtube_video_ids = Array.from(new Set(newIds));
 
-  // gallery และ cover
+  // gallery & cover
   payload.gallery = [...currentGallery];
-  payload.cover_url = payload.gallery.length ? payload.gallery[0] : null; // รูปแรกเสมอ
+  payload.cover_url = payload.gallery.length ? payload.gallery[0] : null;
 
   try {
-    const { error } = await upsertProperty(payload);
+    // 1) บันทึก property ก่อน
+    const { data, error } = await upsertProperty(payload);
     if (error) throw error;
+
+    const newPropId = data?.id || payload.id;
+    // 2) บันทึก POI ที่เลือกไว้ (inline)
+    await saveInlinePois(newPropId, payload.latitude, payload.longitude);
+
     toast('บันทึกข้อมูลสำเร็จ!', 2000, 'success');
     closeModal();
     loadProperties();
@@ -548,7 +548,6 @@ function createYoutubeIdInput(videoId = '') {
   return itemDiv;
 }
 
-// ครอบคลุม watch?v=, youtu.be/, /shorts/
 function parseYouTubeId(input) {
   const raw = (input || '').trim();
   if (!raw) return '';
@@ -566,7 +565,7 @@ function parseYouTubeId(input) {
 }
 
 /* =====================================================
-   แผนที่ (Leaflet)
+   แผนที่ (Leaflet) + Inline POI
 ===================================================== */
 function setupModalMap(lat, lng) {
   if (!propertyForm) return;
@@ -592,566 +591,64 @@ function setupModalMap(lat, lng) {
       modalMap = L.map('modal-map').setView([startLat, startLng], 15);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(modalMap);
       draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
-      draggableMarker.on('dragend', (event) => {
+      draggableMarker.on('dragend', async (event) => {
         const pos = event.target.getLatLng();
         if (latInput) latInput.value = pos.lat.toFixed(6);
         if (lngInput) lngInput.value = pos.lng.toFixed(6);
+        // 👇 ลากหมุดแล้วโหลด POI ใหม่
+        await fetchNearbyPOIInline(pos.lat, pos.lng);
       });
     }
+    // เปิดมาให้โหลดเลย
+    fetchNearbyPOIInline(startLat, startLng);
   } catch {
     mapContainer.innerHTML = '<p style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดแผนที่</p>';
   }
 }
 
-/* =====================================================
-   เติมสถานที่ใกล้เคียง (Edge Function)
-===================================================== */
-async function fillPOI(propertyId) {
-  const btn = document.querySelector(`tr[data-id="${propertyId}"] .btn-fill-poi`);
+// โหลด POI จาก edge function เดิม แล้วให้ผู้ใช้เลือกในฟอร์มได้
+async function fetchNearbyPOIInline(lat, lng) {
+  if (!poiInlineBox) return;
   try {
-    btn && (btn.disabled = true, btn.textContent = 'กำลังสร้าง…');
-    toast('⏳ กำลังสร้างข้อมูลสถานที่ใกล้เคียง...', 3000, 'info');
-
+    poiInlineBox.classList.add('loading');
+    // เรียกฟังก์ชันบน supabase ที่กุ้งมี (เหมือนปุ่ม “เติมสถานที่ใกล้เคียง” แต่มาแค่รายการ)
     const { data, error } = await supabase.functions.invoke('fill_poi', {
-      body: { property_id: propertyId },
+      body: {
+        lat,
+        lng,
+        preview: true,    // ให้ฝั่ง function เข้าใจว่าเอาแค่ list
+        limit: 5
+      }
     });
     if (error) throw error;
-
-    const pois = Array.isArray(data?.items) ? data.items : [];
-    toast(`✅ สร้างข้อมูลสถานที่ใกล้เคียง ${data?.inserted ?? pois.length} จุดสำเร็จ!`, 2000, 'success');
-
-    const title  = document.querySelector(`tr[data-id="${propertyId}"] td:first-child`)?.textContent?.trim() || 'ประกาศ';
-    const center = (typeof data?.lat === 'number' && typeof data?.lng === 'number')
-      ? { lat: data.lat, lng: data.lng }
-      : null;
-
-    showPOIModal(title, pois, center);
+    // สมมติฝั่ง function ส่ง { items: [...] }
+    poiCandidatesInline = Array.isArray(data?.items) ? data.items.slice(0, 5) : [];
+    renderPOIInlineList();
   } catch (err) {
-    console.error('fillPOI error:', err);
-    toast('❌ เกิดข้อผิดพลาด: ' + err.message, 4000, 'error');
+    console.error('fetchNearbyPOIInline error:', err);
+    toast('โหลดสถานที่ใกล้เคียงไม่สำเร็จ', 2500, 'error');
+    poiCandidatesInline = [];
+    renderPOIInlineList();
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'เติมสถานที่ใกล้เคียง'; }
+    poiInlineBox.classList.remove('loading');
   }
 }
 
-/* =====================================================
-   Modal แสดงผล POI ใกล้เคียง
-===================================================== */
-const poiModal = $('#poi-modal');
-const poiModalBody = $('#poi-modal-body');
-const poiModalTitle = $('#poi-modal-title');
-const poiModalClose = $('#poi-modal-close');
-const poiModalOk = $('#poi-modal-ok');
+function renderPOIInlineList() {
+  if (!poiInlineList) return;
 
-// วางไว้ใกล้ ๆ ส่วน Modal แสดงผล POI
-let poiMiniMap = null;
-let poiMiniMapLayerGroup = null;
+  clear(poiInlineList);
 
-// แปลประเภทให้เป็นไทยแบบกว้าง ๆ
-function thaiType(t = '') {
-  const m = t.toLowerCase();
-  if (m.includes('convenience')) return 'ร้านสะดวกซื้อ';
-  if (m.includes('supermarket') || m.includes('mall') || m.includes('department')) return 'ซูเปอร์/ห้าง';
-  if (m.includes('cafe')) return 'คาเฟ่';
-  if (m.includes('restaurant')) return 'ร้านอาหาร';
-  if (m.includes('school') || m.includes('college') || m.includes('university') || m.includes('kindergarten')) return 'สถานศึกษา';
-  if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return 'สถานพยาบาล';
-  if (m.includes('bank') || m.includes('atm')) return 'ธนาคาร/เอทีเอ็ม';
-  if (m.includes('police')) return 'สถานีตำรวจ';
-  if (m.includes('post_office')) return 'ไปรษณีย์';
-  if (m.includes('fuel')) return 'ปั๊มน้ำมัน';
-  if (m.includes('bus') || m.includes('taxi')) return 'ขนส่งสาธารณะ';
-  if (m.includes('library')) return 'ห้องสมุด';
-  if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return 'แหล่งท่องเที่ยว';
-  return 'สถานที่';
-}
-
-function typeEmoji(t = '') {
-  const m = t.toLowerCase();
-  if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
-  if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return '🏥';
-  if (m.includes('bank') || m.includes('atm')) return '🏧';
-  if (m.includes('police')) return '👮';
-  if (m.includes('post_office')) return '📮';
-  if (m.includes('fuel')) return '⛽';
-  if (m.includes('cafe')) return '☕';
-  if (m.includes('restaurant')) return '🍽️';
-  if (m.includes('supermarket') || m.includes('convenience') || m.includes('mall')) return '🛒';
-  if (m.includes('bus') || m.includes('taxi')) return '🚌';
-  if (m.includes('library')) return '📚';
-  if (m.includes('museum') || m.includes('zoo') || m.includes('aquarium') || m.includes('attraction')) return '🎡';
-  return '📍';
-}
-
-function renderMiniMap(containerId, center, pois = []) {
-  // ทำลายของเก่าถ้ามี
-  if (poiMiniMap) { poiMiniMap.remove(); poiMiniMap = null; poiMiniMapLayerGroup = null; }
-
-  poiMiniMap = L.map(containerId, { zoomControl: false, attributionControl: false });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(poiMiniMap);
-
-  poiMiniMapLayerGroup = L.layerGroup().addTo(poiMiniMap);
-
-  const bounds = [];
-
-  // พินบ้าน (ถ้ามีพิกัด)
-  if (center && Number.isFinite(center.lat) && Number.isFinite(center.lng)) {
-    const homeMarker = L.circleMarker([center.lat, center.lng], {
-      radius: 6, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9
-    }).bindTooltip('ตำแหน่งบ้าน', { direction: 'top' });
-    homeMarker.addTo(poiMiniMapLayerGroup);
-    bounds.push([center.lat, center.lng]);
+  if (!poiCandidatesInline.length) {
+    poiInlineList.innerHTML = `<li class="poi-inline-empty">ยังไม่มีสถานที่ใกล้เคียง (ลองกด "ค้นหาจากพิกัดนี้")</li>`;
+    return;
   }
 
-  // พิน POI เล็ก ๆ
-  pois.forEach(p => {
-    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-    const marker = L.circleMarker([p.lat, p.lng], {
-      radius: 4, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: 0.9
-    }).bindTooltip(`${p.name || 'สถานที่'} — ${thaiType(p.type || p.category)}`, { direction: 'top' });
-    marker.addTo(poiMiniMapLayerGroup);
-    bounds.push([p.lat, p.lng]);
-  });
-
-  if (bounds.length >= 2) poiMiniMap.fitBounds(bounds, { padding: [12, 12], maxZoom: 16 });
-  else if (bounds.length === 1) poiMiniMap.setView(bounds[0], 15);
-  else poiMiniMap.setView([13.736, 100.523], 12); // fallback กรุงเทพ
-}
-
-function showPOIModal(title, pois = [], center = null) {
-  if (!poiModal) return;
-
-  poiModalTitle.textContent = `🏠 ${title}`;
-  clear(poiModalBody);
-
-  // ถ้าไม่มีข้อมูลเลย ก็ยังแสดงมินิแมพตำแหน่งบ้านได้
-  const hasPOI = Array.isArray(pois) && pois.length > 0;
-
-  // ทำลิสต์ (แสดง 5 รายการแรก)
-  const esc = (s='') => String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-
-  const itemsHtml = hasPOI ? pois.slice(0,5).map((p, idx) => {
-    const km = typeof p.distance_km === 'number' ? p.distance_km
-              : typeof p.distance_m === 'number' ? p.distance_m/1000 : NaN;
-    const t  = thaiType(p.type || p.category || '');
-    const gmaps = (Number.isFinite(p.lat) && Number.isFinite(p.lng))
-      ? ` <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener">ดูแผนที่</a>` : '';
-    const line = `
-      <li style="padding:.35rem 0;">
-        <strong>${typeEmoji(p.type || p.category)} ${esc(p.name || '(ไม่ทราบชื่อ)')}</strong>
-        — ${Number.isFinite(km) ? km.toFixed(2) : '-'} กม.
-        <span style="color:var(--text-light)">(${esc(t)})</span>${gmaps}
-      </li>`;
-    return idx < 4 ? line + '<hr class="poi-hr"/>' : line;
-  }).join('') : '<li style="color:var(--text-light);padding:.35rem 0;">ไม่พบสถานที่ใกล้เคียง</li>';
-
-  // เติม HTML: มินิแมพ + รายการ
-  poiModalBody.innerHTML = `
-    <div id="poi-mini-map" class="mini-map"></div>
-    <ul class="poi-list">${itemsHtml}</ul>
-  `;
-
-  // สร้างมินิแมพ
-  setTimeout(() => renderMiniMap('poi-mini-map', center, pois), 0);
-
-  poiModal.classList.add('open');
-}
-
-
-function closePOIModal() {
-  if (poiModal) poiModal.classList.remove('open');
-  if (poiMiniMap) { poiMiniMap.remove(); poiMiniMap = null; poiMiniMapLayerGroup = null; }
-}
-
-if (poiModalClose) poiModalClose.addEventListener('click', closePOIModal);
-if (poiModalOk) poiModalOk.addEventListener('click', closePOIModal);
-window.addEventListener('click', (e) => { if (e.target === poiModal) closePOIModal(); });
-
-// ===== Role Detection (Admin / Viewer) =====
-let IS_ADMIN = false;
-
-async function detectRoleAndRender() {
-  try {
-    // เรียก RPC ฟังก์ชัน is_admin() ที่ทำใน SQL ข้อ 1
-    const { data, error } = await supabase.rpc('is_admin');
-    if (error) throw error;
-
-    IS_ADMIN = !!data;
-
-    // หา/สร้างตำแหน่งแสดงผล
-    let badge = document.getElementById('role-indicator');
-    if (!badge) {
-      const h1 = document.querySelector('main h1');
-      badge = el('div', { id: 'role-indicator' });
-      if (h1 && h1.parentElement) {
-        h1.insertAdjacentElement('afterend', badge);
-      } else {
-        (document.querySelector('main') || document.body).prepend(badge);
-      }
-    }
-
-    // แต่งข้อความ + สไตล์
-    badge.textContent = IS_ADMIN ? 'คุณคือแอดมิน ✅  (จัดการข้อมูลได้ทุกอย่าง)' 
-                                 : 'คุณคือผู้ใช้งานทั่วไป 🔒  (โหมดอ่านอย่างเดียว)';
-    badge.style.cssText = `
-      display:inline-block;margin:.25rem 0 1rem 0;padding:.35rem .6rem;border-radius:999px;
-      font-size:.9rem;line-height:1;background:${IS_ADMIN ? '#dcfce7' : '#e5e7eb'};
-      color:${IS_ADMIN ? '#14532d' : '#374151'};border:1px solid ${IS_ADMIN ? '#86efac' : '#d1d5db'};
-    `;
-
-    // ถ้าไม่ใช่แอดมิน → ล็อก/พรางปุ่มที่เป็นงาน admin-only
-    if (!IS_ADMIN) {
-      addPropertyBtn?.setAttribute('disabled', 'true');
-      addPropertyBtn?.classList.add('btn-disabled');
-      addPropertyBtn?.setAttribute('title', 'ปุ่มนี้ใช้ได้เฉพาะแอดมิน');
-      // ซ่อนปุ่มแก้ไข/ลบในตารางหลังจาก render เสร็จ
-      hideAdminControlsInTable();
-    }
-  } catch (e) {
-    console.error('detectRoleAndRender error:', e);
-  }
-}
-
-// เรียกซ้ำหลัง render ตาราง เพื่อซ่อนปุ่ม edit/delete ถ้าไม่ใช่แอดมิน
-function hideAdminControlsInTable() {
-  if (IS_ADMIN) return;
-  // ปุ่มในแถว: .edit-btn, .delete-btn
-  $$('.edit-btn')?.forEach(btn => { btn.disabled = true; btn.style.opacity = .4; btn.title = 'เฉพาะแอดมิน'; });
-  $$('.delete-btn')?.forEach(btn => { btn.disabled = true; btn.style.opacity = .4; btn.title = 'เฉพาะแอดมิน'; });
-}
-
-
-/* =====================================================
-   Init
-===================================================== */
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    await protectPage();
-    setupNav();
-    signOutIfAny();
-    setupMobileNav();
-
-    // 🔐 ตรวจสิทธิ์ก่อน แล้วค่อยโหลดข้อมูล
-    await detectRoleAndRender();
-
-    // ปุ่มเพิ่มประกาศ (ล็อกไว้ถ้าไม่ใช่แอดมิน — โค้ดใน detectRoleAndRender จะจัดการ)
-    if (addPropertyBtn) {
-      addPropertyBtn.addEventListener('click', () => {
-        if (!IS_ADMIN) return; // กันเผื่อไว้
-        if (youtubeIdsContainer) {
-          clear(youtubeIdsContainer);
-          youtubeIdsContainer.append(createYoutubeIdInput());
-        }
-        currentGallery = [];
-        coverUrl = null;
-        renderGalleryManager();
-        if (imagePreviewEl) { imagePreviewEl.src = ''; imagePreviewEl.style.display = 'none'; }
-        openModal();
-        setTimeout(() => setupModalMap(), 100);
-      });
-    }
-
-    // ปุ่ม + YouTube …
-    const MAX_YT = 5;
-    if (addYoutubeIdBtn && youtubeIdsContainer) {
-      addYoutubeIdBtn.addEventListener('click', () => {
-        const count = $$('#youtube-ids-container .youtube-id-input').length;
-        if (count >= MAX_YT) {
-          toast(`ใส่ได้สูงสุด ${MAX_YT} คลิป`, 3000, 'error');
-          return;
-        }
-        youtubeIdsContainer.append(createYoutubeIdInput());
-      });
-    }
-
-    await loadProperties();     // โหลดตารางหลังรู้สิทธิ์
-    hideAdminControlsInTable(); // กันเหนียว เรียกอีกครั้งหลัง render แล้ว
-  } catch (initError) {
-    console.error('Initialization error:', initError);
-    if (tableBody) {
-      tableBody.innerHTML = `<tr><td colspan="5" style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ</td></tr>`;
-    }
-  }
-
-  // ปิดโมดัล…
-  if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
-  if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
-  window.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-});
-
-// ⬇️ ถ้ายังไม่มี ให้เพิ่ม import นี้ไว้ด้านบนของ dashboard.page.js
-import {
-  ensureLeafletLoaded, initMap, createMiniMap,
-  addPrecisionControl, addCopyButton, addOpenInGoogleControl,
-  addPoiLegendControl, addCopyMenuControl, iconForPoiType, brandIcon
-} from '../ui/leafletMap.js';
-
-
-// === POI Manager (Dashboard Modal) ===
-
-function kmDistance(lat1, lon1, lat2, lon2){
-  const toRad = (d)=> d*Math.PI/180;
-  const R=6371, dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function createPoiModal(){
-  const backdrop = document.createElement('div');
-  backdrop.className = 'poi-modal-backdrop';
-  const modal = document.createElement('div');
-  modal.className = 'poi-modal';
-  backdrop.appendChild(modal);
-
-  modal.innerHTML = `
-    <div class="poi-modal-header">
-      <div class="poi-modal-title">จัดการสถานที่ใกล้เคียง (POI)</div>
-      <button class="poi-modal-close">ปิด</button>
-    </div>
-    <div class="poi-modal-body">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <label style="font-size:12px;">Property ID:
-          <input id="poi-prop-id" class="form-control" style="width:140px;margin-left:6px" placeholder="เช่น 395">
-        </label>
-        <label style="font-size:12px;">Latitude:
-          <input id="poi-prop-lat" class="form-control" style="width:140px;margin-left:6px" placeholder="บ้าน lat">
-        </label>
-        <label style="font-size:12px;">Longitude:
-          <input id="poi-prop-lng" class="form-control" style="width:140px;margin-left:6px" placeholder="บ้าน lng">
-        </label>
-        <button id="poi-load" class="poi-btn">โหลด POI</button>
-      </div>
-
-      <div class="poi-grid" style="margin-top:10px">
-        <div>
-          <div id="poi-map" style="height:380px;border-radius:12px;overflow:hidden;background:#f3f4f6"></div>
-
-          <div class="poi-form">
-            <label>ชื่อสถานที่
-              <input id="poi-name" class="form-control" placeholder="เช่น โรงพยาบาลทักษิณ">
-            </label>
-            <label>ประเภท
-              <select id="poi-type" class="form-control">
-                <option value="hospital">โรงพยาบาล/คลินิก</option>
-                <option value="school">โรงเรียน/มหาวิทยาลัย</option>
-                <option value="supermarket">ห้าง/ซูเปอร์/คอนวีเนียน</option>
-                <option value="government">ราชการ/ตำรวจ/ไปรษณีย์</option>
-              </select>
-            </label>
-            <label>Latitude <input id="poi-lat" class="form-control" type="number" step="any"></label>
-            <label>Longitude <input id="poi-lng" class="form-control" type="number" step="any"></label>
-          </div>
-          <div class="poi-actions">
-            <button id="poi-add" class="poi-btn">เพิ่ม</button>
-            <button id="poi-update" class="poi-btn" style="display:none">อัปเดต</button>
-            <button id="poi-cancel" class="poi-btn secondary" type="button">ล้างฟอร์ม</button>
-          </div>
-        </div>
-        <div>
-          <table class="poi-table">
-            <thead>
-              <tr><th>ชื่อ</th><th>ประเภท</th><th>ระยะ (กม.)</th><th></th></tr>
-            </thead>
-            <tbody id="poi-tbody"><tr><td colspan="4" style="color:#6b7280">ยังไม่มีข้อมูล</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-
-  modal.querySelector('.poi-modal-close').addEventListener('click', ()=> backdrop.remove());
-  backdrop.addEventListener('click', (e)=> { if (e.target===backdrop) backdrop.remove(); });
-  document.body.appendChild(backdrop);
-  return { backdrop, modal };
-}
-
-async function openPoiManager(prefill={}){
-  const { backdrop, modal } = createPoiModal();
-  const propIdEl = modal.querySelector('#poi-prop-id');
-  const propLatEl = modal.querySelector('#poi-prop-lat');
-  const propLngEl = modal.querySelector('#poi-prop-lng');
-  const loadBtn  = modal.querySelector('#poi-load');
-  const nameEl   = modal.querySelector('#poi-name');
-  const typeEl   = modal.querySelector('#poi-type');
-  const latEl    = modal.querySelector('#poi-lat');
-  const lngEl    = modal.querySelector('#poi-lng');
-  const addBtn   = modal.querySelector('#poi-add');
-  const updBtn   = modal.querySelector('#poi-update');
-  const cancelBtn= modal.querySelector('#poi-cancel');
-  const tbody    = modal.querySelector('#poi-tbody');
-  const mapDiv   = modal.querySelector('#poi-map');
-
-  // prefill (ถ้ามี)
-  if (prefill.property_id) propIdEl.value = prefill.property_id;
-  if (prefill.lat) propLatEl.value = prefill.lat;
-  if (prefill.lng) propLngEl.value = prefill.lng;
-
-  // init Leaflet map
-  ensureLeafletLoaded();
-  const { map, marker } = initMap({
-    el: mapDiv,
-    lat: Number(propLatEl.value || '13.736'),
-    lng: Number(propLngEl.value || '100.523'),
-    zoom: 15
-  });
-  try { marker.setIcon(brandIcon({ url: '/assets/img/praweena-pin.png' })); } catch {}
-
-  // เครื่องมือบนแผนที่
-  const getPrec = addPrecisionControl(map, { defaultPrecision: 6 });
-  addCopyButton(map, { precision: getPrec, getLatLng: ()=> map.getCenter() });
-  addCopyMenuControl(map, { precision: getPrec, getLatLng: ()=> map.getCenter(), defaultFormat:'leaflet' });
-  addOpenInGoogleControl(map, { precision: 6 });
-  addPoiLegendControl(map);
-
-  // คลิกวางหมุดเพื่อกรอก lat/lng
-  let poiMarker = null;
-  map.on('click', (e)=>{
-    const { lat, lng } = e.latlng;
-    latEl.value = Number(lat).toFixed(getPrec());
-    lngEl.value = Number(lng).toFixed(getPrec());
-    if (poiMarker) map.removeLayer(poiMarker);
-    poiMarker = L.marker([lat, lng], { icon: iconForPoiType(typeEl.value) }).addTo(map);
-  });
-
-  // state
-  let editingId = null;
-  let cache = [];
-
-  function renderRows(){
-    if (!cache.length){
-      tbody.innerHTML = '<tr><td colspan="4" style="color:#6b7280">ยังไม่มีข้อมูล</td></tr>';
-      return;
-    }
-    tbody.innerHTML = cache.map((p, i)=>{
-      const km = (typeof p.distance_km==='number') ? p.distance_km.toFixed(2) : '-';
-      return `<tr data-i="${i}">
-        <td><span class="poi-chip"><span>${p.name}</span></span></td>
-        <td><span class="poi-badge">${p.type}</span></td>
-        <td>${km}</td>
-        <td>
-          <button class="poi-btn" data-act="edit" data-i="${i}">แก้ไข</button>
-          <button class="poi-btn secondary" data-act="del" data-i="${i}">ลบ</button>
-        </td>
-      </tr>`;
-    }).join('');
-  }
-
-  async function loadList(){
-    const pid = Number(propIdEl.value);
-    if (!pid){ alert('กรุณาใส่ Property ID'); return; }
-    const { data, error } = await supabase
-      .from('property_poi')
-      .select('id,property_id,name,type,lat,lng,distance_km')
-      .eq('property_id', pid)
-      .order('distance_km', { ascending: true });
-    if (error){ console.error(error); alert(error.message); return; }
-    cache = data || [];
-    renderRows();
-  }
-
-  function resetForm(){
-    editingId = null;
-    updBtn.style.display = 'none';
-    addBtn.style.display = '';
-    nameEl.value=''; typeEl.value='hospital'; latEl.value=''; lngEl.value='';
-    if (poiMarker){ map.removeLayer(poiMarker); poiMarker=null; }
-  }
-
-  loadBtn.addEventListener('click', async ()=>{
-    const la = Number(propLatEl.value), ln = Number(propLngEl.value);
-    if (Number.isFinite(la) && Number.isFinite(ln)) map.setView([la, ln], 15);
-    await loadList();
-  });
-
-  cancelBtn.addEventListener('click', resetForm);
-
-  tbody.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('button'); if (!btn) return;
-    const i = Number(btn.dataset.i); const act = btn.dataset.act;
-    const row = cache[i]; if (!row) return;
-
-    if (act==='edit'){
-      editingId = row.id;
-      nameEl.value = row.name || '';
-      typeEl.value = row.type || 'hospital';
-      latEl.value = row.lat ?? '';
-      lngEl.value = row.lng ?? '';
-      updBtn.style.display = '';
-      addBtn.style.display = 'none';
-      if (poiMarker){ map.removeLayer(poiMarker); poiMarker=null; }
-      if (Number.isFinite(row.lat) && Number.isFinite(row.lng)){
-        poiMarker = L.marker([row.lat, row.lng], { icon: iconForPoiType(row.type) }).addTo(map);
-        map.setView([row.lat, row.lng], 16);
-      }
-    }
-
-    if (act==='del'){
-      if (!confirm('ลบรายการนี้?')) return;
-      const { error } = await supabase.from('property_poi').delete().eq('id', row.id);
-      if (error){ alert(error.message); return; }
-      cache.splice(i,1); renderRows();
-    }
-  });
-
-  addBtn.addEventListener('click', async ()=>{
-    const pid = Number(propIdEl.value);
-    const la = Number(propLatEl.value), ln = Number(propLngEl.value);
-    const name = nameEl.value.trim(); const type = typeEl.value;
-    const plat = Number(latEl.value), plng = Number(lngEl.value);
-    if (!pid || !name || !Number.isFinite(plat) || !Number.isFinite(plng)){
-      alert('กรุณากรอก Property ID, ชื่อ, และพิกัดให้ครบ'); return;
-    }
-    const dist = (Number.isFinite(la)&&Number.isFinite(ln)) ? kmDistance(la, ln, plat, plng) : null;
-    const { data, error } = await supabase.from('property_poi')
-      .insert([{ property_id: pid, name, type, lat: plat, lng: plng, distance_km: dist }])
-      .select('*').single();
-    if (error){ alert(error.message); return; }
-    cache.push(data);
-    cache.sort((a,b)=>(a.distance_km??1e9)-(b.distance_km??1e9));
-    renderRows(); resetForm();
-  });
-
-  updBtn.addEventListener('click', async ()=>{
-    if (!editingId){ return; }
-    const la = Number(propLatEl.value), ln = Number(propLngEl.value);
-    const name = nameEl.value.trim(); const type = typeEl.value;
-    const plat = Number(latEl.value), plng = Number(lngEl.value);
-    if (!name || !Number.isFinite(plat) || !Number.isFinite(plng)){
-      alert('กรุณากรอกชื่อ และพิกัดให้ครบ'); return;
-    }
-    const dist = (Number.isFinite(la)&&Number.isFinite(ln)) ? kmDistance(la, ln, plat, plng) : null;
-    const { data, error } = await supabase.from('property_poi')
-      .update({ name, type, lat: plat, lng: plng, distance_km: dist })
-      .eq('id', editingId)
-      .select('*').single();
-    if (error){ alert(error.message); return; }
-    const idx = cache.findIndex(x=>x.id===editingId); if (idx>-1) cache[idx]=data;
-    cache.sort((a,b)=>(a.distance_km??1e9)-(b.distance_km??1e9));
-    renderRows(); resetForm();
-  });
-
-  return { close: ()=> backdrop.remove() };
-}
-
-// ปุ่มลอยเปิด POI Manager (มุมขวาล่าง)
-function installPoiLaunchButtons(){
-  if (document.querySelector('.poi-launch')) return;
-  const box = document.createElement('div');
-  box.className = 'poi-launch';
-  const btn = document.createElement('button');
-  btn.className = 'poi-btn';
-  btn.textContent = 'Manage Nearby (POI)';
-  btn.addEventListener('click', ()=> openPoiManager());
-  box.appendChild(btn);
-  document.body.appendChild(box);
-}
-
-// ติดตั้งปุ่มหลัง DOM พร้อม
-document.addEventListener('DOMContentLoaded', () => {
-  try { installPoiLaunchButtons(); } catch(_) {}
-});
-
-// เผื่อเรียกเปิดพร้อม prefill จากส่วนอื่น ๆ
-window.openPoiManager = openPoiManager;
+  poiCandidatesInline.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.className = 'poi-inline-item';
+    li.innerHTML = `
+      <label class="poi-inline-row">
+        <input type="checkbox" class="poi-inline-check" data-i="${i}" checked>
+        <span class="poi-inline-name">${p.name || 'สถานที่'}</span>
+        <span class="poi-inline-meta">${(p.distance_km ?? p.distance_m/1000 ?? 0).toFixed
