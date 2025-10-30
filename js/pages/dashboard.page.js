@@ -139,6 +139,44 @@ async function fetchNearbyPOIInline(lat, lng) {
   }
 }
 
+// รวมรายการ POI ที่ "เคยบันทึก" + "ระบบแนะนำ" แล้วตัดซ้ำ
+function mergePoiLists(savedList = [], suggestedList = []) {
+  const out = [];
+  const keySet = new Set();
+
+  // ตัวช่วยสร้าง key กันซ้ำ (ใช้ชื่อ+lat+lng)
+  const makeKey = (p) => {
+    const name = (p.name || '').trim().toLowerCase();
+    const lat  = Number(p.lat).toFixed(6);
+    const lng  = Number(p.lng).toFixed(6);
+    return `${name}|${lat}|${lng}`;
+  };
+
+  // 1) ใส่ที่บันทึกจริงก่อน (พวกนี้ต้องติ๊ก)
+  savedList.forEach(p => {
+    const k = makeKey(p);
+    if (keySet.has(k)) return;
+    keySet.add(k);
+    out.push({
+      ...p,
+      __saved: true,   // <<== ตัวบอกว่ามาจากฐาน
+    });
+  });
+
+  // 2) ใส่ที่ระบบแนะนำ (แต่ยังไม่บันทึกจริง)
+  suggestedList.forEach(p => {
+    const k = makeKey(p);
+    if (keySet.has(k)) return;
+    keySet.add(k);
+    out.push({
+      ...p,
+      __saved: false,
+    });
+  });
+
+  return out;
+}
+
 // ============================================================
 // โหลด POI ที่เคยบันทึกของบ้านนี้ — สำหรับตอนแก้ไข
 // ============================================================
@@ -148,36 +186,49 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     listEl.innerHTML = '<li style="color:#6b7280;">กำลังโหลดสถานที่ที่บันทึกไว้...</li>';
   }
 
-  if (!propertyId) {
-    poiCandidatesInline = [];
-    if (listEl) listEl.innerHTML = '<li style="color:#9ca3af;">ยังไม่มีสถานที่ใกล้เคียงสำหรับประกาศนี้</li>';
-    return;
+  // 1) ดึงจากตารางจริงก่อน (อันนี้คือที่เคยติ๊กแล้ว)
+  let saved = [];
+  if (propertyId) {
+    const { data, error } = await supabase
+      .from('property_poi')
+      .select('id, name, type, lat, lng, distance_km')
+      .eq('property_id', propertyId)
+      .order('distance_km', { ascending: true });
+
+    if (!error && Array.isArray(data)) {
+      saved = data.map(row => ({
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        lat: row.lat,
+        lng: row.lng,
+        distance_km: row.distance_km
+      }));
+    }
   }
 
-  const { data, error } = await supabase
-    .from('property_poi')
-    .select('id, name, type, lat, lng, distance_km')
-    .eq('property_id', propertyId)
-    .order('distance_km', { ascending: true });
-
-  if (error) {
-    console.error('loadPoisForProperty error:', error);
-    poiCandidatesInline = [];
-    renderPOIInlineList();
-    return;
+  // 2) เรียก edge function มาแนะนำเพิ่ม (แต่ไม่บังคับ ถ้าเรียก fail ก็ยังโชว์ของเดิม)
+  let suggested = [];
+  if (Number.isFinite(Number(baseLat)) && Number.isFinite(Number(baseLng))) {
+    try {
+      const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
+        body: { lat: baseLat, lng: baseLng, preview: true, limit: 5 }
+      });
+      if (!sErr && Array.isArray(sData?.items)) {
+        suggested = sData.items;
+      }
+    } catch (e) {
+      // ถ้าเรียกไม่สำเร็จก็แค่ใช้ saved อย่างเดียว
+    }
   }
 
-  poiCandidatesInline = (data || []).map(row => ({
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    lat: row.lat,
-    lng: row.lng,
-    distance_km: row.distance_km
-  }));
+  // 3) รวมสองกอง แล้วเก็บลง state กลาง
+  poiCandidatesInline = mergePoiLists(saved, suggested);
 
+  // 4) วาดใหม่
   renderPOIInlineList();
 }
+
 
 // ============================================================
 // แสดงลิสต์ POI ในฟอร์ม
@@ -200,7 +251,7 @@ function renderPOIInlineList() {
     const li = document.createElement('li');
     li.innerHTML = `
       <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
-        <input type="checkbox" data-i="${i}" checked>
+        <input type="checkbox" data-i="${i}" ${p.__saved ? 'checked' : ''}>
         <span>${poiEmoji(p.type)} ${p.name}</span>
         <small style="color:#6b7280;">${p.type || ''} • ${km} กม.</small>
       </label>
