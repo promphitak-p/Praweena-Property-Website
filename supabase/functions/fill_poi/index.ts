@@ -5,12 +5,24 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /* ---------------- Config ---------------- */
 const DEFAULT_RADIUS_M = 2000;
 const MAX_RESULTS = 60;
-const AMENITY = ["school","college","university","hospital","clinic","pharmacy","bank","atm","police","post_office","bus_station","taxi","fuel","cafe","restaurant","library","kindergarten"];
-const SHOP = ["supermarket","convenience","mall","department_store","bakery","greengrocer"];
+const AMENITY = [
+  "school","college","university",
+  "hospital","clinic","pharmacy",
+  "bank","atm","police","post_office",
+  "bus_station","taxi","fuel",
+  "cafe","restaurant","library","kindergarten"
+];
+const SHOP = [
+  "supermarket","convenience","mall",
+  "department_store","bakery","greengrocer"
+];
 const TOURISM = ["attraction","museum","zoo","aquarium"];
 
 /* ---------------- CORS ---------------- */
-const ALLOWED_ORIGINS = ["https://praweena-property-website.vercel.app","http://localhost:3000"];
+const ALLOWED_ORIGINS = [
+  "https://praweena-property-website.vercel.app",
+  "http://localhost:3000"
+];
 function corsHeaders(req: Request) {
   const origin = req.headers.get("origin") ?? "";
   const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -28,8 +40,71 @@ function haversine(lat1:number, lon1:number, lat2:number, lon2:number){
   const toRad = (d:number)=> d*Math.PI/180;
   const dLat = toRad(lat2-lat1);
   const dLon = toRad(lon2-lon1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  const a = Math.sin(dLat/2)**2
+    + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return 2*R*Math.asin(Math.sqrt(a));
+}
+
+// ดึงจาก Overpass แล้วคืนเป็น array
+async function fetchOSMPOI(lat:number, lng:number, radius:number, categories?:{
+  amenity?: string[];
+  shop?: string[];
+  tourism?: string[];
+}) {
+  const amenityList = (categories?.amenity?.length ? categories.amenity : AMENITY).join("|");
+  const shopList    = (categories?.shop?.length    ? categories.shop    : SHOP).join("|");
+  const tourList    = (categories?.tourism?.length ? categories.tourism : TOURISM).join("|");
+
+  const overpass = "https://overpass-api.de/api/interpreter";
+  const query = `
+    [out:json][timeout:25];
+    (
+      node(around:${radius},${lat},${lng})[amenity~"${amenityList}"];
+      node(around:${radius},${lat},${lng})[shop~"${shopList}"];
+      node(around:${radius},${lat},${lng})[tourism~"${tourList}"];
+    );
+    out body;
+  `;
+
+  const osmRes = await fetch(overpass, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ data: query }),
+  });
+
+  if (!osmRes.ok) {
+    const txt = await osmRes.text().catch(() => "");
+    throw new Error(`Overpass error: ${txt}`);
+  }
+
+  const osm = await osmRes.json();
+
+  const pois = (osm?.elements ?? [])
+    .filter((e:any) => e?.lat && e?.lon)
+    .map((e:any) => {
+      const name = e?.tags?.name ?? e?.tags?.["name:th"] ?? e?.tags?.brand ?? "ไม่ทราบชื่อ";
+      const type = e?.tags?.amenity ?? e?.tags?.shop ?? e?.tags?.tourism ?? "poi";
+      const pLat = Number(e.lat);
+      const pLng = Number(e.lon);
+      const distance_m = Math.round(haversine(lat, lng, pLat, pLng));
+      return {
+        name,
+        type,
+        lat: pLat,
+        lng: pLng,
+        distance_m,
+        ext_source: "osm",
+        ext_id: `${e.type}:${e.id}`,
+        raw: { tags: e.tags ?? {} },
+      };
+    })
+    // ตัดอันที่ไม่มีชื่อออก
+    .filter((p:any) => p.name && p.name !== "ไม่ทราบชื่อ")
+    // เรียงใกล้ → ไกล
+    .sort((a:any,b:any) => a.distance_m - b.distance_m)
+    .slice(0, MAX_RESULTS);
+
+  return pois;
 }
 
 /* ---------------- Handler ---------------- */
@@ -38,16 +113,58 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
 
   try {
-    type Body = {
+    type PreviewBody = {
+      preview?: boolean;
+      lat?: number;
+      lng?: number;
+      limit?: number;
+      radius_m?: number;
+      categories?: { amenity?: string[]; shop?: string[]; tourism?: string[] };
+    };
+
+    type SaveBody = {
       property_id: string;
       radius_m?: number;
       categories?: { amenity?: string[]; shop?: string[]; tourism?: string[] };
     };
 
+    const body = (await req.json().catch(() => ({}))) as PreviewBody & SaveBody;
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey     = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    /* ---------- กรณี PREVIEW (หน้า dashboard เรียก) ---------- */
+    if (body.preview === true) {
+      const lat = Number(body.lat);
+      const lng = Number(body.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return new Response(JSON.stringify({ ok:false, message: "Missing lat/lng" }), {
+          status: 400, headers: { ...headers, "Content-Type": "application/json" },
+        });
+      }
+
+      const radius = Math.min(Math.max(body.radius_m ?? DEFAULT_RADIUS_M, 200), 8000);
+      const pois = await fetchOSMPOI(lat, lng, radius, body.categories);
+
+      const limit = body.limit && body.limit > 0 ? body.limit : 5;
+      const top = pois.slice(0, limit).map(p => ({
+        name: p.name,
+        type: p.type,
+        lat: p.lat,
+        lng: p.lng,
+        distance_km: Number((p.distance_m / 1000).toFixed(3)),
+      }));
+
+      return new Response(JSON.stringify({
+        ok: true,
+        mode: "preview",
+        lat, lng,
+        items: top,
+      }), { headers: { ...headers, "Content-Type": "application/json" } });
+    }
+
+    /* ---------- กรณี SAVE (ของเดิมกุ้ง) ---------- */
     const authed = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
     });
@@ -62,7 +179,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2) admin check
+    // 2) admin only
     const { data: adminEmail, error: adminErr } = await admin
       .from("admin_emails").select("email").eq("email", email).maybeSingle();
     if (adminErr) throw adminErr;
@@ -72,17 +189,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3) params
-    const body = (await req.json().catch(() => ({}))) as Body;
-    const propertyId = body?.property_id;
-    const radius = Math.min(Math.max(body?.radius_m ?? DEFAULT_RADIUS_M, 200), 8000);
+    // 3) ต้องมี property_id
+    const propertyId = body.property_id;
     if (!propertyId) {
       return new Response(JSON.stringify({ code: 400, message: "Missing property_id" }), {
         status: 400, headers: { ...headers, "Content-Type": "application/json" },
       });
     }
 
-    // 4) load property
+    // 4) ดึง property
     const { data: prop, error: propErr } = await admin
       .from("properties")
       .select("id, latitude, longitude, title")
@@ -96,52 +211,16 @@ Deno.serve(async (req) => {
     }
     const { latitude: lat, longitude: lng, title } = prop;
 
-    // 5) categories
-    const amenityList = (body.categories?.amenity?.length ? body.categories.amenity : AMENITY).join("|");
-    const shopList    = (body.categories?.shop?.length    ? body.categories.shop    : SHOP).join("|");
-    const tourList    = (body.categories?.tourism?.length ? body.categories.tourism : TOURISM).join("|");
+    const radius = Math.min(Math.max(body?.radius_m ?? DEFAULT_RADIUS_M, 200), 8000);
 
-    // 6) Overpass
-    const overpass = "https://overpass-api.de/api/interpreter";
-    const query = `
-      [out:json][timeout:25];
-      (
-        node(around:${radius},${lat},${lng})[amenity~"${amenityList}"];
-        node(around:${radius},${lat},${lng})[shop~"${shopList}"];
-        node(around:${radius},${lat},${lng})[tourism~"${tourList}"];
-      );
-      out body;
-    `;
-    const osmRes = await fetch(overpass, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ data: query }),
-    });
-    if (!osmRes.ok) throw new Error(`Overpass error: ${await osmRes.text()}`);
-    const osm = await osmRes.json();
+    // 5) ดึง OSM
+    const pois = await fetchOSMPOI(lat, lng, radius, body.categories);
 
-    // 7) normalize
-    type POI = { name:string; type:string; lat:number; lng:number; distance_m:number; ext_source:string; ext_id:string; raw?:any };
-    const pois: POI[] = (osm?.elements ?? [])
-      .filter((e:any) => e?.lat && e?.lon)
-      .map((e:any) => {
-        const name = e?.tags?.name ?? e?.tags?.["name:th"] ?? e?.tags?.brand ?? "ไม่ทราบชื่อ";
-        const type = e?.tags?.amenity ?? e?.tags?.shop ?? e?.tags?.tourism ?? "poi";
-        const pLat = Number(e.lat);
-        const pLng = Number(e.lon);
-        const distance_m = Math.round(haversine(lat, lng, pLat, pLng));
-        return { name, type, lat:pLat, lng:pLng, distance_m,
-                 ext_source:"osm", ext_id:`${e.type}:${e.id}`, raw:{ tags:e.tags ?? {} } };
-      })
-      .filter(p => p.name && p.name !== "ไม่ทราบชื่อ")
-      .sort((a,b) => a.distance_m - b.distance_m)
-      .slice(0, MAX_RESULTS);
-
-    // 8) delete old
+    // 6) ลบของเก่าก่อน
     const { error: delErr } = await admin.from("property_poi").delete().eq("property_id", propertyId);
     if (delErr) throw delErr;
 
-    // 9) insert new (คอลัมน์ใช้ lat/lng และ distance_km)
+    // 7) insert ใหม่
     if (pois.length) {
       const rows = pois.map(p => ({
         property_id: propertyId,
@@ -158,16 +237,18 @@ Deno.serve(async (req) => {
       if (insErr) throw insErr;
     }
 
-    // 10) respond พร้อม POI 5 อันดับแรกสำหรับ UI
-// ใน Edge Function ตอน map POI -> items
-const top5 = pois.slice(0,5).map(p => ({
-  name: p.name, type: p.type, distance_km: Number((p.distance_m/1000).toFixed(3)),
-  lat: p.lat, lng: p.lng
-}));
-
+    // 8) ส่งกลับ 5 รายการให้ UI
+    const top5 = pois.slice(0, 5).map(p => ({
+      name: p.name,
+      type: p.type,
+      lat: p.lat,
+      lng: p.lng,
+      distance_km: Number((p.distance_m / 1000).toFixed(3)),
+    }));
 
     return new Response(JSON.stringify({
       ok: true,
+      mode: "save",
       property_id: propertyId,
       property_title: title,
       lat, lng, radius_m: radius,
@@ -178,8 +259,7 @@ const top5 = pois.slice(0,5).map(p => ({
   } catch (err:any) {
     console.error("fill_poi error:", err);
     return new Response(JSON.stringify({ ok:false, error:String(err?.message ?? err) }), {
-      status: 500, headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+      status: 500, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 });
-

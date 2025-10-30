@@ -161,9 +161,10 @@ async function fetchNearbyPOIInline(lat, lng) {
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke('fill_poi', {
-      body: { lat: latNum, lng: lngNum, limit: 5 },
-    });
+const { data, error } = await supabase.functions.invoke('fill_poi', {
+  body: { lat, lng, limit: 5, preview: true }
+});
+
 
     if (error) throw error;
 
