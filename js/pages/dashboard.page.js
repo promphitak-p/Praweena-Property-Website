@@ -254,15 +254,60 @@ async function handleDelete(id, title) {
 function openModal() {
   $('#property-modal').classList.add('open');
 }
+
 function closeModal() {
-  $('#property-modal').classList.remove('open');
+  if (!propertyModal) return;
+  propertyModal.classList.remove('open');
+
+  if (propertyForm) {
+    propertyForm.reset();
+    // ล้าง id ด้วย
+    if (propertyForm.elements.id) propertyForm.elements.id.value = '';
+  }
+
+  // ล้าง POI ที่แสดงในฟอร์ม
   poiCandidatesInline = [];
-  renderPOIInlineList();
+  const list = $('#poi-candidate-list');
+  if (list) list.innerHTML = '';
+
+  // ซ่อนแผนที่ใน modal ถ้ากุ้งอยากให้เปิดเฉพาะตอนเปิดใหม่
+  const mapContainer = $('#modal-map');
+  if (mapContainer) mapContainer.style.display = 'none';
 }
+
+
 $('#add-property-btn').addEventListener('click', () => {
   openModal();
   setupModalMap();
 });
+
+function fillFormFromProperty(prop) {
+  if (!propertyForm || !prop) return;
+
+  // เติม field ที่มีชื่อเหมือนกันในฟอร์ม
+  for (const key in prop) {
+    const field = propertyForm.elements[key];
+    if (!field) continue;
+
+    // checkbox
+    if (field.type === 'checkbox') {
+      field.checked = !!prop[key];
+      continue;
+    }
+
+    // อื่น ๆ
+    field.value = prop[key] ?? '';
+  }
+
+  // gallery / cover ยังไม่ได้ทำใน modal นี้ก็ข้ามไว้ก่อน
+  // lat/lng ถ้ามีให้เติมเลย
+  if (typeof prop.latitude === 'number' || typeof prop.latitude === 'string') {
+    propertyForm.elements.latitude.value = Number(prop.latitude).toFixed(6);
+  }
+  if (typeof prop.longitude === 'number' || typeof prop.longitude === 'string') {
+    propertyForm.elements.longitude.value = Number(prop.longitude).toFixed(6);
+  }
+}
 
 //------------------------------------------------------------
 // ตารางรายการประกาศ
@@ -291,10 +336,38 @@ async function loadProperties() {
           <button class="btn btn-danger delete-btn">ลบ</button>
         </td>
       `;
-      tr.querySelector('.edit-btn').addEventListener('click', () => {
-        openModal();
-        setTimeout(() => setupModalMap(p.latitude, p.longitude), 300);
-      });
+
+		tr.querySelector('.edit-btn').addEventListener('click', () => {
+		  // เปิด modal ก่อน
+		  openModal();
+
+		  // เติมค่าลงฟอร์ม
+		  fillFormFromProperty(p);
+
+		  // เอา id เก่าใส่ลงฟอร์มด้วย (สำคัญมากตอน upsert)
+		  if (propertyForm.elements.id) {
+			propertyForm.elements.id.value = p.id;
+		  } else {
+			const hid = document.createElement('input');
+			hid.type = 'hidden';
+			hid.name = 'id';
+			hid.value = p.id;
+			propertyForm.appendChild(hid);
+		  }
+
+		  // ตั้ง gallery ปัจจุบัน (ถ้ายังอยากใช้)
+		  currentGallery = Array.isArray(p.gallery) ? [...p.gallery] : [];
+
+		  // ตั้ง cover
+		  coverUrl = p.cover_url || (currentGallery[0] ?? null);
+
+		  // ตั้งแผนที่
+		  setTimeout(() => setupModalMap(p.latitude, p.longitude), 120);
+
+		  // ถ้ามีปุ่มดึง POI ให้แสดงรายการที่เคยบันทึกของบ้านนี้ด้วยก็ทำได้ตรงนี้ (optional)
+		});
+
+
       tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(p.id, p.title));
       tbody.appendChild(tr);
     });
@@ -312,18 +385,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   await signOutIfAny();
 
   await loadProperties();
-  $('#property-form').addEventListener('submit', handleSubmit);
+  propertyForm?.addEventListener('submit', handleSubmit);
 
-  const fetchPoiBtn = $('#fetch-poi-btn');
-  if (fetchPoiBtn) {
-    fetchPoiBtn.addEventListener('click', async () => {
-      const lat = Number($('#latitude').value);
-      const lng = Number($('#longitude').value);
-      if (!lat || !lng) {
-        toast('กรุณาเลือกตำแหน่งบ้านก่อน', 2000, 'error');
-        return;
-      }
-      await fetchNearbyPOIInline(lat, lng);
-    });
-  }
+  // ปุ่ม + บ้านใหม่
+  addPropertyBtn?.addEventListener('click', () => {
+    // reset form ทุกครั้งก่อนเปิด
+    propertyForm.reset();
+    // ล้าง id เก่า
+    if (propertyForm.elements.id) propertyForm.elements.id.value = '';
+    // ล้าง POI ชุดชั่วคราว
+    poiCandidatesInline = [];
+    renderPOIInlineList();
+    // เปิด modal + map
+    openModal();
+    setTimeout(() => setupModalMap(), 100);
+  });
+
+  // ปุ่มยกเลิก
+  const cancelBtn = document.querySelector('#property-modal .modal-cancel');
+  cancelBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeModal();
+  });
+
+  // ปุ่ม X
+  const closeBtn = document.querySelector('#property-modal .modal-close');
+  closeBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeModal();
+  });
+
+  // คลิกข้างนอกปิด
+  window.addEventListener('click', (e) => {
+    if (e.target === propertyModal) {
+      closeModal();
+    }
+  });
 });
