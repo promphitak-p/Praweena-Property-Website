@@ -50,37 +50,68 @@ function poiEmoji(type = '') {
 // Setup modal map (เลือกพิกัดบ้าน)
 //------------------------------------------------------------
 function setupModalMap(lat, lng) {
-  const latInput = $('#latitude');
-  const lngInput = $('#longitude');
-  const mapEl = $('#modal-map');
+  if (!propertyForm) return;
 
-  let startLat = parseFloat(lat) || 9.1337;
-  let startLng = parseFloat(lng) || 99.3325;
+  // 1) หา / หรือถ้าไม่มีให้สร้าง input latitude, longitude
+  let latInput = propertyForm.elements.latitude;
+  let lngInput = propertyForm.elements.longitude;
 
-  mapEl.style.display = 'block';
-
-  if (!modalMap) {
-    modalMap = L.map('modal-map').setView([startLat, startLng], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(modalMap);
-    draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
-    draggableMarker.on('dragend', async (e) => {
-      const pos = e.target.getLatLng();
-      latInput.value = pos.lat.toFixed(6);
-      lngInput.value = pos.lng.toFixed(6);
-      await fetchNearbyPOIInline(pos.lat, pos.lng);
-    });
-  } else {
-    modalMap.setView([startLat, startLng], 15);
-    draggableMarker.setLatLng([startLat, startLng]);
+  if (!latInput) {
+    latInput = document.createElement('input');
+    latInput.type = 'hidden';
+    latInput.name = 'latitude';
+    propertyForm.appendChild(latInput);
+  }
+  if (!lngInput) {
+    lngInput = document.createElement('input');
+    lngInput.type = 'hidden';
+    lngInput.name = 'longitude';
+    propertyForm.appendChild(lngInput);
   }
 
+  // 2) container แผนที่
+  const mapContainer = $('#modal-map');
+  if (!mapContainer) return;
+
+  // 3) ค่าตั้งต้น ถ้าไม่ได้ส่งมาก็ใช้พิกัดสุราษฯ
+  let startLat = parseFloat(lat);
+  let startLng = parseFloat(lng);
+  startLat = !isNaN(startLat) ? startLat : 9.1337;
+  startLng = !isNaN(startLng) ? startLng : 99.3325;
+
+  // ใส่ค่าให้ input (ตอนนี้ไม่ error แล้วเพราะเราสร้างแน่ ๆ)
   latInput.value = startLat.toFixed(6);
   lngInput.value = startLng.toFixed(6);
 
-  // โหลดสถานที่ใกล้เคียงทันที
-  fetchNearbyPOIInline(startLat, startLng);
+  // 4) แสดงแผนที่
+  mapContainer.style.display = 'block';
+
+  try {
+    if (modalMap) {
+      // ถ้าเคยสร้างแล้ว แค่ย้ายไปจุดใหม่
+      modalMap.setView([startLat, startLng], 15);
+      if (draggableMarker) {
+        draggableMarker.setLatLng([startLat, startLng]);
+      }
+    } else {
+      // ยังไม่เคยสร้าง → สร้างใหม่
+      modalMap = L.map('modal-map').setView([startLat, startLng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(modalMap);
+
+      // หมุดลากได้
+      draggableMarker = L.marker([startLat, startLng], { draggable: true }).addTo(modalMap);
+      draggableMarker.on('dragend', (event) => {
+        const pos = event.target.getLatLng();
+        latInput.value = pos.lat.toFixed(6);
+        lngInput.value = pos.lng.toFixed(6);
+      });
+    }
+  } catch (err) {
+    console.error('map error', err);
+    mapContainer.innerHTML = '<p style="color:red;text-align:center;">เกิดข้อผิดพลาดในการโหลดแผนที่</p>';
+  }
 }
 
 //------------------------------------------------------------
