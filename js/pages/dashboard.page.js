@@ -161,15 +161,15 @@ async function fetchNearbyPOIInline(lat, lng) {
   }
 
   try {
-	  const { data, error } = await supabase.functions.invoke('fill_poi', {
-		  body: {
-			  lat,
-			  lng,
-			  limit: 100,       // ขอเยอะขึ้น
-			  radius_km: 10,   // ✅ ขอในรัศมี 10 กม.
-			  preview: false   // เอาของจริงเลย
-			  }
-		  });
+const { data, error } = await supabase.functions.invoke('fill_poi', {
+  body: {
+    lat,
+    lng,
+    preview: true,
+    radius_m: 10000,  // ✅ 10 กม.
+    limit: 60
+  }
+});
 
     if (error) throw error;
 

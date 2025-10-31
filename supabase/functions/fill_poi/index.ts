@@ -4,6 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /* ---------------- Config ---------------- */
 const DEFAULT_RADIUS_M = 2000;
+const MAX_RADIUS_M = 10000; // ✅ เพิ่มบรรทัดนี้
 const MAX_RESULTS = 60;
 const AMENITY = [
   "school","college","university",
