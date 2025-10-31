@@ -755,7 +755,7 @@ async function loadNearby(property) {
   }
 
   // ✅ กรองเฉพาะ 4 กลุ่มหลัก
-  const allowed = pois.filter(p => {
+const allowed = pois;   // แสดงทุกอันที่อยู่ใน property_poi
     const t = (p.type || '').toLowerCase();
     return (
       t.includes('hospital') || // โรงพยาบาล
