@@ -11,7 +11,7 @@ import { listAll, upsertProperty, removeProperty } from '../services/propertiesS
 import { setupNav } from '../utils/config.js';
 import { formatPrice } from '../utils/format.js';
 import { getFormData } from '../ui/forms.js';
-import { el, $, $$, clear } from '../ui/dom.js';
+import { $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js';
 
@@ -28,7 +28,6 @@ const addPropertyBtn = document.getElementById('add-property-btn');
 let modalMap = null;
 let draggableMarker = null;
 let currentGallery = [];
-let coverUrl = null;
 let poiCandidatesInline = []; // รายการ POI ที่ขึ้นในฟอร์ม
 
 // ============================================================
@@ -142,7 +141,7 @@ function setupModalMap(lat, lng) {
 }
 
 // ============================================================
-// ดึง POI จาก edge function
+// ดึง POI จาก edge function (เวอร์ชัน 10 กม. + เติม fallback)
 // ============================================================
 async function fetchNearbyPOIInline(lat, lng) {
   const listEl = document.getElementById('poi-candidate-list');
@@ -150,10 +149,10 @@ async function fetchNearbyPOIInline(lat, lng) {
     listEl.innerHTML = '<li style="color:#6b7280;">กำลังค้นหาสถานที่ใกล้เคียง...</li>';
   }
 
-  const latNum = Number(lat);
-  const lngNum = Number(lng);
+  const baseLat = Number(lat);
+  const baseLng = Number(lng);
 
-  if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+  if (!Number.isFinite(baseLat) || !Number.isFinite(baseLng)) {
     console.warn('พิกัดไม่ถูกต้อง ตอน fetchNearbyPOIInline');
     poiCandidatesInline = [];
     renderPOIInlineList();
@@ -161,63 +160,62 @@ async function fetchNearbyPOIInline(lat, lng) {
   }
 
   try {
-const { data, error } = await supabase.functions.invoke('fill_poi', {
-  body: {
-    lat,
-    lng,
-    preview: true,
-    radius_m: 10000,  // ✅ 10 กม.
-    limit: 60
-  }
-});
+    const { data, error } = await supabase.functions.invoke('fill_poi', {
+      body: {
+        lat: baseLat,
+        lng: baseLng,
+        preview: true,
+        radius_m: 10000,   // 10 กม.
+        limit: 60
+      }
+    });
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    poiCandidatesInline = data?.items || [];
+    // รายการที่ edge คืนมา
+    let items = data?.items || [];
+
+    // เผื่อบางรายการไม่คำนวณระยะ
+    items = items
+      .map((p) => {
+        const plat = Number(p.lat);
+        const plng = Number(p.lng);
+        let dist = p.distance_km;
+
+        if (
+          (!dist || isNaN(dist)) &&
+          Number.isFinite(plat) &&
+          Number.isFinite(plng)
+        ) {
+          dist = kmDistance(baseLat, baseLng, plat, plng);
+        }
+
+        return { ...p, distance_km: dist };
+      })
+      // เอาเฉพาะที่ระยะ <= 10 กม.
+      .filter((p) => typeof p.distance_km === 'number' && p.distance_km <= 10)
+      // เรียงใกล้ → ไกล
+      .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
+
+    // ถ้ายังน้อยกว่า 15 ให้เติม fallback ของเรา
+    if (items.length < 15) {
+      const fb = getFallbackPoi(baseLat, baseLng);
+      const used = new Set(items.map((p) => p.name));
+      fb.forEach((p) => {
+        if (!used.has(p.name)) items.push(p);
+      });
+    }
+
+    poiCandidatesInline = items;
     renderPOIInlineList();
   } catch (err) {
     console.error('fetchNearbyPOIInline error:', err);
-    // ถ้าเรียกไม่ได้ ให้ใช้ fallback
-    poiCandidatesInline = getFallbackPoi(latNum, lngNum);
+    poiCandidatesInline = getFallbackPoi(baseLat, baseLng);
     toast('โหลดจากระบบไม่สำเร็จ แสดงรายการตัวอย่างให้ก่อน', 2500, 'error');
     renderPOIInlineList();
   }
-  
-  if (!error) {
-  let items = data?.items || [];
-
-  // ✅ กรองรัศมี 10 กม. ฝั่งเบราว์เซอร์เผื่อ function ยังไม่กรองให้
-  const baseLat = Number(lat);
-  const baseLng = Number(lng);
-
-  items = items
-    .map(p => {
-      const plat = Number(p.lat);
-      const plng = Number(p.lng);
-      let dist = p.distance_km;
-
-      // ถ้า function ไม่คืน distance มา เราคำนวณเอง
-      if (
-        (!dist || isNaN(dist)) &&
-        Number.isFinite(baseLat) && Number.isFinite(baseLng) &&
-        Number.isFinite(plat) && Number.isFinite(plng)
-      ) {
-        dist = kmDistance(baseLat, baseLng, plat, plng);
-      }
-
-      return { ...p, distance_km: dist };
-    })
-    .filter(p => {
-      // เอาเฉพาะที่รู้ระยะ และ <= 10 กม.
-      return typeof p.distance_km === 'number' && p.distance_km <= 10;
-    })
-    .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
-
-  // เก็บไว้ให้วาดในลิสต์
-  poiCandidatesInline = items;
-  renderPOIInlineList();
-}
-
 }
 
 // ============================================================
@@ -281,7 +279,7 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     }
   }
 
-  // 2) ลองเรียก edge function (ให้มันเป็น preview เสมอ)
+  // 2) ขอแนะนำจาก edge (แบบ preview)
   let suggested = [];
   const latNum = Number(baseLat);
   const lngNum = Number(baseLng);
@@ -289,7 +287,7 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
   if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
     try {
       const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
-        body: { lat: latNum, lng: lngNum, limit: 5, preview: true },  // 👈 เพิ่ม preview: true
+        body: { lat: latNum, lng: lngNum, limit: 25, preview: true, radius_m: 10000 },
       });
       if (!sErr && Array.isArray(sData?.items)) {
         suggested = sData.items;
@@ -302,11 +300,9 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     }
   }
 
-  // 3) รวมสองชุด
   poiCandidatesInline = mergePoiLists(saved, suggested);
   renderPOIInlineList();
 }
-
 
 // ============================================================
 // วาดลิสต์ POI
@@ -341,11 +337,9 @@ function renderPOIInlineList() {
 // ============================================================
 // บันทึก POI ที่ติ๊กในฟอร์ม dashboard
 // ============================================================
-// ✅ เวอร์ชันที่ถูกต้อง
 async function saveInlinePois(propertyId, baseLat, baseLng) {
   if (!propertyId) return;
 
-  // เก็บรายการที่ติ๊กจริง ๆ
   const checked = [];
   $$('#poi-candidate-list input[type=checkbox]:checked').forEach(chk => {
     const idx = Number(chk.dataset.i);
@@ -353,13 +347,9 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
     if (poi) checked.push(poi);
   });
 
-  // ลบของเดิมก่อนเลย
-  await supabase
-    .from('property_poi')
-    .delete()
-    .eq('property_id', propertyId);
+  // ล้างเก่า
+  await supabase.from('property_poi').delete().eq('property_id', propertyId);
 
-  // ถ้าไม่เลือกก็จบแค่นี้
   if (!checked.length) return;
 
   const rows = checked.map(p => {
@@ -377,23 +367,14 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
     };
   });
 
-  // ใส่ใหม่เฉพาะที่ติ๊ก
-// ล้างเก่า
-await supabase.from('property_poi').delete().eq('property_id', propertyId);
-// ใส่ใหม่
-if (rows.length) {
   await supabase.from('property_poi').insert(rows);
 }
 
-}
-
-
 // ====== map utils (ใช้คำนวณระยะทาง) ======
 const mapUtils = {
-  // ระยะทางระหว่าง 2 พิกัด (กม.)
   distanceKm(lat1, lon1, lat2, lon2) {
     const toRad = v => v * Math.PI / 180;
-    const R = 6371; // โลก กม.
+    const R = 6371;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a =
@@ -420,12 +401,9 @@ async function handleSubmit(e) {
 
   try {
     const payload = getFormData(form);
-
-    // เอาพิกัดจากฟอร์ม (ชื่อ field จริง)
     const baseLat = parseFloat(payload.latitude);
     const baseLng = parseFloat(payload.longitude);
 
-    // ------- บันทึกประกาศก่อน -------
     payload.price = Number(payload.price) || 0;
     payload.gallery = currentGallery;
     payload.cover_url = payload.gallery[0] || null;
@@ -435,8 +413,6 @@ async function handleSubmit(e) {
     if (error) throw error;
 
     const propId = data?.id || payload.id;
-
-    // ------- แล้วค่อยบันทึก POI ที่ติ๊ก -------
     await saveInlinePois(propId, baseLat, baseLng);
 
     toast('บันทึกข้อมูลสำเร็จ!', 2000, 'success');
@@ -559,7 +535,6 @@ async function loadProperties() {
         </td>
       `;
 
-      // แก้ไข
       tr.querySelector('.edit-btn').addEventListener('click', async () => {
         openModal();
         fillFormFromProperty(p);
@@ -567,7 +542,6 @@ async function loadProperties() {
         await loadPoisForProperty(p.id, p.latitude, p.longitude);
       });
 
-      // ลบ
       tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(p.id, p.title));
 
       tbody.appendChild(tr);
@@ -602,16 +576,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadProperties();
 });
-
-
-function getPraweenaFallbackByProvince(province: string, lat: number, lng: number) {
-  switch (province) {
-    case "สุราษฎร์ธานี":
-      return getPraweenaFallback(lat, lng);
-    case "เกาะสมุย":
-    case "สมุย":
-      return getSamuiFallback(lat, lng);
-    default:
-      return getPraweenaFallback(lat, lng); // default
-  }
-}
