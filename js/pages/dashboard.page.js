@@ -334,18 +334,55 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
   await supabase.from('property_poi').insert(newPois);
 }
 
-// ====== utils เล็ก ๆ เอาไว้ใช้ใน dashboard ======
+async function saveNearbyPois(propertyId, selectedPois, baseLat, baseLng) {
+  // ลบของเก่าก่อน
+  await supabase
+    .from('property_poi')
+    .delete()
+    .eq('property_id', propertyId);
+
+  if (!selectedPois || !selectedPois.length) return;
+
+  const rows = selectedPois.map(p => {
+    const plat = parseFloat(p.lat);
+    const plng = parseFloat(p.lng);
+
+    let distance_km = null;
+    if (
+      Number.isFinite(baseLat) &&
+      Number.isFinite(baseLng) &&
+      Number.isFinite(plat) &&
+      Number.isFinite(plng)
+    ) {
+      distance_km = mapUtils.distanceKm(baseLat, baseLng, plat, plng);
+    }
+
+    return {
+      property_id: propertyId,
+      name: p.name,
+      type: p.type,
+      lat: Number.isFinite(plat) ? plat : null,
+      lng: Number.isFinite(plng) ? plng : null,
+      distance_km,
+    };
+  });
+
+  await supabase.from('property_poi').insert(rows);
+}
+
+
+// ====== map utils (ใช้คำนวณระยะทาง) ======
 const mapUtils = {
-  // คำนวณระยะทางระหว่าง 2 จุด (กิโลเมตร)
+  // ระยะทางระหว่าง 2 พิกัด (กม.)
   distanceKm(lat1, lon1, lat2, lon2) {
-    const toRad = d => d * Math.PI / 180;
-    const R = 6371; // โลก km
+    const toRad = v => v * Math.PI / 180;
+    const R = 6371; // โลก กม.
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLat / 2) ** 2 +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
@@ -355,6 +392,14 @@ const mapUtils = {
 // Submit ฟอร์ม
 // ============================================================
 async function handleSubmit(e) {
+	// ใน handleSubmit
+const baseLat = parseFloat(document.getElementById('lat').value);
+const baseLng = parseFloat(document.getElementById('lng').value);
+
+// สมมติสถานที่ที่ติ๊กอยู่ในตัวแปร selectedPois
+await saveNearbyPois(id, selectedPois, baseLat, baseLng);
+	
+	
   e.preventDefault();
   const submitBtn = e.target.querySelector('button[type=submit]');
   if (submitBtn) {
