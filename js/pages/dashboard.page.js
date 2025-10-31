@@ -334,6 +334,23 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
   await supabase.from('property_poi').insert(newPois);
 }
 
+// ====== utils เล็ก ๆ เอาไว้ใช้ใน dashboard ======
+const mapUtils = {
+  // คำนวณระยะทางระหว่าง 2 จุด (กิโลเมตร)
+  distanceKm(lat1, lon1, lat2, lon2) {
+    const toRad = d => d * Math.PI / 180;
+    const R = 6371; // โลก km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+};
+
 // ============================================================
 // Submit ฟอร์ม
 // ============================================================
