@@ -378,7 +378,13 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
   });
 
   // ใส่ใหม่เฉพาะที่ติ๊ก
+// ล้างเก่า
+await supabase.from('property_poi').delete().eq('property_id', propertyId);
+// ใส่ใหม่
+if (rows.length) {
   await supabase.from('property_poi').insert(rows);
+}
+
 }
 
 
@@ -596,3 +602,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadProperties();
 });
+
+
+function getPraweenaFallbackByProvince(province: string, lat: number, lng: number) {
+  switch (province) {
+    case "สุราษฎร์ธานี":
+      return getPraweenaFallback(lat, lng);
+    case "เกาะสมุย":
+    case "สมุย":
+      return getSamuiFallback(lat, lng);
+    default:
+      return getPraweenaFallback(lat, lng); // default
+  }
+}

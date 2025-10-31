@@ -108,6 +108,62 @@ async function fetchOSMPOI(lat:number, lng:number, radius:number, categories?:{
   return pois;
 }
 
+// POI พื้นฐานของเราถ้า OSM น้อยเกินไป
+function getPraweenaFallback(lat: number, lng: number) {
+  // อันนี้ตีว่าอยู่ "ตัวเมืองสุราษฎร์" เป็นดีฟอลต์
+  // ถ้าอยากทำหลายเมือง เดี๋ยวค่อยแตกเป็น switch ตามจังหวัดก็ได้
+  return [
+    {
+      name: "โรงพยาบาลสุราษฎร์ธานี",
+      type: "hospital",
+      lat: 9.13045,
+      lng: 99.3299,
+    },
+    {
+      name: "เทศบาลนครสุราษฎร์ธานี",
+      type: "government",
+      lat: 9.1422,
+      lng: 99.3273,
+    },
+    {
+      name: "โรงเรียนสุราษฎร์พิทยา",
+      type: "school",
+      lat: 9.1392,
+      lng: 99.3297,
+    },
+    {
+      name: "Central Suratthani",
+      type: "supermarket",
+      lat: 9.1136,
+      lng: 99.3291,
+    },
+    {
+      name: "Big C สุราษฎร์ธานี",
+      type: "supermarket",
+      lat: 9.1088,
+      lng: 99.3296,
+    },
+    {
+      name: "ตลาดศาลเจ้า",
+      type: "market",
+      lat: 9.1377,
+      lng: 99.3279,
+    },
+    {
+      name: "ตลาดสดเทศบาล",
+      type: "market",
+      lat: 9.1407,
+      lng: 99.3274,
+    },
+  ].map((p) => {
+    // คำนวณระยะห่างจากบ้านจริงๆ
+    const d = haversine(lat, lng, p.lat, p.lng) / 1000; // km
+    return { ...p, distance_km: Number(d.toFixed(3)), ext_source: "fallback" };
+  });
+}
+
+
+
 /* ---------------- Handler ---------------- */
 Deno.serve(async (req) => {
   const headers = corsHeaders(req);
@@ -146,24 +202,57 @@ Deno.serve(async (req) => {
       }
 
       const radius = Math.min(Math.max(body.radius_m ?? DEFAULT_RADIUS_M, 200), 10000);
-      const pois = await fetchOSMPOI(lat, lng, radius, body.categories);
+const pois = await fetchOSMPOI(lat, lng, radius, body.categories);
 
-      const limit = body.limit && body.limit > 0 ? body.limit : 5;
-      const top = pois.slice(0, limit).map(p => ({
-        name: p.name,
-        type: p.type,
-        lat: p.lat,
-        lng: p.lng,
-        distance_km: Number((p.distance_m / 1000).toFixed(3)),
-      }));
+// ชั้น 2: ถ้า OSM ได้น้อยกว่า 15 จุด → เติมของเราเข้าไป
+let merged = pois;
+if (!pois || pois.length < 15) {
+  const fb = getPraweenaFallback(lat, lng);
+  // เอามาเชื่อมกันแบบไม่ซ้ำชื่อ + พิกัด
+  const used = new Set<string>();
+  merged = [];
 
-      return new Response(JSON.stringify({
-        ok: true,
-        mode: "preview",
-        lat, lng,
-        items: top,
-      }), { headers: { ...headers, "Content-Type": "application/json" } });
+  const makeKey = (p: any) =>
+    (p.name || "").toLowerCase() + "|" + (p.lat?.toFixed(5) || "") + "|" + (p.lng?.toFixed(5) || "");
+
+  for (const p of pois) {
+    const k = makeKey(p);
+    if (!used.has(k)) {
+      used.add(k);
+      merged.push(p);
     }
+  }
+  for (const p of fb) {
+    const k = makeKey(p);
+    if (!used.has(k)) {
+      used.add(k);
+      merged.push(p);
+    }
+  }
+}
+
+// ชั้น 3 (optional): ถ้ายังไม่ถึง 25 ให้เติมของทั่วไปทั้งประเทศ
+if (merged.length < 25) {
+  const generic = [
+    { name: "7-Eleven (ทั่วไป)", type: "convenience", lat, lng: lng + 0.0005 },
+    { name: "ตลาดสดใกล้บ้าน", type: "market", lat: lat - 0.0006, lng },
+    { name: "โรงพยาบาลใกล้บ้าน", type: "hospital", lat: lat + 0.001, lng: lng + 0.0003 },
+  ].map((p) => {
+    const d = haversine(lat, lng, p.lat, p.lng) / 1000;
+    return { ...p, distance_km: Number(d.toFixed(3)), ext_source: "generic" };
+  });
+  const used = new Set(merged.map((p:any) => p.name));
+  for (const p of generic) {
+    if (!used.has(p.name)) merged.push(p);
+  }
+}
+
+// แล้วค่อยตัดตาม limit
+const limit = body.limit && body.limit > 0 ? body.limit : 5;
+const top = merged
+  .sort((a:any, b:any) => (a.distance_km ?? 999) - (b.distance_km ?? 999))
+  .slice(0, limit);
+
 
     /* ---------- กรณี SAVE (ของเดิมกุ้ง) ---------- */
     const authed = createClient(supabaseUrl, anonKey, {
@@ -264,3 +353,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+
