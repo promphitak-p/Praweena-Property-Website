@@ -161,10 +161,15 @@ async function fetchNearbyPOIInline(lat, lng) {
   }
 
   try {
-const { data, error } = await supabase.functions.invoke('fill_poi', {
-  body: { lat, lng, limit: 50, preview: true }
-});
-
+	  const { data, error } = await supabase.functions.invoke('fill_poi', {
+		  body: {
+			  lat,
+			  lng,
+			  limit: 100,       // ขอเยอะขึ้น
+			  radius_km: 10,   // ✅ ขอในรัศมี 10 กม.
+			  preview: false   // เอาของจริงเลย
+			  }
+		  });
 
     if (error) throw error;
 
@@ -177,6 +182,42 @@ const { data, error } = await supabase.functions.invoke('fill_poi', {
     toast('โหลดจากระบบไม่สำเร็จ แสดงรายการตัวอย่างให้ก่อน', 2500, 'error');
     renderPOIInlineList();
   }
+  
+  if (!error) {
+  let items = data?.items || [];
+
+  // ✅ กรองรัศมี 10 กม. ฝั่งเบราว์เซอร์เผื่อ function ยังไม่กรองให้
+  const baseLat = Number(lat);
+  const baseLng = Number(lng);
+
+  items = items
+    .map(p => {
+      const plat = Number(p.lat);
+      const plng = Number(p.lng);
+      let dist = p.distance_km;
+
+      // ถ้า function ไม่คืน distance มา เราคำนวณเอง
+      if (
+        (!dist || isNaN(dist)) &&
+        Number.isFinite(baseLat) && Number.isFinite(baseLng) &&
+        Number.isFinite(plat) && Number.isFinite(plng)
+      ) {
+        dist = kmDistance(baseLat, baseLng, plat, plng);
+      }
+
+      return { ...p, distance_km: dist };
+    })
+    .filter(p => {
+      // เอาเฉพาะที่รู้ระยะ และ <= 10 กม.
+      return typeof p.distance_km === 'number' && p.distance_km <= 10;
+    })
+    .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
+
+  // เก็บไว้ให้วาดในลิสต์
+  poiCandidatesInline = items;
+  renderPOIInlineList();
+}
+
 }
 
 // ============================================================
