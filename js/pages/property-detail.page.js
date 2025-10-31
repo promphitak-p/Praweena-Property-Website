@@ -742,12 +742,12 @@ async function loadNearby(property) {
   const mapEl = document.getElementById('poi-map');
   if (!sec || !listEl || !mapEl) return;
 
-  const { data: pois, error } = await supabase
-    .from('property_poi')
-    .select('name,type,distance_km,lat,lng')
-    .eq('property_id', property.id)
-    .order('distance_km', { ascending: true })
-    .limit(100);
+const { data: pois, error } = await supabase
+  .from('property_poi')
+  .select('id,property_id,name,type,distance_km,lat,lng')
+  .eq('property_id', property.id)
+  .order('distance_km', { ascending: true });
+
 
   if (error || !pois || !pois.length) {
     sec.style.display = 'none';
@@ -799,15 +799,22 @@ const allowed = pois;   // แสดงทุกอันที่อยู่�
   }
 
   // 🔹 หมุดสถานที่ใกล้เคียง
-  allowed.forEach(p => {
-    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-    const icon = iconOf(p.type);
-    const marker = L.circleMarker([p.lat, p.lng], {
-      radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
-    }).bindTooltip(`${icon} ${p.name} (${p.type})`, { direction: 'top' });
-    marker.addTo(group);
-    bounds.push([p.lat, p.lng]);
-  });
+allowed.forEach(p => {
+  let plat = parseFloat(p.lat);
+  let plng = parseFloat(p.lng);
+  if (!Number.isFinite(plat) || !Number.isFinite(plng)) {
+    // ใช้พิกัดของบ้านแทน (กันกรณี lat/lng ว่าง)
+    plat = lat0;
+    plng = lng0;
+  }
+  const icon = iconOf(p.type);
+  const marker = L.circleMarker([plat, plng], {
+    radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
+  }).bindTooltip(`${icon} ${p.name} (${p.type})`, { direction: 'top' });
+  marker.addTo(group);
+  bounds.push([plat, plng]);
+});
+
 
   // 🔹 ปรับมุมมอง
   if (bounds.length >= 2) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });

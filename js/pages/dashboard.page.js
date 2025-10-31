@@ -330,6 +330,8 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
   });
 
   await supabase.from('property_poi').insert(rows);
+  await supabase.from('property_poi').delete().eq('property_id', propertyId);
+  await supabase.from('property_poi').insert(newPois);
 }
 
 // ============================================================
