@@ -756,13 +756,7 @@ async function loadNearby(property) {
 
   // ✅ กรองเฉพาะ 4 กลุ่มหลัก
 const allowed = pois;   // แสดงทุกอันที่อยู่ใน property_poi
-    const t = (p.type || '').toLowerCase();
-    return (
-      t.includes('hospital') || // โรงพยาบาล
-      t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
-      t.includes('supermarket') || // ห้าง
-      t.includes('government') || t.includes('police') || t.includes('post_office') // ราชการ
-    );
+
   });
 
   if (!allowed.length) {
