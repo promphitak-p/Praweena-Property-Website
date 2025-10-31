@@ -300,10 +300,11 @@ function renderPOIInlineList() {
 // ============================================================
 // บันทึก POI ที่ติ๊กในฟอร์ม dashboard
 // ============================================================
+// ✅ เวอร์ชันที่ถูกต้อง
 async function saveInlinePois(propertyId, baseLat, baseLng) {
   if (!propertyId) return;
 
-  // เก็บรายการที่ติ๊กไว้
+  // เก็บรายการที่ติ๊กจริง ๆ
   const checked = [];
   $$('#poi-candidate-list input[type=checkbox]:checked').forEach(chk => {
     const idx = Number(chk.dataset.i);
@@ -311,41 +312,34 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
     if (poi) checked.push(poi);
   });
 
-  // ลบของเก่าก่อน
-  await supabase.from('property_poi').delete().eq('property_id', propertyId);
+  // ลบของเดิมก่อนเลย
+  await supabase
+    .from('property_poi')
+    .delete()
+    .eq('property_id', propertyId);
 
-  // ถ้าไม่ติ๊กอะไรเลย ก็จบแค่นี้
+  // ถ้าไม่เลือกก็จบแค่นี้
   if (!checked.length) return;
 
   const rows = checked.map(p => {
-    const plat = parseFloat(p.lat);
-    const plng = parseFloat(p.lng);
-
-    // คำนวณระยะถ้าพิกัดครบ
     let dist = p.distance_km;
-    if (
-      (!dist || isNaN(dist)) &&
-      Number.isFinite(baseLat) &&
-      Number.isFinite(baseLng) &&
-      Number.isFinite(plat) &&
-      Number.isFinite(plng)
-    ) {
-      dist = kmDistance(baseLat, baseLng, plat, plng);
+    if (!dist && p.lat && p.lng && baseLat && baseLng) {
+      dist = kmDistance(baseLat, baseLng, p.lat, p.lng);
     }
-
     return {
       property_id: propertyId,
       name: p.name,
       type: p.type,
-      lat: Number.isFinite(plat) ? plat : null,
-      lng: Number.isFinite(plng) ? plng : null,
-      distance_km: dist ?? null,
+      lat: p.lat,
+      lng: p.lng,
+      distance_km: dist || null,
     };
   });
 
-  // insert รอบเดียวพอ
+  // ใส่ใหม่เฉพาะที่ติ๊ก
   await supabase.from('property_poi').insert(rows);
 }
+
 
 // ====== map utils (ใช้คำนวณระยะทาง) ======
 const mapUtils = {

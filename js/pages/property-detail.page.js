@@ -398,15 +398,9 @@ let clickMarker = null;
       const bounds = [[lat, lng]];
 
       // กรองเฉพาะ 4 กลุ่มหลัก
-      const allowed = (pois || []).filter(p => {
-        const t = (p.type || '').toLowerCase();
-        return (
-          t.includes('hospital') || t.includes('clinic') || t.includes('pharmacy') ||                 // โรงพยาบาล
-          t.includes('school') || t.includes('university') || t.includes('college') || t.includes('kindergarten') || // โรงเรียน
-          t.includes('supermarket') || t.includes('convenience') || t.includes('mall') || t.includes('department') || // ห้าง/ซูเปอร์/คอนวีเนียน
-          t.includes('government') || t.includes('police') || t.includes('post_office')              // ราชการ
-        );
-      });
+// ✅ ไม่ต้องกรอง เอาที่บันทึกมาเลย
+const allowed = pois || [];
+
 
       // วาด POI เดิม
       if (allowed.length) {
