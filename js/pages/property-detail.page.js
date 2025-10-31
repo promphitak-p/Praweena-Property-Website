@@ -757,7 +757,7 @@ async function loadNearby(property) {
   // ✅ กรองเฉพาะ 4 กลุ่มหลัก
 const allowed = pois;   // แสดงทุกอันที่อยู่ใน property_poi
 
-  });
+
 
   if (!allowed.length) {
     sec.style.display = 'none';
