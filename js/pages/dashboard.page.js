@@ -298,11 +298,12 @@ function renderPOIInlineList() {
 }
 
 // ============================================================
-// บันทึก POI
+// บันทึก POI ที่ติ๊กในฟอร์ม dashboard
 // ============================================================
 async function saveInlinePois(propertyId, baseLat, baseLng) {
   if (!propertyId) return;
 
+  // เก็บรายการที่ติ๊กไว้
   const checked = [];
   $$('#poi-candidate-list input[type=checkbox]:checked').forEach(chk => {
     const idx = Number(chk.dataset.i);
@@ -310,51 +311,26 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
     if (poi) checked.push(poi);
   });
 
-  // ถ้าไม่เลือกเลย → ล้างให้โล่ง
+  // ลบของเก่าก่อน
   await supabase.from('property_poi').delete().eq('property_id', propertyId);
+
+  // ถ้าไม่ติ๊กอะไรเลย ก็จบแค่นี้
   if (!checked.length) return;
 
   const rows = checked.map(p => {
-    let dist = p.distance_km;
-    if (!dist && p.lat && p.lng && baseLat && baseLng) {
-      dist = kmDistance(baseLat, baseLng, p.lat, p.lng);
-    }
-    return {
-      property_id: propertyId,
-      name: p.name,
-      type: p.type,
-      lat: p.lat,
-      lng: p.lng,
-      distance_km: dist || null
-    };
-  });
-
-  await supabase.from('property_poi').insert(rows);
-  await supabase.from('property_poi').delete().eq('property_id', propertyId);
-  await supabase.from('property_poi').insert(newPois);
-}
-
-async function saveNearbyPois(propertyId, selectedPois, baseLat, baseLng) {
-  // ลบของเก่าก่อน
-  await supabase
-    .from('property_poi')
-    .delete()
-    .eq('property_id', propertyId);
-
-  if (!selectedPois || !selectedPois.length) return;
-
-  const rows = selectedPois.map(p => {
     const plat = parseFloat(p.lat);
     const plng = parseFloat(p.lng);
 
-    let distance_km = null;
+    // คำนวณระยะถ้าพิกัดครบ
+    let dist = p.distance_km;
     if (
+      (!dist || isNaN(dist)) &&
       Number.isFinite(baseLat) &&
       Number.isFinite(baseLng) &&
       Number.isFinite(plat) &&
       Number.isFinite(plng)
     ) {
-      distance_km = mapUtils.distanceKm(baseLat, baseLng, plat, plng);
+      dist = kmDistance(baseLat, baseLng, plat, plng);
     }
 
     return {
@@ -363,13 +339,13 @@ async function saveNearbyPois(propertyId, selectedPois, baseLat, baseLng) {
       type: p.type,
       lat: Number.isFinite(plat) ? plat : null,
       lng: Number.isFinite(plng) ? plng : null,
-      distance_km,
+      distance_km: dist ?? null,
     };
   });
 
+  // insert รอบเดียวพอ
   await supabase.from('property_poi').insert(rows);
 }
-
 
 // ====== map utils (ใช้คำนวณระยะทาง) ======
 const mapUtils = {
@@ -392,23 +368,23 @@ const mapUtils = {
 // Submit ฟอร์ม
 // ============================================================
 async function handleSubmit(e) {
-	// ใน handleSubmit
-const baseLat = parseFloat(document.getElementById('lat').value);
-const baseLng = parseFloat(document.getElementById('lng').value);
-
-// สมมติสถานที่ที่ติ๊กอยู่ในตัวแปร selectedPois
-await saveNearbyPois(id, selectedPois, baseLat, baseLng);
-	
-	
   e.preventDefault();
-  const submitBtn = e.target.querySelector('button[type=submit]');
+  const form = e.target;
+
+  const submitBtn = form.querySelector('button[type=submit]');
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'กำลังบันทึก...';
   }
 
   try {
-    const payload = getFormData(e.target);
+    const payload = getFormData(form);
+
+    // เอาพิกัดจากฟอร์ม (ชื่อ field จริง)
+    const baseLat = parseFloat(payload.latitude);
+    const baseLng = parseFloat(payload.longitude);
+
+    // ------- บันทึกประกาศก่อน -------
     payload.price = Number(payload.price) || 0;
     payload.gallery = currentGallery;
     payload.cover_url = payload.gallery[0] || null;
@@ -418,7 +394,9 @@ await saveNearbyPois(id, selectedPois, baseLat, baseLng);
     if (error) throw error;
 
     const propId = data?.id || payload.id;
-    await saveInlinePois(propId, payload.latitude, payload.longitude);
+
+    // ------- แล้วค่อยบันทึก POI ที่ติ๊ก -------
+    await saveInlinePois(propId, baseLat, baseLng);
 
     toast('บันทึกข้อมูลสำเร็จ!', 2000, 'success');
     closeModal();
