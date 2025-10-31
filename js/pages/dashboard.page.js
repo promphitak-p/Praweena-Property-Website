@@ -208,8 +208,10 @@ async function fetchNearbyPOIInline(lat, lng) {
       });
     }
 
-    poiCandidatesInline = items;
-    renderPOIInlineList();
+items = injectPraweenaLandmarks(latNum, lngNum, items);
+poiCandidatesInline = items;
+renderPOIInlineList();
+
   } catch (err) {
     console.error('fetchNearbyPOIInline error:', err);
     poiCandidatesInline = getFallbackPoi(baseLat, baseLng);
@@ -300,8 +302,11 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     }
   }
 
-  poiCandidatesInline = mergePoiLists(saved, suggested);
-  renderPOIInlineList();
+let merged = mergePoiLists(saved, suggested);
+merged = injectPraweenaLandmarks(Number(baseLat), Number(baseLng), merged);
+poiCandidatesInline = merged;
+renderPOIInlineList();
+
 }
 
 // ============================================================
@@ -576,3 +581,214 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadProperties();
 });
+
+function getPraweenaFallbackByArea(lat, lng, province = 'สุราษฎร์ธานี') {
+  if (province.includes('สมุย')) {
+    return [
+      { name: 'โรงพยาบาลกรุงเทพสมุย', type: 'hospital', lat: 9.5308, lng: 100.0617 },
+      { name: 'Central Samui', type: 'mall', lat: 9.5356, lng: 100.0606 },
+      { name: 'ท่าเรือหน้าทอน', type: 'ferry', lat: 9.5350, lng: 99.9360 },
+    ];
+  }
+  // สุราษฯ เมือง
+  return [
+    { name: 'โรงเรียนสุราษฎร์พิทยา', type: 'school', lat: 9.13685, lng: 99.32170 },
+    { name: 'โรงพยาบาลสุราษฎร์ธานี', type: 'hospital', lat: 9.13090, lng: 99.32910 },
+    { name: 'ตลาดศาลเจ้า', type: 'market', lat: 9.14100, lng: 99.32640 },
+    { name: 'โลตัส สุราษฎร์ธานี', type: 'supermarket', lat: 9.13830, lng: 99.32990 },
+  ].map(p => ({
+    ...p,
+    distance_km: kmDistance(lat, lng, p.lat, p.lng),
+    __saved: false,
+  }));
+}
+
+// ✅ Landmark สำคัญสุราษฎร์ธานี (ของกุ้ง)
+const PRAWEENA_LANDMARKS = [
+  // 1. โรงพยาบาล / หน่วยแพทย์
+  {
+    name: 'โรงพยาบาลสุราษฎร์ธานี',
+    type: 'hospital',
+    lat: 9.1237537,
+    lng: 99.3100007,
+  },
+  {
+    name: 'โรงพยาบาลศรีวิชัย สุราษฎร์ธานี',
+    type: 'hospital',
+    lat: 9.1154684,
+    lng: 99.3091824,
+  },
+  {
+    name: 'Bangkok Hospital Surat',
+    type: 'hospital',
+    lat: 9.1224563,
+    lng: 99.2931571,
+  },
+  {
+    name: 'โรงพยาบาลทักษิณ',
+    type: 'hospital',
+    lat: 9.1481779,
+    lng: 99.3329196,
+  },
+
+  // 2. ตลาด / ศูนย์กลางเมือง
+  {
+    name: 'ตลาดสำเภาทอง',
+    type: 'market',
+    lat: 9.132751,
+    lng: 99.324087,
+  },
+  {
+    name: 'ตลาดสดเทศบาลนครสุราษฎร์ธานี',
+    type: 'market',
+    lat: 9.1414417,
+    lng: 99.3235889,
+  },
+  {
+    name: 'ตลาดเกษตร 1',
+    type: 'market',
+    lat: 9.145092,
+    lng: 99.328398,
+  },
+
+  // 3. สถานศึกษาใหญ่
+  {
+    name: 'โรงเรียนสุราษฎร์ธานี',
+    type: 'school',
+    lat: 9.133571,
+    lng: 99.3299882,
+  },
+  {
+    name: 'โรงเรียนสุราษฎร์พิทยา',
+    type: 'school',
+    lat: 9.141851,
+    lng: 99.3261057,
+  },
+  {
+    name: 'โรงเรียนเทศบาล 5 (เทศบาลนครสุราษฎร์ธานี)',
+    type: 'school',
+    lat: 9.1343548,
+    lng: 99.3227441,
+  },
+  {
+    name: 'มหาวิทยาลัยสงขลานครินทร์ วิทยาเขตสุราษฎร์ธานี',
+    type: 'university',
+    lat: 9.0941937,
+    lng: 99.3566244,
+  },
+  {
+    name: 'มหาวิทยาลัยราชภัฏสุราษฎร์ธานี',
+    type: 'university',
+    lat: 9.084371,
+    lng: 99.3643155,
+  },
+
+  // 4. หน่วยงานราชการ
+  {
+    name: 'ที่ว่าการอำเภอเมืองสุราษฎร์ธานี',
+    type: 'government',
+    lat: 9.1360563,
+    lng: 99.3202931,
+  },
+  {
+    name: 'สำนักงานขนส่งจังหวัดสุราษฎร์ธานี',
+    type: 'government',
+    lat: 9.1543173,
+    lng: 99.3414514,
+  },
+  {
+    name: 'สถานีขนส่งผู้โดยสาร สุราษฎร์ธานี (บขส.ในเมือง)',
+    type: 'bus_station',
+    lat: 9.1116134,
+    lng: 99.2983044,
+  },
+  {
+    name: 'ที่ว่าการอำเภอเมืองสุราษฎร์ธานี (องค์การบริหาร)',
+    type: 'government',
+    lat: 9.1364119, // ที่มาจากลิงก์ยาว
+    lng: 99.3202412,
+  },
+
+  // 5. จุดเที่ยว/ไหว้/แลนด์มาร์คเมือง
+  {
+    name: 'ศาลหลักเมืองสุราษฎร์ธานี',
+    type: 'tourism',
+    lat: 9.1391623,
+    lng: 99.3216506,
+  },
+  {
+    name: 'สวนสาธารณะบึงขุนทะเล',
+    type: 'park',
+    lat: 9.073528,
+    lng: 99.329051,
+  },
+
+  // 6. ห้าง/ค้าปลีกใหญ่
+  {
+    name: 'Central Suratthani',
+    type: 'mall',
+    lat: 9.1095245,
+    lng: 99.30216,
+  },
+  {
+    name: 'โลตัส สุราษฎร์ธานี',
+    type: 'supermarket',
+    lat: 9.103731,
+    lng: 99.306858,
+  },
+  {
+    name: 'บิ๊กซี สุราษฎร์ธานี (ซูเปอร์เซ็นเตอร์)',
+    type: 'supermarket',
+    lat: 9.14819,
+    lng: 99.3699,
+  },
+  {
+    name: 'สหไทยการ์เด้นพลาซ่า สุราษฎร์ธานี',
+    type: 'mall',
+    lat: 9.1490822,
+    lng: 99.3359198,
+  },
+
+  // 7. อื่น ๆ ที่มีในลิงก์
+  {
+    name: 'ศูนย์ฝึกอบรมตำรวจภูธรภาค 8',
+    type: 'police',
+    lat: 9.0826948,
+    lng: 99.3250426,
+  },
+];
+
+// ใช้คำนวณระยะทางเหมือนเดิม (กุ้งมีอยู่แล้ว แต่เผื่อไฟล์อื่นเรียก)
+function distanceKm(baseLat, baseLng, lat, lng) {
+  return kmDistance(baseLat, baseLng, lat, lng);
+}
+
+// ✅ เอาแลนด์มาร์คประจำเมืองมายัดเข้า list ที่ได้จาก OSM
+function injectPraweenaLandmarks(baseLat, baseLng, currentList = []) {
+  if (!Number.isFinite(baseLat) || !Number.isFinite(baseLng)) {
+    return currentList;
+  }
+
+  // แปลงแลนด์มาร์คทุกจุด → มี distance_km
+  const fixed = PRAWEENA_LANDMARKS.map(lm => ({
+    ...lm,
+    distance_km: distanceKm(baseLat, baseLng, lm.lat, lm.lng),
+    __saved: false,
+  }));
+
+  // กันชื่อซ้ำ (ใช้ชื่อเป็น key)
+  const map = new Map();
+  currentList.forEach(p => {
+    const k = (p.name || '').trim().toLowerCase();
+    if (!map.has(k)) map.set(k, p);
+  });
+  fixed.forEach(p => {
+    const k = (p.name || '').trim().toLowerCase();
+    if (!map.has(k)) map.set(k, p);
+  });
+
+  // คืนเป็น array เรียงใกล้ → ไกล
+  return Array.from(map.values())
+    .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
+}
+
