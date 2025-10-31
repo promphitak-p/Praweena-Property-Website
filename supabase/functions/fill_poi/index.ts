@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const radius = Math.min(Math.max(body.radius_m ?? DEFAULT_RADIUS_M, 200), 8000);
+      const radius = Math.min(Math.max(body.radius_m ?? DEFAULT_RADIUS_M, 200), 10000);
       const pois = await fetchOSMPOI(lat, lng, radius, body.categories);
 
       const limit = body.limit && body.limit > 0 ? body.limit : 5;
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
     }
     const { latitude: lat, longitude: lng, title } = prop;
 
-    const radius = Math.min(Math.max(body?.radius_m ?? DEFAULT_RADIUS_M, 200), 8000);
+    const radius = Math.min(Math.max(body?.radius_m ?? DEFAULT_RADIUS_M, 200), 10000);
 
     // 5) ดึง OSM
     const pois = await fetchOSMPOI(lat, lng, radius, body.categories);
