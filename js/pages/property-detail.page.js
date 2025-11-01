@@ -391,12 +391,10 @@ async function renderPropertyDetails(property) {
           .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
           .addTo(detailMap)
           .openPopup();
+		  
+const poiMarkers = [];
+const bounds = [[lat, lng]]; // มีบ้านไว้ก่อน
 
-        const poiMarkers = [];
-        const bounds = [[lat, lng]];
-        const allowed = pois || [];
-
-        // ====== วาด POI เดิม ======
 if (allowed.length) {
   allowed.forEach((p, i) => {
     if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
@@ -419,18 +417,20 @@ if (allowed.length) {
       `)
       .addTo(detailMap);
 
-    // ✅ คลิกหมุด: แค่โฟกัส + เปิด popup เท่านั้น
+    // ✅ คลิกหมุด → ซูมให้เห็น "บ้าน + หมุดนี้"
     marker.on('click', () => {
-      detailMap.setView([p.lat, p.lng], 16, { animate: true });
+      const fg = L.featureGroup([
+        detailHouseMarker,
+        L.marker([p.lat, p.lng])
+      ]);
+      detailMap.fitBounds(fg.getBounds().pad(0.35));
       marker.openPopup();
     });
 
-    marker.__baseStyle = baseStyle;
     poiMarkers.push(marker);
     bounds.push([p.lat, p.lng]);
   });
 }
-
 
         // ปรับมุมมอง
         if (bounds.length > 1) {
@@ -452,19 +452,24 @@ if (allowed.length) {
       </li>`;
   }).join('');
 
-  listEl.querySelectorAll('li').forEach((li, i) => {
-    li.addEventListener('click', () => {
-      const poiData = allowed[i];
-      const marker = poiMarkers[i];
-      if (!poiData || !marker) return;
+listEl.querySelectorAll('li').forEach((li, i) => {
+  li.addEventListener('click', () => {
+    const poiData = allowed[i];
+    const marker = poiMarkers[i];
+    if (!poiData || !marker) return;
 
-      // ✅ คลิกรายการ → โฟกัสหมุด + เปิด popup
-      detailMap.setView(marker.getLatLng(), 16, { animate: true });
-      marker.openPopup();
+    // ✅ ซูมให้เห็นทั้งบ้าน + poi ที่คลิก
+    const fg = L.featureGroup([
+      detailHouseMarker,
+      L.marker([poiData.lat, poiData.lng])
+    ]);
+    detailMap.fitBounds(fg.getBounds().pad(0.35));
 
-      // ❌ ไม่ต้องพาออกไป Google Maps ในจังหวะนี้
-    });
+    marker.openPopup();
+    // ❌ ยังไม่เปิด Google Maps จนกว่าจะกดลิงก์ใน popup
   });
+});
+
 } else {
   listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
 }
@@ -819,10 +824,15 @@ listEl.querySelectorAll('li').forEach((li, idx) => {
     const plng = Number(p.lng);
     if (!Number.isFinite(plat) || !Number.isFinite(plng)) return;
 
-    // ✅ แค่โฟกัสในมินิแมพ
-    map.setView([plat, plng], 16, { animate: true });
+    const layers = [];
+    if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
+      layers.push(L.marker([lat0, lng0]));
+    }
+    layers.push(L.marker([plat, plng]));
 
-    // ❌ ไม่ต้องเปิด google map ที่นี่
+    const fg = L.featureGroup(layers);
+    map.fitBounds(fg.getBounds().pad(0.35));
+
     ev.stopPropagation();
   });
 });
