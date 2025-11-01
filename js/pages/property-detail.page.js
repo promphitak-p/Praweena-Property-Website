@@ -214,26 +214,6 @@ function drawRouteToPOI(poi) {
   const poiLng = Number(poi.lng);
   if (!Number.isFinite(poiLat) || !Number.isFinite(poiLng)) return;
 
-  // ลบเส้นเก่า
-  if (detailRouteLine) {
-    detailMap.removeLayer(detailRouteLine);
-    detailRouteLine = null;
-  }
-
-  // วาดเส้น
-  detailRouteLine = L.polyline(
-    [
-      [houseLatLng.lat, houseLatLng.lng],
-      [poiLat, poiLng]
-    ],
-    {
-      color: '#0088ff',
-      weight: 4,
-      opacity: 0.7,
-      dashArray: '6,6'
-    }
-  ).addTo(detailMap);
-
   // หมุดปลายทาง (ใช้ marker ปกติ)
   const poiMarker = L.marker([poiLat, poiLng]).addTo(detailMap)
     .bindPopup(poi.name || 'สถานที่ใกล้เคียง')
