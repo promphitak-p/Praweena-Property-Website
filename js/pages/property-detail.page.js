@@ -364,117 +364,120 @@ async function renderPropertyDetails(property) {
     let addMode = false;
     let clickMarker = null;
 
-    // ดึง POI ที่บันทึกไว้
-    const { data: pois } = await supabase
-      .from('property_poi')
-      .select('name,type,distance_km,lat,lng')
-      .eq('property_id', property.id)
-      .order('distance_km', { ascending: true })
-      .limit(100);
+// ดึง POI ที่บันทึกไว้
+const { data: pois } = await supabase
+  .from('property_poi')
+  .select('name,type,distance_km,lat,lng')
+  .eq('property_id', property.id)
+  .order('distance_km', { ascending: true })
+  .limit(100);
 
-    setTimeout(() => {
-      try {
-        if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
+// ✅ ประกาศไว้ตรงนี้ ให้ทั้งโค้ดข้างล่างใช้ได้
+const allowed = pois || [];
+if (!allowed.length) {
+  sec.style.display = 'none';
+  return;
+}
 
-        detailMap = L.map(mapId, {
-          center: [lat, lng],
-          zoom: 15,
-          zoomControl: true,
-          attributionControl: false,
-        });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(detailMap);
 
-        // หมุดบ้าน
-        detailHouseMarker = L.marker([lat, lng], { title: property.title })
-          .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
-          .addTo(detailMap)
-          .openPopup();
-		  
-const poiMarkers = [];
-const bounds = [[lat, lng]]; // มีบ้านไว้ก่อน
+setTimeout(() => {
+  try {
+    if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
 
-if (allowed.length) {
-  allowed.forEach((p, i) => {
-    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-    const baseStyle = colorOf(p.type);
-
-    const marker = L.circleMarker([p.lat, p.lng], {
-      radius: 6,
-      color: baseStyle.stroke,
-      fillColor: baseStyle.fill,
-      fillOpacity: .9,
-      weight: 2
-    })
-      .bindPopup(`
-        ${iconOf(p.type)} <strong>${p.name}</strong><br>
-        ${p.type || 'poi'}<br>
-        ${(p.distance_km ?? 0).toFixed(2)} กม.<br>
-        <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">
-          นำทางด้วย Google Maps
-        </a>
-      `)
-      .addTo(detailMap);
-
-    // ✅ คลิกหมุด → ซูมให้เห็น "บ้าน + หมุดนี้"
-    marker.on('click', () => {
-      const fg = L.featureGroup([
-        detailHouseMarker,
-        L.marker([p.lat, p.lng])
-      ]);
-      detailMap.fitBounds(fg.getBounds().pad(0.35));
-      marker.openPopup();
+    detailMap = L.map(mapId, {
+      center: [lat, lng],
+      zoom: 15,
+      zoomControl: true,
+      attributionControl: false,
     });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(detailMap);
 
-    poiMarkers.push(marker);
-    bounds.push([p.lat, p.lng]);
-  });
-}
+    // หมุดบ้าน
+    detailHouseMarker = L.marker([lat, lng], { title: property.title })
+      .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
+      .addTo(detailMap)
+      .openPopup();
 
-        // ปรับมุมมอง
-        if (bounds.length > 1) {
-          detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
-        }
+    const poiMarkers = [];
+    const bounds = [[lat, lng]];
 
-        // ====== ลิสต์ใต้แผนที่ใหญ่ ======
-if (allowed.length) {
-  listEl.innerHTML = allowed.map((p, i) => {
-    const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
-    const icon = iconOf(p.type);
-    return `
-      <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
-        <span style="font-size:1.1rem;">${icon}</span>
-        <span>
-          <strong>${p.name}</strong> — ${km} กม.
-          <span style="color:#6b7280;">(${p.type || 'poi'})</span>
-        </span>
-      </li>`;
-  }).join('');
+    // ✅ วาด POI ถ้ามี
+    if (allowed.length) {
+      allowed.forEach((p, i) => {
+        if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+        const baseStyle = colorOf(p.type);
 
-listEl.querySelectorAll('li').forEach((li, i) => {
-  li.addEventListener('click', () => {
-    const poiData = allowed[i];
-    const marker = poiMarkers[i];
-    if (!poiData || !marker) return;
+        const marker = L.circleMarker([p.lat, p.lng], {
+          radius: 6,
+          color: baseStyle.stroke,
+          fillColor: baseStyle.fill,
+          fillOpacity: .9,
+          weight: 2
+        })
+          .bindPopup(`
+            ${iconOf(p.type)} <strong>${p.name}</strong><br>
+            ${p.type || 'poi'}<br>
+            ${(p.distance_km ?? 0).toFixed(2)} กม.<br>
+            <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">
+              นำทางด้วย Google Maps
+            </a>
+          `)
+          .addTo(detailMap);
 
-    // ✅ ซูมให้เห็นทั้งบ้าน + poi ที่คลิก
-    const fg = L.featureGroup([
-      detailHouseMarker,
-      L.marker([poiData.lat, poiData.lng])
-    ]);
-    detailMap.fitBounds(fg.getBounds().pad(0.35));
+        // 👉 คลิกหมุด → โชว์บ้าน+หมุดนี้ก่อน
+        marker.on('click', () => {
+          const fg = L.featureGroup([
+            detailHouseMarker,
+            L.marker([p.lat, p.lng])
+          ]);
+          detailMap.fitBounds(fg.getBounds().pad(0.35));
+          marker.openPopup();
+        });
 
-    marker.openPopup();
-    // ❌ ยังไม่เปิด Google Maps จนกว่าจะกดลิงก์ใน popup
-  });
-});
+        poiMarkers.push(marker);
+        bounds.push([p.lat, p.lng]);
+      });
+    }
 
-} else {
-  listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
-}
+    if (bounds.length > 1) {
+      detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
+    }
 
+    // ✅ ลิสต์ใต้แผนที่ ใช้ allowed ได้แล้ว
+    if (allowed.length) {
+      listEl.innerHTML = allowed.map((p, i) => {
+        const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
+        const icon = iconOf(p.type);
+        return `
+          <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
+            <span style="font-size:1.1rem;">${icon}</span>
+            <span><strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span></span>
+          </li>`;
+      }).join('');
 
+      // 👉 คลิกชื่อในลิสต์ → ซูมเห็นบ้าน+poi
+      listEl.querySelectorAll('li').forEach((li, i) => {
+        li.addEventListener('click', () => {
+          const poiData = allowed[i];
+          const marker = poiMarkers[i];
+          if (!poiData || !marker) return;
+
+          const fg = L.featureGroup([
+            detailHouseMarker,
+            L.marker([poiData.lat, poiData.lng])
+          ]);
+          detailMap.fitBounds(fg.getBounds().pad(0.35));
+
+          marker.openPopup();
+          // ❌ ยังไม่เปิด Google Maps จนกดใน popup
+        });
+      });
+    } else {
+      listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
+    }
+	
         // ====== โหมดเพิ่ม POI ======
         if (ENABLE_POI_EDIT_ON_DETAIL) {
           addBtn.addEventListener('click', () => {
@@ -559,12 +562,12 @@ listEl.querySelectorAll('li').forEach((li, i) => {
           });
         }
 
-      } catch (err) {
-        console.warn('Leaflet fallback', err);
-        const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-        mapEl.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
-      }
-    }, 0);
+  } catch (err) {
+    console.warn('Leaflet fallback', err);
+    const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
+    mapEl.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
+  }
+}, 0);
   }
 
   // ---------- Share ----------
