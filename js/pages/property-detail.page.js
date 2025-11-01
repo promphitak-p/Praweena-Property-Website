@@ -395,29 +395,24 @@ setTimeout(() => {
     }).addTo(detailMap);
 
     // หมุดบ้าน
-// ✅ กำหนดโลโก้บ้านหลัก
+// สร้าง icon แบบโลโก้
 const houseIcon = L.icon({
-  iconUrl: '/assets/img/logo-marker.png', // 👉 ใส่พาธโลโก้ของกุ้ง (เช่น /assets/img/praweena-logo.png)
-  iconSize: [64, 64],                    // ปรับขนาดได้ตามต้องการ
-  iconAnchor: [32, 64],                  // จุด anchor ด้านล่าง (กึ่งกลาง)
-  popupAnchor: [0, -60],                 // ตำแหน่ง popup
-  className: 'house-marker-icon'         // เผื่อแต่งเพิ่มใน CSS
+  iconUrl: '/assets/img/praweena-pin.png',
+  iconSize: [46, 68],     // กว้าง x สูง ปรับได้
+  iconAnchor: [23, 68],   // จุดที่ “แตะพื้น” (กึ่งกลางล่าง)
+  popupAnchor: [0, -60],  // ให้ป๊อปอัพลอยขึ้น
 });
 
-// ✅ ใช้โลโก้แทน marker บ้าน
 detailHouseMarker = L.marker([lat, lng], {
   title: property.title,
   icon: houseIcon
 })
-  .bindPopup(`
-    <b>${property.title}</b><br>
-    <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">
-      เปิดใน Google Maps
-    </a>
-  `)
+  .bindPopup(
+    `<b>${property.title}</b><br>
+     <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`
+  )
   .addTo(detailMap)
   .openPopup();
-
 
     const poiMarkers = [];
     const bounds = [[lat, lng]];
@@ -792,7 +787,19 @@ async function loadNearby(property) {
   const bounds = [];
 
   if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
-    L.circleMarker([lat0, lng0], {
+const houseIcon = L.icon({
+  iconUrl: '/assets/img/praweena-pin.png',
+  iconSize: [38, 56],
+  iconAnchor: [19, 56],
+  popupAnchor: [0, -50],
+});
+
+if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
+  L.marker([lat0, lng0], { icon: houseIcon })
+    .bindTooltip('🏠 ตำแหน่งบ้าน', { direction: 'top' })
+    .addTo(group);
+  bounds.push([lat0, lng0]);
+}
       radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
     }).bindTooltip('🏠 ตำแหน่งบ้าน', { direction: 'top' }).addTo(group);
     bounds.push([lat0, lng0]);
