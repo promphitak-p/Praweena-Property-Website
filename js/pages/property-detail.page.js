@@ -395,10 +395,29 @@ setTimeout(() => {
     }).addTo(detailMap);
 
     // หมุดบ้าน
-    detailHouseMarker = L.marker([lat, lng], { title: property.title })
-      .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
-      .addTo(detailMap)
-      .openPopup();
+// ✅ กำหนดโลโก้บ้านหลัก
+const houseIcon = L.icon({
+  iconUrl: '/assets/img/logo-marker.png', // 👉 ใส่พาธโลโก้ของกุ้ง (เช่น /assets/img/praweena-logo.png)
+  iconSize: [64, 64],                    // ปรับขนาดได้ตามต้องการ
+  iconAnchor: [32, 64],                  // จุด anchor ด้านล่าง (กึ่งกลาง)
+  popupAnchor: [0, -60],                 // ตำแหน่ง popup
+  className: 'house-marker-icon'         // เผื่อแต่งเพิ่มใน CSS
+});
+
+// ✅ ใช้โลโก้แทน marker บ้าน
+detailHouseMarker = L.marker([lat, lng], {
+  title: property.title,
+  icon: houseIcon
+})
+  .bindPopup(`
+    <b>${property.title}</b><br>
+    <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">
+      เปิดใน Google Maps
+    </a>
+  `)
+  .addTo(detailMap)
+  .openPopup();
+
 
     const poiMarkers = [];
     const bounds = [[lat, lng]];
