@@ -14,7 +14,6 @@ import { supabase } from '../utils/supabaseClient.js';
 // ====== ตัวแปรแผนที่หลัก (ต้องอยู่หลัง import) ======
 let detailMap = null;            // แผนที่ใหญ่ใต้ "ตำแหน่งแผนที่"
 let detailHouseMarker = null;    // หมุดบ้าน
-let detailRouteLine = null;      // เส้นบ้าน → POI ล่าสุด
 
 const container = $('#property-detail-container');
 // เปิด= true, ปิด= false  (ค่าเริ่มต้นปิดเพื่อไม่ให้ผู้ใช้ทั่วไปเห็น)
@@ -755,15 +754,17 @@ async function loadNearby(property) {
     return;
   }
 
+  // แสดงทุกอันที่บันทึกไว้
   const allowed = pois;
   if (!allowed.length) {
     sec.style.display = 'none';
     return;
   }
 
-  sec.style.display = '';
+  sec.style.display = ''; // โชว์ section
 
-  function miniIconOf(t = '') {
+  // ---- ไอคอนตามประเภท ----
+  function iconOf(t = '') {
     const m = String(t).toLowerCase();
     if (m.includes('hospital') || m.includes('clinic')) return '🏥';
     if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
@@ -772,12 +773,7 @@ async function loadNearby(property) {
     return '📍';
   }
 
-  // แผนที่มินิ
-  const mini = L.map('poi-map', { zoomControl: true, attributionControl: false });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mini);
-  const group = L.layerGroup().addTo(mini);
-  const bounds = [];
-
+  // ---- พิกัดบ้าน ----
   const lat0 = Number.parseFloat(
     property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat
   );
@@ -785,58 +781,75 @@ async function loadNearby(property) {
     property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng
   );
 
+  // ---- แผนที่เล็ก ----
+  const map = L.map('poi-map', { zoomControl: true, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  const group = L.layerGroup().addTo(map);
+  const bounds = [];
+
+  // บ้าน
   if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
-    const home = L.circleMarker([lat0, lng0], {
+    L.circleMarker([lat0, lng0], {
       radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
-    }).bindTooltip('🏠 ตำแหน่งบ้าน', { direction: 'top' });
-    home.addTo(group);
+    }).bindTooltip('🏠 ตำแหน่งบ้าน', { direction: 'top' }).addTo(group);
     bounds.push([lat0, lng0]);
   }
 
+  // POI
   allowed.forEach(p => {
     let plat = parseFloat(p.lat);
     let plng = parseFloat(p.lng);
     if (!Number.isFinite(plat) || !Number.isFinite(plng)) {
-      plat = lat0; plng = lng0;
+      // ไม่มีพิกัดก็ไม่ต้องปัก
+      return;
     }
-    const icon = miniIconOf(p.type);
     const marker = L.circleMarker([plat, plng], {
       radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
-    }).bindTooltip(`${icon} ${p.name} (${p.type})`, { direction: 'top' });
+    }).bindTooltip(`${iconOf(p.type)} ${p.name}`, { direction: 'top' });
+
+    // ✅ คลิกหมุด → เปิดลิงก์เส้นทาง
+    marker.on('click', () => {
+      if (!Number.isFinite(lat0) || !Number.isFinite(lng0)) return;
+      const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat0},${lng0}&destination=${plat},${plng}`;
+      window.open(gurl, '_blank');
+    });
+
     marker.addTo(group);
     bounds.push([plat, plng]);
   });
 
-  if (bounds.length >= 2) mini.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
-  else if (bounds.length === 1) mini.setView(bounds[0], 15);
-  else mini.setView([13.736, 100.523], 12);
+  // ปรับมุมมอง
+  if (bounds.length >= 2) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
+  else if (bounds.length === 1) map.setView(bounds[0], 15);
+  else map.setView([13.736, 100.523], 12);
 
-  // ลิสต์ข้างล่างมินิ
-  listEl.innerHTML = allowed.slice(0, 20).map(p => {
+  // ---- รายการใต้แผนที่ ----
+  listEl.innerHTML = allowed.slice(0, 30).map((p, idx) => {
     const km = typeof p.distance_km === 'number' ? p.distance_km.toFixed(2) : '-';
-    const gmaps = (p.lat && p.lng)
-      ? `<a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">ดูแผนที่</a>` : '';
-    const icon = miniIconOf(p.type);
+    const icon = iconOf(p.type);
     return `
-      <li data-lat="${p.lat}" data-lng="${p.lng}" data-name="${p.name}" style="margin-bottom:.5rem; display:flex; align-items:center; gap:.5rem; cursor:pointer;">
+      <li data-i="${idx}" style="margin-bottom:.5rem; display:flex; align-items:center; gap:.5rem; cursor:pointer;">
         <span style="font-size:1.2rem;">${icon}</span>
-        <span><strong>${p.name}</strong> — ${km} กม.
-        <span style="color:#6b7280;">(${p.type})</span> ${gmaps}</span>
+        <span>
+          <strong>${p.name}</strong> — ${km} กม.
+          <span style="color:#6b7280;">(${p.type})</span>
+          <a class="poi-nav-link" style="color:#2563eb; margin-left:4px;">นำทาง</a>
+        </span>
       </li>`;
   }).join('');
 
-  // 👇 คลิกรายการในมินิ ให้ไปวาดเส้นบนแผนที่ใหญ่ได้ด้วย
-  listEl.querySelectorAll('li').forEach(li => {
-    li.addEventListener('click', () => {
-      const lat = Number(li.dataset.lat);
-      const lng = Number(li.dataset.lng);
-      const name = li.dataset.name;
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        // ถ้าแผนที่ใหญ่โหลดแล้ว ให้วาดเส้น
-        if (detailMap && detailHouseMarker) {
-          drawRouteToPOI({ name, lat, lng, type: '' });
-        }
-      }
+  // ✅ คลิกรายการ → เปิดกูเกิลแมปเส้นทาง
+  listEl.querySelectorAll('li').forEach((li, idx) => {
+    li.addEventListener('click', (ev) => {
+      const p = allowed[idx];
+      if (!p) return;
+      const plat = Number(p.lat);
+      const plng = Number(p.lng);
+      if (!Number.isFinite(lat0) || !Number.isFinite(lng0) || !Number.isFinite(plat) || !Number.isFinite(plng)) return;
+
+      const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat0},${lng0}&destination=${plat},${plng}`;
+      window.open(gurl, '_blank');
+      ev.stopPropagation();
     });
   });
 }
