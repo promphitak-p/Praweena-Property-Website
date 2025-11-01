@@ -206,24 +206,6 @@ const POI_TYPES = [
   { value: 'government',  label: 'ราชการ/ตำรวจ/ไปรษณีย์' },
 ];
 
-// ====== ฟังก์ชันวาดเส้นจากบ้านไป POI (ใช้ซ้ำ) ======
-function drawRouteToPOI(poi) {
-  if (!detailMap || !detailHouseMarker) return;
-  const houseLatLng = detailHouseMarker.getLatLng();
-  const poiLat = Number(poi.lat);
-  const poiLng = Number(poi.lng);
-  if (!Number.isFinite(poiLat) || !Number.isFinite(poiLng)) return;
-
-  // หมุดปลายทาง (ใช้ marker ปกติ)
-  const poiMarker = L.marker([poiLat, poiLng]).addTo(detailMap)
-    .bindPopup(poi.name || 'สถานที่ใกล้เคียง')
-    .openPopup();
-
-  // zoom ให้เห็นทั้งคู่
-  const group = L.featureGroup([detailHouseMarker, poiMarker, detailRouteLine]);
-  detailMap.fitBounds(group.getBounds().pad(0.35));
-}
-
 /** แสดงผลข้อมูลอสังหาฯ */
 async function renderPropertyDetails(property) {
   // Meta
@@ -418,29 +400,36 @@ async function renderPropertyDetails(property) {
 
         // วาด POI เดิม
         if (allowed.length) {
-          allowed.forEach((p, i) => {
-            if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-            const baseStyle = colorOf(p.type);
-            const marker = L.circleMarker([p.lat, p.lng], {
-              radius: 6,
-              color: baseStyle.stroke,
-              fillColor: baseStyle.fill,
-              fillOpacity: .9,
-              weight: 2
-            })
-              .bindPopup(`${iconOf(p.type)} <strong>${p.name}</strong><br>${p.type || 'poi'}<br>${(p.distance_km ?? 0).toFixed(2)} กม.`)
-              .addTo(detailMap);
+allowed.forEach((p, i) => {
+  if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+  const baseStyle = colorOf(p.type);
 
-            // 👇 คลิกหมุดก็ให้วาดเส้น
-            marker.on('click', () => {
-              drawRouteToPOI(p);
-            });
+  const marker = L.circleMarker([p.lat, p.lng], {
+    radius: 6,
+    color: baseStyle.stroke,
+    fillColor: baseStyle.fill,
+    fillOpacity: .9,
+    weight: 2
+  })
+    .bindPopup(`
+      ${iconOf(p.type)} <strong>${p.name}</strong><br>
+      ${p.type || 'poi'}<br>
+      ${(p.distance_km ?? 0).toFixed(2)} กม.<br>
+      <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">นำทางด้วย Google Maps</a>
+    `)
+    .addTo(detailMap);
 
-            marker.__baseStyle = baseStyle;
-            poiMarkers.push(marker);
-            bounds.push([p.lat, p.lng]);
-          });
-        }
+  // ✅ คลิกหมุด → เปิดกูเกิลแมป
+  marker.on('click', () => {
+    const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}`;
+    window.open(gurl, '_blank');
+  });
+
+  marker.__baseStyle = baseStyle;
+  poiMarkers.push(marker);
+  bounds.push([p.lat, p.lng]);
+});
+
 
         if (bounds.length > 1) detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
 
@@ -457,16 +446,25 @@ async function renderPropertyDetails(property) {
           }).join('');
 
           listEl.querySelectorAll('li').forEach((li, i) => {
-            li.addEventListener('click', () => {
-              const marker = poiMarkers[i];
-              const poiData = allowed[i];
-              if (!marker) return;
-              // โฟกัสหมุด
-              detailMap.setView(marker.getLatLng(), 16, { animate: true });
-              marker.openPopup();
-              // วาดเส้นบ้าน → poi
-              drawRouteToPOI(poiData);
-            });
+li.addEventListener('click', () => {
+  const poiData = allowed[i];
+  if (!poiData) return;
+  const plat = Number(poiData.lat);
+  const plng = Number(poiData.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(plat) || !Number.isFinite(plng)) return;
+
+  // โฟกัสแผนที่ก่อน (เอาไว้ดูตำแหน่ง)
+  const marker = poiMarkers[i];
+  if (marker) {
+    detailMap.setView(marker.getLatLng(), 16, { animate: true });
+    marker.openPopup();
+  }
+
+  // แล้วเด้ง Google Maps
+  const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}`;
+  window.open(gurl, '_blank');
+});
+
           });
         } else {
           listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
