@@ -397,37 +397,40 @@ async function renderPropertyDetails(property) {
         const allowed = pois || [];
 
         // ====== วาด POI เดิม ======
-        if (allowed.length) {
-          allowed.forEach((p, i) => {
-            if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-            const baseStyle = colorOf(p.type);
+if (allowed.length) {
+  allowed.forEach((p, i) => {
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+    const baseStyle = colorOf(p.type);
 
-            const marker = L.circleMarker([p.lat, p.lng], {
-              radius: 6,
-              color: baseStyle.stroke,
-              fillColor: baseStyle.fill,
-              fillOpacity: .9,
-              weight: 2
-            })
-              .bindPopup(`
-                ${iconOf(p.type)} <strong>${p.name}</strong><br>
-                ${p.type || 'poi'}<br>
-                ${(p.distance_km ?? 0).toFixed(2)} กม.<br>
-                <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">นำทางด้วย Google Maps</a>
-              `)
-              .addTo(detailMap);
+    const marker = L.circleMarker([p.lat, p.lng], {
+      radius: 6,
+      color: baseStyle.stroke,
+      fillColor: baseStyle.fill,
+      fillOpacity: .9,
+      weight: 2
+    })
+      .bindPopup(`
+        ${iconOf(p.type)} <strong>${p.name}</strong><br>
+        ${p.type || 'poi'}<br>
+        ${(p.distance_km ?? 0).toFixed(2)} กม.<br>
+        <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">
+          นำทางด้วย Google Maps
+        </a>
+      `)
+      .addTo(detailMap);
 
-            // ✅ คลิกหมุด → เปิดกูเกิลแมป
-            marker.on('click', () => {
-              const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}`;
-              window.open(gurl, '_blank');
-            });
+    // ✅ คลิกหมุด: แค่โฟกัส + เปิด popup เท่านั้น
+    marker.on('click', () => {
+      detailMap.setView([p.lat, p.lng], 16, { animate: true });
+      marker.openPopup();
+    });
 
-            marker.__baseStyle = baseStyle;
-            poiMarkers.push(marker);
-            bounds.push([p.lat, p.lng]);
-          });
-        } // 👈<<< ปิด if (allowed.length) ตรงนี้นะ
+    marker.__baseStyle = baseStyle;
+    poiMarkers.push(marker);
+    bounds.push([p.lat, p.lng]);
+  });
+}
+
 
         // ปรับมุมมอง
         if (bounds.length > 1) {
@@ -435,40 +438,37 @@ async function renderPropertyDetails(property) {
         }
 
         // ====== ลิสต์ใต้แผนที่ใหญ่ ======
-        if (allowed.length) {
-          listEl.innerHTML = allowed.map((p, i) => {
-            const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
-            const icon = iconOf(p.type);
-            return `
-              <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
-                <span style="font-size:1.1rem;">${icon}</span>
-                <span><strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span></span>
-              </li>`;
-          }).join('');
+if (allowed.length) {
+  listEl.innerHTML = allowed.map((p, i) => {
+    const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
+    const icon = iconOf(p.type);
+    return `
+      <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
+        <span style="font-size:1.1rem;">${icon}</span>
+        <span>
+          <strong>${p.name}</strong> — ${km} กม.
+          <span style="color:#6b7280;">(${p.type || 'poi'})</span>
+        </span>
+      </li>`;
+  }).join('');
 
-          listEl.querySelectorAll('li').forEach((li, i) => {
-            li.addEventListener('click', () => {
-              const poiData = allowed[i];
-              if (!poiData) return;
-              const plat = Number(poiData.lat);
-              const plng = Number(poiData.lng);
-              if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(plat) || !Number.isFinite(plng)) return;
+  listEl.querySelectorAll('li').forEach((li, i) => {
+    li.addEventListener('click', () => {
+      const poiData = allowed[i];
+      const marker = poiMarkers[i];
+      if (!poiData || !marker) return;
 
-              // โฟกัสก่อน
-              const marker = poiMarkers[i];
-              if (marker) {
-                detailMap.setView(marker.getLatLng(), 16, { animate: true });
-                marker.openPopup();
-              }
+      // ✅ คลิกรายการ → โฟกัสหมุด + เปิด popup
+      detailMap.setView(marker.getLatLng(), 16, { animate: true });
+      marker.openPopup();
 
-              // แล้วเด้ง Google Maps
-              const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}`;
-              window.open(gurl, '_blank');
-            });
-          });
-        } else {
-          listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
-        }
+      // ❌ ไม่ต้องพาออกไป Google Maps ในจังหวะนี้
+    });
+  });
+} else {
+  listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
+}
+
 
         // ====== โหมดเพิ่ม POI ======
         if (ENABLE_POI_EDIT_ON_DETAIL) {
@@ -771,25 +771,27 @@ async function loadNearby(property) {
     bounds.push([lat0, lng0]);
   }
 
-  allowed.forEach(p => {
-    let plat = parseFloat(p.lat);
-    let plng = parseFloat(p.lng);
-    if (!Number.isFinite(plat) || !Number.isFinite(plng)) {
-      return;
-    }
-    const marker = L.circleMarker([plat, plng], {
-      radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
-    }).bindTooltip(`${iconOf2(p.type)} ${p.name}`, { direction: 'top' });
+// POI
+allowed.forEach(p => {
+  const plat = parseFloat(p.lat);
+  const plng = parseFloat(p.lng);
+  if (!Number.isFinite(plat) || !Number.isFinite(plng)) return;
 
-    marker.on('click', () => {
-      if (!Number.isFinite(lat0) || !Number.isFinite(lng0)) return;
-      const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat0},${lng0}&destination=${plat},${plng}`;
-      window.open(gurl, '_blank');
-    });
+  const marker = L.circleMarker([plat, plng], {
+    radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
+  }).bindTooltip(`${iconOf(p.type)} ${p.name}`, { direction: 'top' });
 
-    marker.addTo(group);
-    bounds.push([plat, plng]);
+  // ✅ คลิกหมุด: แค่ซูมให้เห็น + เปิด tooltip/popup
+  marker.on('click', () => {
+    map.setView([plat, plng], 16, { animate: true });
+    marker.openTooltip();
+    // ❌ ไม่เปิด Google Maps ตรงนี้
   });
+
+  marker.addTo(group);
+  bounds.push([plat, plng]);
+});
+
 
   if (bounds.length >= 2) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
   else if (bounds.length === 1) map.setView(bounds[0], 15);
@@ -809,17 +811,20 @@ async function loadNearby(property) {
       </li>`;
   }).join('');
 
-  listEl.querySelectorAll('li').forEach((li, idx) => {
-    li.addEventListener('click', (ev) => {
-      const p = allowed[idx];
-      if (!p) return;
-      const plat = Number(p.lat);
-      const plng = Number(p.lng);
-      if (!Number.isFinite(lat0) || !Number.isFinite(lng0) || !Number.isFinite(plat) || !Number.isFinite(plng)) return;
+listEl.querySelectorAll('li').forEach((li, idx) => {
+  li.addEventListener('click', (ev) => {
+    const p = allowed[idx];
+    if (!p) return;
+    const plat = Number(p.lat);
+    const plng = Number(p.lng);
+    if (!Number.isFinite(plat) || !Number.isFinite(plng)) return;
 
-      const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat0},${lng0}&destination=${plat},${plng}`;
-      window.open(gurl, '_blank');
-      ev.stopPropagation();
-    });
+    // ✅ แค่โฟกัสในมินิแมพ
+    map.setView([plat, plng], 16, { animate: true });
+
+    // ❌ ไม่ต้องเปิด google map ที่นี่
+    ev.stopPropagation();
   });
+});
+
 }
