@@ -158,64 +158,20 @@
   <small style="color:#6b7280;">*ติ๊กออกได้ถ้าไม่ต้องการแสดงบางแห่ง</small>
 </div>
 
+<label>รูปภาพหน้าปก</label>
+<input type="file" id="cover-upload" accept="image/*">
 
-          <!-- เลือกรูปหน้าปก + พรีวิว -->
-          <div class="form-group col-span-2">
-            <label>รูปภาพหน้าปก</label>
-            <div class="cover-uploader">
-              <button type="button" id="pick-cover-btn" class="btn btn-secondary">เลือกรูปหน้าปก</button>
-              <input type="file" id="cover-file-input" accept="image/*" hidden />
-              <div class="cover-preview-wrap" style="margin-top:10px;">
-                <img id="image-preview" class="property-cover-image" style="display:none;" alt="cover preview"/>
-              </div>
-            </div>
-          </div>
+<label>รูปภาพแกลลอรี่ (เลือกได้หลายรูป)</label>
+<input type="file" id="gallery-upload" accept="image/*" multiple>
+<div id="gallery-preview" style="margin-top:.5rem;"></div>
 
-          <!-- Modal ครอบรูปหน้าปก -->
-          <div class="modal" id="cover-crop-modal">
-            <div class="modal-content" style="max-width:900px;">
-              <span class="modal-close" id="cover-crop-close">&times;</span>
-              <h3 style="margin-top:0;">ครอบรูปหน้าปก</h3>
+<label>YouTube Video IDs / URLs</label>
+<div style="display:flex;gap:.5rem;align-items:center;">
+  <input type="text" id="youtube-input" class="form-control" placeholder="เช่น https://youtu.be/..." />
+  <button id="youtube-add-btn" class="btn btn-secondary" type="button">+ เพิ่ม</button>
+</div>
+<ul id="youtube-list" style="margin-top:.5rem;"></ul>
 
-              <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-                <label>อัตราส่วน:</label>
-                <select id="crop-aspect">
-                  <option value="16/9" selected>16:9 (แนะนำ)</option>
-                  <option value="4/3">4:3</option>
-                  <option value="1/1">1:1</option>
-                  <option value="NaN">อิสระ</option>
-                </select>
-                <button type="button" id="crop-rotate-left" class="btn btn-secondary">หมุนซ้าย 90°</button>
-                <button type="button" id="crop-rotate-right" class="btn btn-secondary">หมุนขวา 90°</button>
-              </div>
-
-              <div class="cropper-stage">
-                <img id="cropper-image" alt="crop source"/>
-              </div>
-
-              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-                <button type="button" class="btn btn-secondary modal-cancel" id="crop-cancel-btn">ยกเลิก</button>
-                <button type="button" class="btn btn-primary" id="crop-apply-btn">ใช้รูปนี้</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- แกลเลอรี -->
-          <div class="form-group col-span-2">
-            <label>รูปภาพแกลเลอรี (เลือกได้หลายรูป)</label>
-            <input type="file" id="gallery-images-input" class="form-control" accept="image/png, image/jpeg" multiple>
-            <div id="gallery-manager" style="margin-top:12px;"></div>
-          </div>
-
-          <!-- YouTube -->
-          <div class="form-group col-span-2">
-            <label>YouTube Video IDs (ถ้ามี)</label>
-            <div id="youtube-ids-container"></div>
-            <button type="button" id="add-youtube-id-btn" class="btn btn-secondary" style="margin-top:.5rem;">+ เพิ่มวิดีโอ YouTube</button>
-            <small style="color:var(--text-light);display:block;">*ใส่เฉพาะส่วนรหัสท้าย URL ของวิดีโอ*</small>
-            <input type="hidden" name="youtube_video_ids">
-          </div>
-        </div>
 
         <div class="form-group">
           <label><input type="checkbox" name="published" style="margin-right:8px;">เผยแพร่ทันที</label>

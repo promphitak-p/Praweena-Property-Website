@@ -2,6 +2,8 @@
 //------------------------------------------------------------
 // Praweena Property Dashboard Page
 // เลือกตำแหน่งบ้าน + ดึงสถานที่ใกล้เคียง (POI)
+// + อัปโหลดรูปขึ้น Cloudinary
+// + จัดการ YouTube
 //------------------------------------------------------------
 
 import { setupMobileNav } from '../ui/mobileNav.js';
@@ -15,24 +17,33 @@ import { $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js';
 
-// ============================================================
-// DOM หลัก
-// ============================================================
-const propertyModal = document.getElementById('property-modal');
-const propertyForm  = document.getElementById('property-form');
-const addPropertyBtn = document.getElementById('add-property-btn');
+// =========== 👇👇 ตั้งค่าตรงนี้ให้ตรงกับ Cloudinary ของกุ้งก่อนนะ 👇👇 ===========
+const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME';        // <- ใส่ชื่อ cloud
+const CLOUDINARY_UNSIGNED_PRESET = 'YOUR_UPLOAD_PRESET'; // <- ใส่ unsigned preset
+// ============================================================================
 
-// ============================================================
+// DOM หลัก
+const propertyModal   = document.getElementById('property-modal');
+const propertyForm    = document.getElementById('property-form');
+const addPropertyBtn  = document.getElementById('add-property-btn');
+
+// (ต้องมีใน html)
+//  - <input type="file" id="cover-upload" accept="image/*">
+//  - <input type="file" id="gallery-upload" accept="image/*" multiple>
+//  - <div id="gallery-preview"></div>
+//  - ส่วน youtube:
+//      <input id="youtube-input">
+//      <button id="youtube-add-btn">+ เพิ่มวิดีโอ YouTube</button>
+//      <ul id="youtube-list"></ul>
+
 // State
-// ============================================================
 let modalMap = null;
 let draggableMarker = null;
-let currentGallery = [];
-let poiCandidatesInline = []; // รายการ POI ที่ขึ้นในฟอร์ม
+let currentGallery = [];          // เก็บ URL รูปทั้งหมด
+let poiCandidatesInline = [];     // รายการ POI ที่ขึ้นในฟอร์ม
+let currentYoutube = [];          // เก็บ YouTube IDs/URLs
 
-// ============================================================
-// Utils
-// ============================================================
+// ====================== Utility ======================
 function kmDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -52,39 +63,138 @@ function poiEmoji(type = '') {
   return '📍';
 }
 
-// fallback POI ถ้าเรียก edge function ไม่ผ่าน
-function getFallbackPoi(baseLat, baseLng) {
-  return [
-    {
-      name: 'ตลาดสดสุราษฎร์',
-      type: 'market',
-      lat: baseLat ? Number(baseLat) + 0.002 : 9.1337,
-      lng: baseLng ? Number(baseLng) + 0.002 : 99.3325,
-      distance_km: 0.25,
-      __saved: false
-    },
-    {
-      name: 'โรงเรียนสุราษฎร์พิทยา (ใกล้เคียง)',
-      type: 'school',
-      lat: baseLat ? Number(baseLat) + 0.0015 : 9.1337,
-      lng: baseLng ? Number(baseLng) - 0.001 : 99.3325,
-      distance_km: 0.4,
-      __saved: false
-    },
-    {
-      name: 'Tesco / Lotus ใกล้บ้าน',
-      type: 'convenience',
-      lat: baseLat ? Number(baseLat) - 0.0015 : 9.1337,
-      lng: baseLng ? Number(baseLng) + 0.0015 : 99.3325,
-      distance_km: 0.6,
-      __saved: false
-    }
-  ];
+// ========== อัปโหลดรูปขึ้น Cloudinary ==========
+// ใช้ unsigned upload (ฝั่ง client)
+async function uploadToCloudinary(file) {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UNSIGNED_PRESET) {
+    throw new Error('ยังไม่ได้ตั้งค่า Cloudinary');
+  }
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_UNSIGNED_PRESET);
+
+  const res = await fetch(url, { method: 'POST', body: fd });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + txt);
+  }
+  const data = await res.json();
+  return data.secure_url;
 }
 
-// ============================================================
-// Map ในโมดัล
-// ============================================================
+// แสดงตัวอย่างรูป
+function renderGalleryPreview() {
+  const wrap = document.getElementById('gallery-preview');
+  if (!wrap) return;
+  clear(wrap);
+
+  if (!currentGallery.length) {
+    wrap.innerHTML = '<p style="color:#9ca3af;">ยังไม่มีรูปอัปโหลด</p>';
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.style.display = 'flex';
+  list.style.flexWrap = 'wrap';
+  list.style.gap = '8px';
+
+  currentGallery.forEach((url, idx) => {
+    const box = document.createElement('div');
+    box.style.position = 'relative';
+    box.style.width = '90px';
+    box.style.height = '90px';
+    box.style.borderRadius = '8px';
+    box.style.overflow = 'hidden';
+    box.style.border = idx === 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb';
+    box.title = idx === 0 ? 'รูปหน้าปก' : 'รูปที่ ' + (idx + 1);
+
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+
+    const del = document.createElement('button');
+    del.textContent = '×';
+    del.style.position = 'absolute';
+    del.style.top = '4px';
+    del.style.right = '4px';
+    del.style.background = 'rgba(0,0,0,.6)';
+    del.style.color = '#fff';
+    del.style.border = 'none';
+    del.style.width = '20px';
+    del.style.height = '20px';
+    del.style.cursor = 'pointer';
+    del.style.borderRadius = '999px';
+    del.addEventListener('click', () => {
+      currentGallery = currentGallery.filter((_, i) => i !== idx);
+      renderGalleryPreview();
+    });
+
+    box.appendChild(img);
+    box.appendChild(del);
+    list.appendChild(box);
+  });
+
+  wrap.appendChild(list);
+}
+
+// ========== YouTube helper ==========
+function normalizeYoutubeIdOrUrl(input) {
+  const raw = (input || '').trim();
+  if (!raw) return '';
+  // แค่ id 11 ตัว
+  if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+  // พยายามดึงจาก url
+  try {
+    const u = new URL(raw);
+    const v = u.searchParams.get('v');
+    if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+    const m1 = u.pathname.match(/^\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (m1) return m1[1];
+  } catch {
+    // ไม่ใช่ url ก็ไม่เป็นไร
+  }
+  return raw; // อย่างน้อยก็เก็บไว้ก่อน
+}
+
+function renderYoutubeList() {
+  const list = document.getElementById('youtube-list');
+  if (!list) return;
+  clear(list);
+
+  if (!currentYoutube.length) {
+    list.innerHTML = '<li style="color:#9ca3af;">ยังไม่ได้เพิ่มวิดีโอ</li>';
+    return;
+  }
+
+  currentYoutube.forEach((id, idx) => {
+    const li = document.createElement('li');
+    li.style.display = 'flex';
+    li.style.alignItems = 'center';
+    li.style.justifyContent = 'space-between';
+    li.style.gap = '1rem';
+    li.style.padding = '4px 0';
+
+    const text = document.createElement('span');
+    text.textContent = id;
+
+    const btn = document.createElement('button');
+    btn.textContent = 'ลบ';
+    btn.className = 'btn btn-sm btn-danger';
+    btn.addEventListener('click', () => {
+      currentYoutube = currentYoutube.filter((_, i) => i !== idx);
+      renderYoutubeList();
+    });
+
+    li.appendChild(text);
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+
+// ================== Map ในโมดัล ==================
 function setupModalMap(lat, lng) {
   if (!propertyForm) return;
 
@@ -140,9 +250,74 @@ function setupModalMap(lat, lng) {
   }
 }
 
-// ============================================================
-// ดึง POI จาก edge function (เวอร์ชัน 10 กม. + เติม fallback)
-// ============================================================
+// ================== ดึง POI จาก edge function ==================
+function getFallbackPoi(baseLat, baseLng) {
+  return [
+    {
+      name: 'ตลาดสดสุราษฎร์',
+      type: 'market',
+      lat: baseLat ? Number(baseLat) + 0.002 : 9.1337,
+      lng: baseLng ? Number(baseLng) + 0.002 : 99.3325,
+      distance_km: 0.25,
+      __saved: false
+    },
+    {
+      name: 'โรงเรียนสุราษฎร์พิทยา (ใกล้เคียง)',
+      type: 'school',
+      lat: baseLat ? Number(baseLat) + 0.0015 : 9.1337,
+      lng: baseLng ? Number(baseLng) - 0.001 : 99.3325,
+      distance_km: 0.4,
+      __saved: false
+    },
+    {
+      name: 'Tesco / Lotus ใกล้บ้าน',
+      type: 'convenience',
+      lat: baseLat ? Number(baseLat) - 0.0015 : 9.1337,
+      lng: baseLng ? Number(baseLng) + 0.0015 : 99.3325,
+      distance_km: 0.6,
+      __saved: false
+    }
+  ];
+}
+
+// ✅ Landmark สำคัญสุราษฎร์ธานี (ของกุ้ง) — เดิมของกุ้ง
+const PRAWEENA_LANDMARKS = [
+  { name: 'โรงพยาบาลสุราษฎร์ธานี', type: 'hospital', lat: 9.1237537, lng: 99.3100007 },
+  { name: 'โรงพยาบาลศรีวิชัย สุราษฎร์ธานี', type: 'hospital', lat: 9.1154684, lng: 99.3091824 },
+  { name: 'ตลาดสำเภาทอง', type: 'market', lat: 9.132751, lng: 99.324087 },
+  { name: 'ตลาดสดเทศบาลนครสุราษฎร์ธานี', type: 'market', lat: 9.1414417, lng: 99.3235889 },
+  { name: 'โรงเรียนสุราษฎร์ธานี', type: 'school', lat: 9.133571, lng: 99.3299882 },
+  { name: 'โรงเรียนสุราษฎร์พิทยา', type: 'school', lat: 9.141851, lng: 99.3261057 },
+  { name: 'ที่ว่าการอำเภอเมืองสุราษฎร์ธานี', type: 'government', lat: 9.1360563, lng: 99.3202931 },
+  { name: 'ศาลหลักเมืองสุราษฎร์ธานี', type: 'tourism', lat: 9.1391623, lng: 99.3216506 },
+  { name: 'Central Suratthani', type: 'mall', lat: 9.1095245, lng: 99.30216 },
+];
+
+function injectPraweenaLandmarks(baseLat, baseLng, currentList = []) {
+  if (!Number.isFinite(baseLat) || !Number.isFinite(baseLng)) {
+    return currentList;
+  }
+  const fixed = PRAWEENA_LANDMARKS.map(lm => ({
+    ...lm,
+    distance_km: kmDistance(baseLat, baseLng, lm.lat, lm.lng),
+    __saved: false,
+  }));
+
+  const map = new Map();
+  currentList.forEach(p => {
+    const k = (p.name || '').trim().toLowerCase();
+    if (!map.has(k)) map.set(k, p);
+  });
+  fixed.forEach(p => {
+    const k = (p.name || '').trim().toLowerCase();
+    if (!map.has(k)) map.set(k, p);
+  });
+
+  return Array.from(map.values())
+    .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
+}
+
+// ดึง POI แนะนำ
 async function fetchNearbyPOIInline(lat, lng) {
   const listEl = document.getElementById('poi-candidate-list');
   if (listEl) {
@@ -153,7 +328,6 @@ async function fetchNearbyPOIInline(lat, lng) {
   const baseLng = Number(lng);
 
   if (!Number.isFinite(baseLat) || !Number.isFinite(baseLng)) {
-    console.warn('พิกัดไม่ถูกต้อง ตอน fetchNearbyPOIInline');
     poiCandidatesInline = [];
     renderPOIInlineList();
     return;
@@ -165,41 +339,25 @@ async function fetchNearbyPOIInline(lat, lng) {
         lat: baseLat,
         lng: baseLng,
         preview: true,
-        radius_m: 10000,   // 10 กม.
+        radius_m: 10000,
         limit: 60
       }
     });
-
-    if (error) {
-      throw error;
-    }
-
-    // รายการที่ edge คืนมา
+    if (error) throw error;
     let items = data?.items || [];
-
-    // เผื่อบางรายการไม่คำนวณระยะ
     items = items
       .map((p) => {
         const plat = Number(p.lat);
         const plng = Number(p.lng);
         let dist = p.distance_km;
-
-        if (
-          (!dist || isNaN(dist)) &&
-          Number.isFinite(plat) &&
-          Number.isFinite(plng)
-        ) {
+        if ((!dist || isNaN(dist)) && Number.isFinite(plat) && Number.isFinite(plng)) {
           dist = kmDistance(baseLat, baseLng, plat, plng);
         }
-
         return { ...p, distance_km: dist };
       })
-      // เอาเฉพาะที่ระยะ <= 10 กม.
       .filter((p) => typeof p.distance_km === 'number' && p.distance_km <= 10)
-      // เรียงใกล้ → ไกล
       .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
 
-    // ถ้ายังน้อยกว่า 15 ให้เติม fallback ของเรา
     if (items.length < 15) {
       const fb = getFallbackPoi(baseLat, baseLng);
       const used = new Set(items.map((p) => p.name));
@@ -208,25 +366,20 @@ async function fetchNearbyPOIInline(lat, lng) {
       });
     }
 
-items = injectPraweenaLandmarks(latNum, lngNum, items);
-poiCandidatesInline = items;
-renderPOIInlineList();
-
+    items = injectPraweenaLandmarks(baseLat, baseLng, items);
+    poiCandidatesInline = items;
+    renderPOIInlineList();
   } catch (err) {
     console.error('fetchNearbyPOIInline error:', err);
     poiCandidatesInline = getFallbackPoi(baseLat, baseLng);
-    toast('โหลดจากระบบไม่สำเร็จ แสดงรายการตัวอย่างให้ก่อน', 2500, 'error');
     renderPOIInlineList();
   }
 }
 
-// ============================================================
 // รวม saved + suggested
-// ============================================================
 function mergePoiLists(savedList = [], suggestedList = []) {
   const out = [];
   const keySet = new Set();
-
   const makeKey = (p) => {
     const name = (p.name || '').trim().toLowerCase();
     const lat  = Number(p.lat || 0).toFixed(6);
@@ -251,16 +404,13 @@ function mergePoiLists(savedList = [], suggestedList = []) {
   return out;
 }
 
-// ============================================================
-// โหลด POI ของบ้านนี้ตอนกด "แก้ไข"
-// ============================================================
+// โหลด POI ของบ้านนี้
 async function loadPoisForProperty(propertyId, baseLat, baseLng) {
   const listEl = document.getElementById('poi-candidate-list');
   if (listEl) {
     listEl.innerHTML = '<li style="color:#6b7280;">กำลังโหลดสถานที่ที่บันทึกไว้...</li>';
   }
 
-  // 1) โหลดของที่บันทึกในตาราง
   let saved = [];
   if (propertyId) {
     const { data, error } = await supabase
@@ -281,7 +431,6 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
     }
   }
 
-  // 2) ขอแนะนำจาก edge (แบบ preview)
   let suggested = [];
   const latNum = Number(baseLat);
   const lngNum = Number(baseLng);
@@ -297,21 +446,17 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
         suggested = getFallbackPoi(latNum, lngNum);
       }
     } catch (e) {
-      console.warn('แนะนำ POI ไม่สำเร็จ → ใช้ fallback', e);
       suggested = getFallbackPoi(latNum, lngNum);
     }
   }
 
-let merged = mergePoiLists(saved, suggested);
-merged = injectPraweenaLandmarks(Number(baseLat), Number(baseLng), merged);
-poiCandidatesInline = merged;
-renderPOIInlineList();
-
+  let merged = mergePoiLists(saved, suggested);
+  merged = injectPraweenaLandmarks(Number(baseLat), Number(baseLng), merged);
+  poiCandidatesInline = merged;
+  renderPOIInlineList();
 }
 
-// ============================================================
 // วาดลิสต์ POI
-// ============================================================
 function renderPOIInlineList() {
   const list = document.getElementById('poi-candidate-list');
   if (!list) return;
@@ -339,9 +484,7 @@ function renderPOIInlineList() {
   });
 }
 
-// ============================================================
-// บันทึก POI ที่ติ๊กในฟอร์ม dashboard
-// ============================================================
+// บันทึก POI ที่ติ๊ก
 async function saveInlinePois(propertyId, baseLat, baseLng) {
   if (!propertyId) return;
 
@@ -352,7 +495,6 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
     if (poi) checked.push(poi);
   });
 
-  // ล้างเก่า
   await supabase.from('property_poi').delete().eq('property_id', propertyId);
 
   if (!checked.length) return;
@@ -375,25 +517,7 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
   await supabase.from('property_poi').insert(rows);
 }
 
-// ====== map utils (ใช้คำนวณระยะทาง) ======
-const mapUtils = {
-  distanceKm(lat1, lon1, lat2, lon2) {
-    const toRad = v => v * Math.PI / 180;
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-};
-
-// ============================================================
-// Submit ฟอร์ม
-// ============================================================
+// ================== Submit ฟอร์ม ==================
 async function handleSubmit(e) {
   e.preventDefault();
   const form = e.target;
@@ -410,8 +534,12 @@ async function handleSubmit(e) {
     const baseLng = parseFloat(payload.longitude);
 
     payload.price = Number(payload.price) || 0;
+    // ✅ รูป
     payload.gallery = currentGallery;
     payload.cover_url = payload.gallery[0] || null;
+    // ✅ youtube
+    payload.youtube_video_ids = JSON.stringify(currentYoutube);
+
     payload.published = !!payload.published;
 
     const { data, error } = await upsertProperty(payload);
@@ -434,9 +562,7 @@ async function handleSubmit(e) {
   }
 }
 
-// ============================================================
-// ลบประกาศ
-// ============================================================
+// ================== ลบประกาศ ==================
 async function handleDelete(id, title) {
   if (!confirm(`ลบ "${title || 'ประกาศนี้'}" ใช่ไหม?`)) return;
   try {
@@ -449,9 +575,7 @@ async function handleDelete(id, title) {
   }
 }
 
-// ============================================================
-// Modal
-// ============================================================
+// ================== Modal ==================
 function openModal() {
   if (!propertyModal) return;
   propertyModal.classList.add('open');
@@ -466,6 +590,12 @@ function closeModal() {
   }
   const poiList = document.getElementById('poi-candidate-list');
   if (poiList) poiList.innerHTML = '';
+
+  // reset รูป / youtube ทุกครั้งที่ปิด
+  currentGallery = [];
+  renderGalleryPreview();
+  currentYoutube = [];
+  renderYoutubeList();
 }
 
 function installModalCloseHandlers() {
@@ -489,9 +619,7 @@ function installModalCloseHandlers() {
   });
 }
 
-// ============================================================
-// เติมฟอร์มตอนแก้ไข
-// ============================================================
+// ================== เติมฟอร์มตอนแก้ไข ==================
 function fillFormFromProperty(p = {}) {
   if (!propertyForm) return;
   const keys = [
@@ -507,11 +635,32 @@ function fillFormFromProperty(p = {}) {
   if (propertyForm.elements.published) {
     propertyForm.elements.published.checked = !!p.published;
   }
+
+  // ✅ ถ้ามีรูปเก่า โหลดมาให้
+  currentGallery = Array.isArray(p.gallery)
+    ? p.gallery
+    : (typeof p.gallery === 'string' && p.gallery.startsWith('[')
+        ? JSON.parse(p.gallery)
+        : (p.cover_url ? [p.cover_url] : [])
+      );
+  renderGalleryPreview();
+
+  // ✅ ถ้ามี youtube เก่า โหลดมาให้
+  if (Array.isArray(p.youtube_video_ids)) {
+    currentYoutube = p.youtube_video_ids;
+  } else if (typeof p.youtube_video_ids === 'string' && p.youtube_video_ids.startsWith('[')) {
+    try {
+      currentYoutube = JSON.parse(p.youtube_video_ids);
+    } catch {
+      currentYoutube = [];
+    }
+  } else {
+    currentYoutube = [];
+  }
+  renderYoutubeList();
 }
 
-// ============================================================
-// โหลดรายการประกาศ
-// ============================================================
+// ================== โหลดรายการประกาศ ==================
 async function loadProperties() {
   const tbody = document.querySelector('#properties-table tbody');
   clear(tbody);
@@ -557,9 +706,7 @@ async function loadProperties() {
   }
 }
 
-// ============================================================
-// Init
-// ============================================================
+// ================== Init ==================
 document.addEventListener('DOMContentLoaded', async () => {
   await protectPage();
   setupNav();
@@ -568,227 +715,79 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   installModalCloseHandlers();
 
+  // ปุ่มเพิ่มบ้าน
   addPropertyBtn?.addEventListener('click', () => {
     propertyForm?.reset();
     if (propertyForm?.elements.id) propertyForm.elements.id.value = '';
     poiCandidatesInline = [];
     renderPOIInlineList();
+    currentGallery = [];
+    renderGalleryPreview();
+    currentYoutube = [];
+    renderYoutubeList();
     openModal();
     setTimeout(() => setupModalMap(), 80);
   });
 
+  // ฟอร์มบันทึก
   propertyForm?.addEventListener('submit', handleSubmit);
+
+  // === อัปโหลดรูปหน้าปก / แกลลอรี่ ===
+  const coverInput = document.getElementById('cover-upload');
+  if (coverInput) {
+    coverInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        toast('กำลังอัปโหลดรูปหน้าปก...', 2000, 'info');
+        const url = await uploadToCloudinary(file);
+        // ใส่เป็นรูปแรก
+        currentGallery = [url, ...currentGallery];
+        renderGalleryPreview();
+        toast('อัปโหลดรูปหน้าปกสำเร็จ', 2000, 'success');
+      } catch (err) {
+        console.error(err);
+        toast(err.message, 3000, 'error');
+      } finally {
+        coverInput.value = '';
+      }
+    });
+  }
+
+  const galleryInput = document.getElementById('gallery-upload');
+  if (galleryInput) {
+    galleryInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      for (const file of files) {
+        try {
+          toast(`กำลังอัปโหลด ${file.name} ...`, 1500, 'info');
+          const url = await uploadToCloudinary(file);
+          currentGallery.push(url);
+          renderGalleryPreview();
+        } catch (err) {
+          console.error(err);
+          toast('อัปโหลดบางไฟล์ไม่สำเร็จ: ' + err.message, 3000, 'error');
+        }
+      }
+      galleryInput.value = '';
+      toast('อัปโหลดรูปแกลลอรี่สำเร็จ', 2000, 'success');
+    });
+  }
+
+  // === YouTube ===
+  const ytInput = document.getElementById('youtube-input');
+  const ytAddBtn = document.getElementById('youtube-add-btn');
+  if (ytAddBtn && ytInput) {
+    ytAddBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const val = normalizeYoutubeIdOrUrl(ytInput.value);
+      if (!val) return;
+      currentYoutube.push(val);
+      ytInput.value = '';
+      renderYoutubeList();
+    });
+  }
 
   await loadProperties();
 });
-
-function getPraweenaFallbackByArea(lat, lng, province = 'สุราษฎร์ธานี') {
-  if (province.includes('สมุย')) {
-    return [
-      { name: 'โรงพยาบาลกรุงเทพสมุย', type: 'hospital', lat: 9.5308, lng: 100.0617 },
-      { name: 'Central Samui', type: 'mall', lat: 9.5356, lng: 100.0606 },
-      { name: 'ท่าเรือหน้าทอน', type: 'ferry', lat: 9.5350, lng: 99.9360 },
-    ];
-  }
-  // สุราษฯ เมือง
-  return [
-    { name: 'โรงเรียนสุราษฎร์พิทยา', type: 'school', lat: 9.13685, lng: 99.32170 },
-    { name: 'โรงพยาบาลสุราษฎร์ธานี', type: 'hospital', lat: 9.13090, lng: 99.32910 },
-    { name: 'ตลาดศาลเจ้า', type: 'market', lat: 9.14100, lng: 99.32640 },
-    { name: 'โลตัส สุราษฎร์ธานี', type: 'supermarket', lat: 9.13830, lng: 99.32990 },
-  ].map(p => ({
-    ...p,
-    distance_km: kmDistance(lat, lng, p.lat, p.lng),
-    __saved: false,
-  }));
-}
-
-// ✅ Landmark สำคัญสุราษฎร์ธานี (ของกุ้ง)
-const PRAWEENA_LANDMARKS = [
-  // 1. โรงพยาบาล / หน่วยแพทย์
-  {
-    name: 'โรงพยาบาลสุราษฎร์ธานี',
-    type: 'hospital',
-    lat: 9.1237537,
-    lng: 99.3100007,
-  },
-  {
-    name: 'โรงพยาบาลศรีวิชัย สุราษฎร์ธานี',
-    type: 'hospital',
-    lat: 9.1154684,
-    lng: 99.3091824,
-  },
-  {
-    name: 'Bangkok Hospital Surat',
-    type: 'hospital',
-    lat: 9.1224563,
-    lng: 99.2931571,
-  },
-  {
-    name: 'โรงพยาบาลทักษิณ',
-    type: 'hospital',
-    lat: 9.1481779,
-    lng: 99.3329196,
-  },
-
-  // 2. ตลาด / ศูนย์กลางเมือง
-  {
-    name: 'ตลาดสำเภาทอง',
-    type: 'market',
-    lat: 9.132751,
-    lng: 99.324087,
-  },
-  {
-    name: 'ตลาดสดเทศบาลนครสุราษฎร์ธานี',
-    type: 'market',
-    lat: 9.1414417,
-    lng: 99.3235889,
-  },
-  {
-    name: 'ตลาดเกษตร 1',
-    type: 'market',
-    lat: 9.145092,
-    lng: 99.328398,
-  },
-
-  // 3. สถานศึกษาใหญ่
-  {
-    name: 'โรงเรียนสุราษฎร์ธานี',
-    type: 'school',
-    lat: 9.133571,
-    lng: 99.3299882,
-  },
-  {
-    name: 'โรงเรียนสุราษฎร์พิทยา',
-    type: 'school',
-    lat: 9.141851,
-    lng: 99.3261057,
-  },
-  {
-    name: 'โรงเรียนเทศบาล 5 (เทศบาลนครสุราษฎร์ธานี)',
-    type: 'school',
-    lat: 9.1343548,
-    lng: 99.3227441,
-  },
-  {
-    name: 'มหาวิทยาลัยสงขลานครินทร์ วิทยาเขตสุราษฎร์ธานี',
-    type: 'university',
-    lat: 9.0941937,
-    lng: 99.3566244,
-  },
-  {
-    name: 'มหาวิทยาลัยราชภัฏสุราษฎร์ธานี',
-    type: 'university',
-    lat: 9.084371,
-    lng: 99.3643155,
-  },
-
-  // 4. หน่วยงานราชการ
-  {
-    name: 'ที่ว่าการอำเภอเมืองสุราษฎร์ธานี',
-    type: 'government',
-    lat: 9.1360563,
-    lng: 99.3202931,
-  },
-  {
-    name: 'สำนักงานขนส่งจังหวัดสุราษฎร์ธานี',
-    type: 'government',
-    lat: 9.1543173,
-    lng: 99.3414514,
-  },
-  {
-    name: 'สถานีขนส่งผู้โดยสาร สุราษฎร์ธานี (บขส.ในเมือง)',
-    type: 'bus_station',
-    lat: 9.1116134,
-    lng: 99.2983044,
-  },
-  {
-    name: 'ที่ว่าการอำเภอเมืองสุราษฎร์ธานี (องค์การบริหาร)',
-    type: 'government',
-    lat: 9.1364119, // ที่มาจากลิงก์ยาว
-    lng: 99.3202412,
-  },
-
-  // 5. จุดเที่ยว/ไหว้/แลนด์มาร์คเมือง
-  {
-    name: 'ศาลหลักเมืองสุราษฎร์ธานี',
-    type: 'tourism',
-    lat: 9.1391623,
-    lng: 99.3216506,
-  },
-  {
-    name: 'สวนสาธารณะบึงขุนทะเล',
-    type: 'park',
-    lat: 9.073528,
-    lng: 99.329051,
-  },
-
-  // 6. ห้าง/ค้าปลีกใหญ่
-  {
-    name: 'Central Suratthani',
-    type: 'mall',
-    lat: 9.1095245,
-    lng: 99.30216,
-  },
-  {
-    name: 'โลตัส สุราษฎร์ธานี',
-    type: 'supermarket',
-    lat: 9.103731,
-    lng: 99.306858,
-  },
-  {
-    name: 'บิ๊กซี สุราษฎร์ธานี (ซูเปอร์เซ็นเตอร์)',
-    type: 'supermarket',
-    lat: 9.14819,
-    lng: 99.3699,
-  },
-  {
-    name: 'สหไทยการ์เด้นพลาซ่า สุราษฎร์ธานี',
-    type: 'mall',
-    lat: 9.1490822,
-    lng: 99.3359198,
-  },
-
-  // 7. อื่น ๆ ที่มีในลิงก์
-  {
-    name: 'ศูนย์ฝึกอบรมตำรวจภูธรภาค 8',
-    type: 'police',
-    lat: 9.0826948,
-    lng: 99.3250426,
-  },
-];
-
-// ใช้คำนวณระยะทางเหมือนเดิม (กุ้งมีอยู่แล้ว แต่เผื่อไฟล์อื่นเรียก)
-function distanceKm(baseLat, baseLng, lat, lng) {
-  return kmDistance(baseLat, baseLng, lat, lng);
-}
-
-// ✅ เอาแลนด์มาร์คประจำเมืองมายัดเข้า list ที่ได้จาก OSM
-function injectPraweenaLandmarks(baseLat, baseLng, currentList = []) {
-  if (!Number.isFinite(baseLat) || !Number.isFinite(baseLng)) {
-    return currentList;
-  }
-
-  // แปลงแลนด์มาร์คทุกจุด → มี distance_km
-  const fixed = PRAWEENA_LANDMARKS.map(lm => ({
-    ...lm,
-    distance_km: distanceKm(baseLat, baseLng, lm.lat, lm.lng),
-    __saved: false,
-  }));
-
-  // กันชื่อซ้ำ (ใช้ชื่อเป็น key)
-  const map = new Map();
-  currentList.forEach(p => {
-    const k = (p.name || '').trim().toLowerCase();
-    if (!map.has(k)) map.set(k, p);
-  });
-  fixed.forEach(p => {
-    const k = (p.name || '').trim().toLowerCase();
-    if (!map.has(k)) map.set(k, p);
-  });
-
-  // คืนเป็น array เรียงใกล้ → ไกล
-  return Array.from(map.values())
-    .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
-}
-
