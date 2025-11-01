@@ -24,7 +24,6 @@ async function getCurrentRole() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return 'guest';
 
-  // ดึงจากตาราง profiles
   const { data: prof, error } = await supabase
     .from('profiles')
     .select('role')
@@ -153,7 +152,7 @@ function renderYouTubeGallery(videoIds = []) {
   return wrap;
 }
 
-// ไอคอนตามประเภท (อ่านจาก p.type)
+// ไอคอนตามประเภท
 function iconOf(t='') {
   const m = String(t).toLowerCase();
   if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
@@ -387,7 +386,7 @@ async function renderPropertyDetails(property) {
           attribution: '© OpenStreetMap contributors'
         }).addTo(detailMap);
 
-        // หมุดบ้าน (เก็บไว้ใช้วาดเส้น)
+        // หมุดบ้าน
         detailHouseMarker = L.marker([lat, lng], { title: property.title })
           .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
           .addTo(detailMap)
@@ -395,45 +394,47 @@ async function renderPropertyDetails(property) {
 
         const poiMarkers = [];
         const bounds = [[lat, lng]];
-
         const allowed = pois || [];
 
-        // วาด POI เดิม
+        // ====== วาด POI เดิม ======
         if (allowed.length) {
-allowed.forEach((p, i) => {
-  if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-  const baseStyle = colorOf(p.type);
+          allowed.forEach((p, i) => {
+            if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
+            const baseStyle = colorOf(p.type);
 
-  const marker = L.circleMarker([p.lat, p.lng], {
-    radius: 6,
-    color: baseStyle.stroke,
-    fillColor: baseStyle.fill,
-    fillOpacity: .9,
-    weight: 2
-  })
-    .bindPopup(`
-      ${iconOf(p.type)} <strong>${p.name}</strong><br>
-      ${p.type || 'poi'}<br>
-      ${(p.distance_km ?? 0).toFixed(2)} กม.<br>
-      <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">นำทางด้วย Google Maps</a>
-    `)
-    .addTo(detailMap);
+            const marker = L.circleMarker([p.lat, p.lng], {
+              radius: 6,
+              color: baseStyle.stroke,
+              fillColor: baseStyle.fill,
+              fillOpacity: .9,
+              weight: 2
+            })
+              .bindPopup(`
+                ${iconOf(p.type)} <strong>${p.name}</strong><br>
+                ${p.type || 'poi'}<br>
+                ${(p.distance_km ?? 0).toFixed(2)} กม.<br>
+                <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}" target="_blank" style="color:#2563eb;">นำทางด้วย Google Maps</a>
+              `)
+              .addTo(detailMap);
 
-  // ✅ คลิกหมุด → เปิดกูเกิลแมป
-  marker.on('click', () => {
-    const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}`;
-    window.open(gurl, '_blank');
-  });
+            // ✅ คลิกหมุด → เปิดกูเกิลแมป
+            marker.on('click', () => {
+              const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}`;
+              window.open(gurl, '_blank');
+            });
 
-  marker.__baseStyle = baseStyle;
-  poiMarkers.push(marker);
-  bounds.push([p.lat, p.lng]);
-});
+            marker.__baseStyle = baseStyle;
+            poiMarkers.push(marker);
+            bounds.push([p.lat, p.lng]);
+          });
+        } // 👈<<< ปิด if (allowed.length) ตรงนี้นะ
 
+        // ปรับมุมมอง
+        if (bounds.length > 1) {
+          detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
+        }
 
-        if (bounds.length > 1) detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
-
-        // ลิสต์ใต้แผนที่ใหญ่
+        // ====== ลิสต์ใต้แผนที่ใหญ่ ======
         if (allowed.length) {
           listEl.innerHTML = allowed.map((p, i) => {
             const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
@@ -446,25 +447,24 @@ allowed.forEach((p, i) => {
           }).join('');
 
           listEl.querySelectorAll('li').forEach((li, i) => {
-li.addEventListener('click', () => {
-  const poiData = allowed[i];
-  if (!poiData) return;
-  const plat = Number(poiData.lat);
-  const plng = Number(poiData.lng);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(plat) || !Number.isFinite(plng)) return;
+            li.addEventListener('click', () => {
+              const poiData = allowed[i];
+              if (!poiData) return;
+              const plat = Number(poiData.lat);
+              const plng = Number(poiData.lng);
+              if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(plat) || !Number.isFinite(plng)) return;
 
-  // โฟกัสแผนที่ก่อน (เอาไว้ดูตำแหน่ง)
-  const marker = poiMarkers[i];
-  if (marker) {
-    detailMap.setView(marker.getLatLng(), 16, { animate: true });
-    marker.openPopup();
-  }
+              // โฟกัสก่อน
+              const marker = poiMarkers[i];
+              if (marker) {
+                detailMap.setView(marker.getLatLng(), 16, { animate: true });
+                marker.openPopup();
+              }
 
-  // แล้วเด้ง Google Maps
-  const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}`;
-  window.open(gurl, '_blank');
-});
-
+              // แล้วเด้ง Google Maps
+              const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}`;
+              window.open(gurl, '_blank');
+            });
           });
         } else {
           listEl.innerHTML = `<li style="color:#6b7280;">ไม่พบสถานที่ใกล้เคียงตามหมวดที่กำหนด</li>`;
@@ -534,6 +534,7 @@ li.addEventListener('click', () => {
             nameEl.value = ''; latEl.value = ''; lngEl.value = '';
             if (clickMarker) { detailMap.removeLayer(clickMarker); clickMarker = null; }
 
+            // วาดหมุดใหม่
             const style = colorOf(inserted.type);
             const m = L.circleMarker([inserted.lat, inserted.lng], {
               radius: 6, color: style.stroke, fillColor: style.fill, fillOpacity:.9, weight:2
@@ -541,8 +542,11 @@ li.addEventListener('click', () => {
               .bindPopup(`${iconOf(inserted.type)} <strong>${inserted.name}</strong><br>${inserted.type}<br>${(inserted.distance_km ?? 0).toFixed(2)} กม.`)
               .addTo(detailMap);
 
-            // คลิกแล้ววาดเส้นได้เหมือนกัน
-            m.on('click', () => drawRouteToPOI(inserted));
+            // คลิกแล้วเปิดแผนที่
+            m.on('click', () => {
+              const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${inserted.lat},${inserted.lng}`;
+              window.open(gurl, '_blank');
+            });
 
             poiMarkers.push(m);
             bounds.push([inserted.lat, inserted.lng]);
@@ -666,7 +670,6 @@ async function loadProperty() {
   }
 
   await renderPropertyDetails(data);
-  // ✅ โหลดและแสดงสถานที่ใกล้เคียง (มินิ-แมพ + รายการ)
   loadNearby(data).catch(console.error);
 }
 
@@ -732,17 +735,15 @@ async function loadNearby(property) {
     return;
   }
 
-  // แสดงทุกอันที่บันทึกไว้
   const allowed = pois;
   if (!allowed.length) {
     sec.style.display = 'none';
     return;
   }
 
-  sec.style.display = ''; // โชว์ section
+  sec.style.display = '';
 
-  // ---- ไอคอนตามประเภท ----
-  function iconOf(t = '') {
+  function iconOf2(t = '') {
     const m = String(t).toLowerCase();
     if (m.includes('hospital') || m.includes('clinic')) return '🏥';
     if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
@@ -751,7 +752,6 @@ async function loadNearby(property) {
     return '📍';
   }
 
-  // ---- พิกัดบ้าน ----
   const lat0 = Number.parseFloat(
     property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat
   );
@@ -759,13 +759,11 @@ async function loadNearby(property) {
     property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng
   );
 
-  // ---- แผนที่เล็ก ----
   const map = L.map('poi-map', { zoomControl: true, attributionControl: false });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   const group = L.layerGroup().addTo(map);
   const bounds = [];
 
-  // บ้าน
   if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
     L.circleMarker([lat0, lng0], {
       radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
@@ -773,19 +771,16 @@ async function loadNearby(property) {
     bounds.push([lat0, lng0]);
   }
 
-  // POI
   allowed.forEach(p => {
     let plat = parseFloat(p.lat);
     let plng = parseFloat(p.lng);
     if (!Number.isFinite(plat) || !Number.isFinite(plng)) {
-      // ไม่มีพิกัดก็ไม่ต้องปัก
       return;
     }
     const marker = L.circleMarker([plat, plng], {
       radius: 5, weight: 1.5, color: '#16a34a', fillColor: '#86efac', fillOpacity: .95
-    }).bindTooltip(`${iconOf(p.type)} ${p.name}`, { direction: 'top' });
+    }).bindTooltip(`${iconOf2(p.type)} ${p.name}`, { direction: 'top' });
 
-    // ✅ คลิกหมุด → เปิดลิงก์เส้นทาง
     marker.on('click', () => {
       if (!Number.isFinite(lat0) || !Number.isFinite(lng0)) return;
       const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat0},${lng0}&destination=${plat},${plng}`;
@@ -796,15 +791,13 @@ async function loadNearby(property) {
     bounds.push([plat, plng]);
   });
 
-  // ปรับมุมมอง
   if (bounds.length >= 2) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
   else if (bounds.length === 1) map.setView(bounds[0], 15);
   else map.setView([13.736, 100.523], 12);
 
-  // ---- รายการใต้แผนที่ ----
   listEl.innerHTML = allowed.slice(0, 30).map((p, idx) => {
     const km = typeof p.distance_km === 'number' ? p.distance_km.toFixed(2) : '-';
-    const icon = iconOf(p.type);
+    const icon = iconOf2(p.type);
     return `
       <li data-i="${idx}" style="margin-bottom:.5rem; display:flex; align-items:center; gap:.5rem; cursor:pointer;">
         <span style="font-size:1.2rem;">${icon}</span>
@@ -816,7 +809,6 @@ async function loadNearby(property) {
       </li>`;
   }).join('');
 
-  // ✅ คลิกรายการ → เปิดกูเกิลแมปเส้นทาง
   listEl.querySelectorAll('li').forEach((li, idx) => {
     li.addEventListener('click', (ev) => {
       const p = allowed[idx];
