@@ -18,8 +18,8 @@ import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js';
 
 // =========== 👇👇 ตั้งค่าตรงนี้ให้ตรงกับ Cloudinary ของกุ้งก่อนนะ 👇👇 ===========
-const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME';        // <- ใส่ชื่อ cloud
-const CLOUDINARY_UNSIGNED_PRESET = 'YOUR_UPLOAD_PRESET'; // <- ใส่ unsigned preset
+const CLOUDINARY_CLOUD_NAME = 'dupwjm8q2';        // <- ใส่ชื่อ cloud
+const CLOUDINARY_UNSIGNED_PRESET = 'praweena_property_preset'; // <- ใส่ unsigned preset
 // ============================================================================
 
 // DOM หลัก
