@@ -787,19 +787,7 @@ async function loadNearby(property) {
   const bounds = [];
 
   if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
-const houseIcon = L.icon({
-  iconUrl: '/assets/img/praweena-pin.png',
-  iconSize: [38, 56],
-  iconAnchor: [19, 56],
-  popupAnchor: [0, -50],
-});
-
-if (Number.isFinite(lat0) && Number.isFinite(lng0)) {
-  L.marker([lat0, lng0], { icon: houseIcon })
-    .bindTooltip('🏠 ตำแหน่งบ้าน', { direction: 'top' })
-    .addTo(group);
-  bounds.push([lat0, lng0]);
-}
+    L.circleMarker([lat0, lng0], {
       radius: 7, weight: 2, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: .95
     }).bindTooltip('🏠 ตำแหน่งบ้าน', { direction: 'top' }).addTo(group);
     bounds.push([lat0, lng0]);
