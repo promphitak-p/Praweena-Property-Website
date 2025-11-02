@@ -11,14 +11,21 @@ import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { supabase } from '../utils/supabaseClient.js';
 
-// ====== ตัวแปรแผนที่หลัก ======
-let detailMap = null;          // แผนที่ใหญ่
-let detailHouseMarker = null;  // หมุดบ้าน
-const ENABLE_POI_EDIT_ON_DETAIL = false; // โหมดเพิ่ม POI (ปิดไว้ก่อน)
+let detailMap = null;
+let detailHouseMarker = null;
 
 const container = $('#property-detail-container');
 
-// --- Lightbox ---
+// ใช้คำนวณความสูงแผนที่แบบ responsive
+function getResponsiveMapHeight() {
+  // ถ้าจอกว้าง >= 1024 ใช้ 400 ตามเดิม
+  if (window.innerWidth >= 1024) return 400;
+  // mobile / tablet → เอาตามความกว้างจอ
+  const h = Math.floor(window.innerWidth * 0.55); // 55% ของความกว้างจอ
+  return Math.max(h, 260); // แต่ไม่ต่ำกว่า 260
+}
+
+// --- Lightbox (เหมือนเดิม) ---
 function setupLightbox(imageUrls) {
   let overlay = $('#lightbox-overlay');
   if (!overlay) {
@@ -31,12 +38,11 @@ function setupLightbox(imageUrls) {
     `;
     document.body.append(overlay);
   }
-
   const gallery = $('.lightbox-gallery');
   const prevBtn = $('.lightbox-prev');
   const nextBtn = $('.lightbox-next');
-
   gallery.innerHTML = '';
+
   imageUrls.forEach(url => {
     const img = el('img', { className: 'lightbox-image', attributes: { src: url, loading: 'lazy' } });
     gallery.append(img);
@@ -46,7 +52,6 @@ function setupLightbox(imageUrls) {
     overlay.classList.add('show');
     gallery.scrollTo({ left: gallery.offsetWidth * index, behavior: 'auto' });
   }
-
   function closeLightbox() { overlay.classList.remove('show'); }
 
   prevBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' }); });
@@ -57,7 +62,7 @@ function setupLightbox(imageUrls) {
   return openLightbox;
 }
 
-// ---------- helpers ----------
+// helper youtube + icon เหมือนเดิม
 function parseYouTubeId(input) {
   const raw = (input || '').trim();
   if (!raw) return '';
@@ -77,7 +82,6 @@ function collectYoutubeValues(p) {
   const candidates = [
     p.youtube_video_ids, p.youtube_urls, p.youtube_url, p.youtube, p.videos
   ].filter(Boolean);
-
   const flat = [];
   for (const v of candidates) {
     if (Array.isArray(v)) flat.push(...v);
@@ -97,7 +101,6 @@ function renderYouTubeGallery(videoIds = []) {
   const wrap = el('section', { style: 'margin-top:1.5rem;' });
   const heading = el('h3', { textContent: 'วิดีโอแนะนำ', style: 'margin-bottom:.75rem;' });
   const list = el('div', { id: 'youtube-gallery' });
-
   videoIds.forEach((id) => {
     const thumbUrl = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
     const card = el('div', { style: 'position:relative;margin-bottom:1rem;border-radius:12px;overflow:hidden;cursor:pointer;' });
@@ -105,7 +108,6 @@ function renderYouTubeGallery(videoIds = []) {
     const play = el('div', { style: 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);' });
     play.innerHTML = `<svg width="72" height="72" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
     card.append(img, play);
-
     card.addEventListener('click', () => {
       const iframe = el('iframe', {
         attributes: {
@@ -121,16 +123,12 @@ function renderYouTubeGallery(videoIds = []) {
       });
       card.replaceWith(iframe);
     }, { once: true });
-
     list.append(card);
   });
-
   if (!list.children.length) return null;
   wrap.append(heading, list);
   return wrap;
 }
-
-// ไอคอนตามประเภท (อ่านจาก p.type)
 function iconOf(t='') {
   const m = String(t).toLowerCase();
   if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
@@ -150,23 +148,10 @@ function colorOf(t='') {
   return { stroke:'#16a34a', fill:'#4ade80' };
 }
 
-// === ระยะทาง (เผื่อใช้ตอนเพิ่ม POI) ===
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const toRad = (d) => d * Math.PI / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat/2)**2 +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-            Math.sin(dLon/2)**2;
-  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-// ====== ส่วนหลัก: แสดงประกาศ ======
+// ==== หน้ารายละเอียด ====
 async function renderPropertyDetails(property) {
-  // Meta
   const pageTitle = `${property.title} - Praweena Property`;
-  const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province} สนใจติดต่อ Praweena Property`;
+  const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province}`;
   document.title = pageTitle;
   $('#meta-description')?.setAttribute('content', description);
   $('#meta-keywords')?.setAttribute('content', `${property.title}, บ้าน${property.district}, อสังหาฯ ${property.province}`);
@@ -177,7 +162,16 @@ async function renderPropertyDetails(property) {
   clear(container);
 
   // layout
-  const grid = el('div', { className: 'grid grid-cols-3', style: 'gap: 2rem;' });
+  const grid = el('div', {
+    className: 'grid grid-cols-3',
+    style: 'gap:2rem;align-items:flex-start;'
+  });
+
+  // ⭐ mobile: ให้เป็นคอลัมน์เดียว
+  if (window.innerWidth < 1024) {
+    grid.style.display = 'block';
+  }
+
   const leftCol = el('div', { className: 'col-span-2' });
   const rightCol = el('div', { className: 'col-span-1' });
 
@@ -193,11 +187,17 @@ async function renderPropertyDetails(property) {
   const thumbnailElements = [];
 
   allImages.forEach((imageUrl, index) => {
-    const img = el('img', { className: 'gallery-image', attributes: { src: imageUrl, alt: 'Property image', loading: 'lazy' } });
+    const img = el('img', {
+      className: 'gallery-image',
+      attributes: { src: imageUrl, alt: 'Property image', loading: 'lazy' }
+    });
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
 
-    const thumb = el('img', { className: 'thumbnail-image', attributes: { src: imageUrl, alt: `Thumbnail ${index + 1}` } });
+    const thumb = el('img', {
+      className: 'thumbnail-image',
+      attributes: { src: imageUrl, alt: `Thumbnail ${index + 1}` }
+    });
     thumb.addEventListener('click', () => {
       galleryContainer.scrollTo({ left: galleryContainer.offsetWidth * index, behavior: 'smooth' });
     });
@@ -220,24 +220,23 @@ async function renderPropertyDetails(property) {
   }
   galleryWrapper.prepend(galleryContainer);
 
-  // details text
-  const title = el('h1', { textContent: property.title, style: 'margin-top: 1.5rem;' });
-  const price = el('h2', { textContent: formatPrice(property.price), style: 'color: var(--brand); margin-bottom: 1rem;' });
+  const title = el('h1', { textContent: property.title, style: 'margin-top:1.5rem;' });
+  const price = el('h2', { textContent: formatPrice(property.price), style: 'color:var(--brand);margin-bottom:1rem;' });
   const address = el('p', { textContent: `ที่อยู่: ${property.address || 'N/A'}, ${property.district}, ${property.province}` });
   const details = el('p', { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
 
   leftCol.append(galleryWrapper, thumbnailContainer, title, price, address, details);
 
-  // ---------- YouTube ----------
+  // youtube
   const ytIds = collectYoutubeValues(property).map(parseYouTubeId).filter(Boolean);
   const ytSection = renderYouTubeGallery(ytIds);
   if (ytSection) leftCol.append(ytSection);
 
-  // ---------- แผนที่ใหญ่ ----------
-  const latRaw = property.lat ?? property.latitude ?? property.latitute ?? property.geo_lat ?? property.location_lat;
-  const lngRaw = property.lng ?? property.longitude ?? property.long ?? property.geo_lng ?? property.location_lng;
-  const lat = Number.parseFloat(latRaw);
-  const lng = Number.parseFloat(lngRaw);
+  // ========== MAP ==========
+  const latRaw = property.lat ?? property.latitude ?? property.geo_lat;
+  const lngRaw = property.lng ?? property.longitude ?? property.geo_lng;
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
 
   const mapWrap = el('section', { style: 'margin-top:1.5rem;' });
   const mapTitle = el('h3', { textContent: 'ตำแหน่งแผนที่และสถานที่ใกล้เคียง', style: 'margin-bottom:.75rem;' });
@@ -245,28 +244,25 @@ async function renderPropertyDetails(property) {
   mapWrap.append(mapTitle);
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    const box = el('div', {
-      style: `
-        background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
-        padding:1rem 1.25rem;border-radius:12px;text-align:center;line-height:1.6;
-      `,
-      innerHTML: `
-        <strong>ไม่พบพิกัดแผนที่</strong><br>
-        กรุณาเพิ่ม latitude/longitude ในแดชบอร์ด เพื่อแสดงตำแหน่งบนแผนที่
-      `
-    });
-    mapWrap.append(box);
+    mapWrap.append(
+      el('div', {
+        style: 'background:#f9fafb;border:1px solid #e5e7eb;padding:1rem;border-radius:12px;text-align:center;',
+        innerHTML: '<strong>ไม่พบพิกัดแผนที่</strong><br>กรุณาเพิ่ม latitude/longitude ในแดชบอร์ด'
+      })
+    );
   } else {
-    // element แผนที่
     const mapId = 'map-' + (property.id || 'detail');
-    const mapEl = el('div', { attributes: { id: mapId }, style: 'height:400px;width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;' });
+    const mapEl = el('div', {
+      attributes: { id: mapId },
+      // ⭐ สูงแบบ responsive
+      style: `width:100%;height:${getResponsiveMapHeight()}px;border-radius:12px;overflow:hidden;background:#f3f4f6;`
+    });
     mapWrap.append(mapEl);
 
-    // รายการ POI ใต้แผนที่
     const listEl = el('div', { id: 'poi-list-main', style: 'margin-top:1rem;' });
     mapWrap.append(listEl);
 
-    // 1) โหลด POI จากฐาน
+    // โหลด poi
     const { data: pois } = await supabase
       .from('property_poi')
       .select('name,type,distance_km,lat,lng')
@@ -274,7 +270,6 @@ async function renderPropertyDetails(property) {
       .order('distance_km', { ascending: true })
       .limit(100);
 
-    // 2) สร้างแผนที่
     setTimeout(() => {
       try {
         if (typeof L === 'undefined') throw new Error('Leaflet not loaded');
@@ -290,7 +285,7 @@ async function renderPropertyDetails(property) {
           attribution: '© OpenStreetMap contributors'
         }).addTo(detailMap);
 
-        // ---- หมุดบ้านแบบ custom (ใส่โลโก้ใน pin) ----
+        // PIN บ้านแบบมีโลโก้
         const houseIcon = L.divIcon({
           className: '',
           html: `
@@ -327,20 +322,17 @@ async function renderPropertyDetails(property) {
 
         detailHouseMarker = L.marker([lat, lng], { icon: houseIcon })
           .bindPopup(`<b>${property.title}</b><br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">เปิดใน Google Maps</a>`)
-          .addTo(detailMap)
-          .openPopup();
+          .addTo(detailMap);
 
         const bounds = [[lat, lng]];
         const poiMarkers = [];
         const allowed = pois || [];
 
-        // ---- วาด POI บนแผนที่ ----
         if (allowed.length) {
           allowed.forEach((p, i) => {
             const plat = Number(p.lat);
             const plng = Number(p.lng);
             if (!Number.isFinite(plat) || !Number.isFinite(plng)) return;
-
             const style = colorOf(p.type);
             const marker = L.circleMarker([plat, plng], {
               radius: 6,
@@ -356,7 +348,6 @@ async function renderPropertyDetails(property) {
               <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}" target="_blank" style="color:#2563eb;">นำทางด้วย Google Maps</a>
             `);
 
-            // คลิกหมุด → แค่ซูมให้เห็นบ้านกับที่นี่ก่อน
             marker.on('click', () => {
               const fg = L.featureGroup([detailHouseMarker, marker]);
               detailMap.fitBounds(fg.getBounds().pad(0.35));
@@ -368,14 +359,20 @@ async function renderPropertyDetails(property) {
           });
         }
 
-        // ถ้ามี POI ก็ขยายให้เห็นทั้งหมด
         if (bounds.length > 1) {
           detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
+        } else {
+          detailMap.setView([lat, lng], 15);
         }
 
-        // ---- รายการใต้แผนที่ (แบบย่อ + ดูทั้งหมด) ----
+        // ⭐ สำคัญมาก: แจ้ง Leaflet ว่าขนาดเปลี่ยน
+        setTimeout(() => {
+          detailMap.invalidateSize();
+        }, 200);
+
+        // ----- รายการ POI แบบย่อ -----
         if (allowed.length) {
-          const maxShow = 6; // ⭐ แสดงก่อน 6 อัน
+          const maxShow = 6;
           const first = allowed.slice(0, maxShow);
           const rest  = allowed.slice(maxShow);
 
@@ -388,7 +385,7 @@ async function renderPropertyDetails(property) {
             const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
             const icon = iconOf(p.type);
             const li = document.createElement('li');
-            li.setAttribute('data-index', i);
+            li.dataset.index = i;
             li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
             li.innerHTML = `
               <span style="font-size:1.1rem;">${icon}</span>
@@ -400,24 +397,23 @@ async function renderPropertyDetails(property) {
             ul.appendChild(li);
           });
 
-          // ส่วนที่ซ่อน
           let hiddenWrap = null;
           if (rest.length) {
             hiddenWrap = document.createElement('div');
             hiddenWrap.style.display = 'none';
 
-            rest.forEach((p, rIndex) => {
-              const realIndex = maxShow + rIndex;
+            rest.forEach((p, rIdx) => {
+              const realIdx = maxShow + rIdx;
               const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
               const icon = iconOf(p.type);
               const li = document.createElement('li');
-              li.setAttribute('data-index', realIndex);
+              li.dataset.index = realIdx;
               li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
               li.innerHTML = `
                 <span style="font-size:1.1rem;">${icon}</span>
                 <span>
                   <strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span>
-                  <button class="poi-nav-btn" data-i="${realIndex}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
+                  <button class="poi-nav-btn" data-i="${realIdx}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
                 </span>
               `;
               hiddenWrap.appendChild(li);
@@ -425,201 +421,136 @@ async function renderPropertyDetails(property) {
 
             ul.appendChild(hiddenWrap);
 
-            // ปุ่มดูทั้งหมด
             const toggleBtn = document.createElement('button');
             toggleBtn.textContent = 'ดูสถานที่ใกล้เคียงทั้งหมด';
             toggleBtn.style.cssText = 'margin-top:.5rem;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:.9rem;';
             toggleBtn.addEventListener('click', () => {
-              const isOpen = hiddenWrap.style.display === 'block';
-              hiddenWrap.style.display = isOpen ? 'none' : 'block';
-              toggleBtn.textContent = isOpen ? 'ดูสถานที่ใกล้เคียงทั้งหมด' : 'ซ่อนรายการ';
+              const open = hiddenWrap.style.display === 'block';
+              hiddenWrap.style.display = open ? 'none' : 'block';
+              toggleBtn.textContent = open ? 'ดูสถานที่ใกล้เคียงทั้งหมด' : 'ซ่อนรายการ';
+              // เผื่อสูงขึ้น → แจ้งแผนที่อีกรอบ
+              setTimeout(() => detailMap.invalidateSize(), 120);
             });
             listEl.appendChild(toggleBtn);
           }
 
           listEl.appendChild(ul);
 
-          // คลิกทั้งแถว → zoom ให้เห็นบ้าน+สถานที่
+          // คลิกทั้งแถว
           listEl.querySelectorAll('li[data-index]').forEach((li) => {
             li.addEventListener('click', (ev) => {
               if (ev.target && ev.target.classList.contains('poi-nav-btn')) return;
               const idx = Number(li.dataset.index);
               const p = allowed[idx];
-              const marker = poiMarkers[idx];
-              if (!p || !marker) return;
-              const fg = L.featureGroup([detailHouseMarker, marker]);
+              const m = poiMarkers[idx];
+              if (!p || !m) return;
+              const fg = L.featureGroup([detailHouseMarker, m]);
               detailMap.fitBounds(fg.getBounds().pad(0.35));
-              marker.openPopup();
+              m.openPopup();
             });
           });
 
-          // ปุ่ม “นำทาง” → เปิด Google Maps
+          // ปุ่มนำทาง
           listEl.querySelectorAll('.poi-nav-btn').forEach((btn) => {
             btn.addEventListener('click', (ev) => {
               ev.stopPropagation();
               const idx = Number(btn.dataset.i);
               const p = allowed[idx];
               if (!p) return;
-              const plat = Number(p.lat);
-              const plng = Number(p.lng);
-              const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}`;
+              const gurl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${p.lat},${p.lng}`;
               window.open(gurl, '_blank');
             });
           });
-
         } else {
           listEl.innerHTML = `<p style="color:#6b7280;">ยังไม่มีสถานที่ใกล้เคียงที่บันทึกไว้</p>`;
         }
 
+        // ⭐ ตอนเปลี่ยนขนาดจอ → รีเฟรชขนาดแผนที่
+        window.addEventListener('resize', () => {
+          const newH = getResponsiveMapHeight();
+          mapEl.style.height = newH + 'px';
+          setTimeout(() => detailMap.invalidateSize(), 120);
+        });
+
       } catch (err) {
         console.warn('Leaflet fallback', err);
-        const iframeUrl = `https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15`;
-        mapEl.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
+        mapEl.innerHTML = `<iframe src="https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
       }
     }, 0);
   }
 
-  // ---------- Share ----------
-  const shareContainer = el('div', { className: 'share-buttons' });
-  shareContainer.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
-  const currentPageUrl = window.location.href;
-  const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
+  // ---------- Share + lead (เหมือนเดิมย่อ) ----------
+  const shareBox = el('div', { className: 'share-buttons' });
+  shareBox.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
+  const url = window.location.href;
+  const text = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
+  const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+  const line = `https://line.me/R/share?text=${encodeURIComponent(text + '\n' + url)}`;
+  const mss = `fb-messenger://share?link=${encodeURIComponent(url)}`;
 
-  const messengerShareUrl = `fb-messenger://share?link=${encodeURIComponent(currentPageUrl)}`;
-  const lineMessage = `${shareText}\n${currentPageUrl}`;
-  const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(lineMessage)}`;
-  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentPageUrl)}`;
-  const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentPageUrl)}&text=${encodeURIComponent(shareText)}`;
+  const fbA = el('a', { attributes:{href:fb,target:'_blank'}, textContent:'Facebook' });
+  const lineA = el('a', { attributes:{href:line,target:'_blank'}, textContent:'LINE', style:'margin-left:.5rem;' });
+  const mssA = el('a', { attributes:{href:mss,target:'_blank'}, textContent:'Messenger', style:'margin-left:.5rem;' });
 
-  const messengerBtn = el('a', {
-    className: 'share-btn messenger',
-    attributes: { href: messengerShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on Messenger' }
-  });
-  messengerBtn.innerHTML = '<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook Messenger</title><path d="M12 0C5.373 0 0 5.14 0 11.432c0 3.43.987 6.558 2.634 8.94.06.09.11.19.14.29l-1.07 4.267c-.12.48.33.93.81.81l4.267-1.07c.1.03.2.08.29.14a12.02 12 0 008.94 2.634C18.86 24 24 18.627 24 12S18.627 0 12 0zm1.14 15.192l-2.4-2.4-5.28 2.4c-.48 .24-.96-.48-.6-.84l3.12-3.12-3.12-3.12c-.36-.36 .12-.96 .6-.84l5.28 2.4 2.4-2.4c.36-.36 .96 .12 .84 .6l-2.4 5.28 2.4 2.4c.36 .36-.12 .96-.84 .6z"/></svg>';
+  const formCard = el('div', { style:'background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 5px 20px rgba(15,23,42,0.08);margin-top:1.5rem;' });
+  const formHd = el('h3', { textContent:'สนใจนัดชม / สอบถามข้อมูล' });
+  const form = el('form', { attributes:{id:'lead-form'} });
+  form.innerHTML = `
+    <input type="hidden" name="property_id" value="${property.id}">
+    <input type="hidden" name="property_slug" value="${property.slug || ''}">
+    <div class="form-group"><label>ชื่อ</label><input name="name" required class="form-control"></div>
+    <div class="form-group"><label>เบอร์โทร</label><input name="phone" required class="form-control" pattern="^0\\d{8,9}$"></div>
+    <div class="form-group"><label>ข้อความเพิ่มเติม</label><textarea name="note" rows="3" class="form-control"></textarea></div>
+    <button type="submit" class="btn" style="width:100%;">ส่งข้อมูล</button>
+  `;
+  form.addEventListener('submit', handleLeadSubmit);
 
-  const lineBtn = el('a', {
-    className: 'share-btn line',
-    attributes: { href: lineShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on LINE' }
-  });
-  lineBtn.innerHTML = '<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>LINE</title><path d="M19.13 6.13c-2.8-2.5-6.7-3.2-10.4-1.8-3.3 1.2-5.7 4.3-6 7.8-.3 4.1 2.2 7.7 5.9 8.9 4.3 1.4 8.6-.3 11.3-3.8 2.9-4 2.5-9.3-1.8-11.1zM9.33 16.93h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4.3-.7.7-.7h1.6c.4 0 .7 .3 .7 .7v5.9c0 .4-.3 .7-.7 .7zm3.1-3.6c-.4 0-.7-.3-.7-.7v-2.1c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v2.1c0 .4-.3 .7-.7 .7h-1.6zm4.9 3.6h-1.6c-.4 0-.7-.3-.7-.7v-5.9c0-.4 .3-.7 .7-.7h1.6c.4 0 .7 .3 .7 .7v5.9c0 .4-.3 .7-.7 .7z"/></svg>';
+  rightCol.append(shareBox, fbA, lineA, mssA, formCard);
+  formCard.append(formHd, form);
 
-  const facebookBtn = el('a', {
-    className: 'share-btn facebook',
-    attributes: { href: facebookShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on Facebook' }
-  });
-  facebookBtn.innerHTML = '<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.732 0 1.325-.593 1.325-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>';
-
-  const twitterBtn = el('a', {
-    className: 'share-btn twitter',
-    attributes: { href: twitterShareUrl, target: '_blank', rel: 'noopener', 'aria-label': 'Share on Twitter/X' }
-  });
-  twitterBtn.innerHTML = '<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 7.184L18.901 1.153Zm-1.653 19.499h2.606L6.856 2.554H4.046l13.2 18.1z"/></svg>';
-
-  // Lead form
-  const formCard = el('div', { style: 'background: var(--surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow-md);' });
-  const formHeader = el('h3');
-  const form = el('form', { attributes: { id: 'lead-form' } });
-
-  if (property.status === 'sold') {
-    formHeader.textContent = 'ประกาศนี้ขายแล้ว';
-    form.innerHTML = `<p style="color: var(--text-light); text-align: center; padding: 2rem 0;">ขอขอบคุณที่ให้ความสนใจ</p>`;
-  } else {
-    formHeader.textContent = 'สนใจนัดชม / สอบถามข้อมูล';
-    form.innerHTML = `
-      <input type="hidden" name="property_id" value="${property.id}">
-      <input type="hidden" name="property_slug" value="${property.slug || ''}">
-      <div class="form-group"><label for="name">ชื่อ</label><input type="text" id="name" name="name" class="form-control" required></div>
-      <div class="form-group"><label for="phone">เบอร์โทรศัพท์</label><input type="tel" id="phone" name="phone" class="form-control" required pattern="^0\\d{8,9}$" inputmode="tel" autocomplete="tel-national"></div>
-      <div class="form-group"><label for="note">ข้อความเพิ่มเติม</label><textarea id="note" name="note" class="form-control" rows="3"></textarea></div>
-      <button type="submit" class="btn" style="width: 100%;">ส่งข้อมูล</button>
-    `;
-    form.addEventListener('submit', handleLeadSubmit);
-  }
-
-  // ประกอบหน้า
   grid.append(leftCol, rightCol);
-  rightCol.append(shareContainer, messengerBtn, lineBtn, facebookBtn, twitterBtn, formCard);
-  formCard.prepend(formHeader);
-  formCard.append(form);
   container.append(grid);
 }
 
-// --- ส่ง lead ---
-async function handleLeadSubmit(event) {
-  event.preventDefault();
-  const form = event.target;
-  const submitBtn = form.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'กำลังส่ง...';
+async function handleLeadSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type=submit]');
+  btn.disabled = true;
+  btn.textContent = 'กำลังส่ง...';
 
   const payload = getFormData(form);
-
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const utmKeys = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"];
-    const utmPairs = utmKeys
-      .map(k => params.get(k) ? `${k}=${params.get(k)}` : null)
-      .filter(Boolean);
-    if (utmPairs.length) {
-      const utmLine = ` [UTM] ` + utmPairs.join("&");
-      payload.note = (payload.note ? payload.note + " " : "") + utmLine;
-    }
-  } catch(e) {}
-
   const { error } = await createLead(payload);
-
   if (error) {
-    console.error('Failed to create lead:', error);
-    toast('เกิดข้อผิดพลาด: ' + error.message, 4000, 'error');
+    toast('เกิดข้อผิดพลาด: ' + error.message, 3000, 'error');
   } else {
-    toast('ส่งข้อมูลสำเร็จ! เจ้าหน้าที่จะติดต่อกลับโดยเร็วที่สุด', 4000, 'success');
+    toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
   }
-
-  submitBtn.disabled = false;
-  submitBtn.textContent = 'ส่งข้อมูล';
+  btn.disabled = false;
+  btn.textContent = 'ส่งข้อมูล';
 }
 
-// --- โหลดประกาศตาม slug ---
 async function loadProperty() {
   const params = new URLSearchParams(window.location.search);
   const slug = params.get('slug');
-
   if (!slug) {
     clear(container);
-    container.append(el('p', { textContent: 'ไม่พบรหัสอ้างอิงของประกาศ' }));
+    container.textContent = 'ไม่พบประกาศ';
     return;
   }
 
-  // skeleton
-  container.innerHTML = `
-    <div class="grid grid-cols-3" style="gap: 2rem;">
-      <div class="col-span-2">
-        <div class="skeleton" style="height: 450px; border-radius: 16px;"></div>
-        <div class="skeleton" style="height: 36px; width: 70%; margin-top: 1.5rem;"></div>
-        <div class="skeleton" style="height: 32px; width: 40%; margin-top: 1rem;"></div>
-        <div class="skeleton" style="height: 20px; width: 90%; margin-top: 1rem;"></div>
-        <div class="skeleton" style="height: 20px; width: 80%; margin-top: 0.5rem;"></div>
-      </div>
-      <div class="col-span-1">
-        <div class="skeleton" style="height: 350px; border-radius: 16px;"></div>
-      </div>
-    </div>
-  `;
+  container.innerHTML = `<div class="skeleton" style="height:400px;border-radius:16px;"></div>`;
 
   const { data, error } = await getBySlug(slug);
-
   if (error || !data) {
-    console.error('Failed to load property:', error);
     clear(container);
-    container.append(el('p', { textContent: 'ไม่พบข้อมูลประกาศนี้' }));
+    container.textContent = 'ไม่พบข้อมูลประกาศนี้';
     return;
   }
-
   await renderPropertyDetails(data);
 }
 
-// --- main ---
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   signOutIfAny();
