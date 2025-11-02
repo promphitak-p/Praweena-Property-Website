@@ -263,7 +263,7 @@ async function renderPropertyDetails(property) {
     mapWrap.append(mapEl);
 
     // รายการ POI ใต้แผนที่
-    const listEl = el('ul', { id: 'poi-list-main', style: 'margin-top:1rem; list-style:none; padding:0; line-height:1.7;' });
+    const listEl = el('div', { id: 'poi-list-main', style: 'margin-top:1rem;' });
     mapWrap.append(listEl);
 
     // 1) โหลด POI จากฐาน
@@ -373,31 +373,80 @@ async function renderPropertyDetails(property) {
           detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
         }
 
-        // ---- รายการใต้แผนที่ ----
+        // ---- รายการใต้แผนที่ (แบบย่อ + ดูทั้งหมด) ----
         if (allowed.length) {
-          listEl.innerHTML = allowed.map((p, i) => {
+          const maxShow = 6; // ⭐ แสดงก่อน 6 อัน
+          const first = allowed.slice(0, maxShow);
+          const rest  = allowed.slice(maxShow);
+
+          const ul = document.createElement('ul');
+          ul.style.listStyle = 'none';
+          ul.style.padding = '0';
+          ul.style.margin = '0';
+
+          first.forEach((p, i) => {
             const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
             const icon = iconOf(p.type);
-            return `
-              <li data-index="${i}" style="cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;">
+            const li = document.createElement('li');
+            li.setAttribute('data-index', i);
+            li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
+            li.innerHTML = `
+              <span style="font-size:1.1rem;">${icon}</span>
+              <span>
+                <strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span>
+                <button class="poi-nav-btn" data-i="${i}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
+              </span>
+            `;
+            ul.appendChild(li);
+          });
+
+          // ส่วนที่ซ่อน
+          let hiddenWrap = null;
+          if (rest.length) {
+            hiddenWrap = document.createElement('div');
+            hiddenWrap.style.display = 'none';
+
+            rest.forEach((p, rIndex) => {
+              const realIndex = maxShow + rIndex;
+              const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
+              const icon = iconOf(p.type);
+              const li = document.createElement('li');
+              li.setAttribute('data-index', realIndex);
+              li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
+              li.innerHTML = `
                 <span style="font-size:1.1rem;">${icon}</span>
                 <span>
                   <strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span>
-                  <button class="poi-nav-btn" data-i="${i}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
+                  <button class="poi-nav-btn" data-i="${realIndex}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
                 </span>
-              </li>`;
-          }).join('');
+              `;
+              hiddenWrap.appendChild(li);
+            });
+
+            ul.appendChild(hiddenWrap);
+
+            // ปุ่มดูทั้งหมด
+            const toggleBtn = document.createElement('button');
+            toggleBtn.textContent = 'ดูสถานที่ใกล้เคียงทั้งหมด';
+            toggleBtn.style.cssText = 'margin-top:.5rem;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:.9rem;';
+            toggleBtn.addEventListener('click', () => {
+              const isOpen = hiddenWrap.style.display === 'block';
+              hiddenWrap.style.display = isOpen ? 'none' : 'block';
+              toggleBtn.textContent = isOpen ? 'ดูสถานที่ใกล้เคียงทั้งหมด' : 'ซ่อนรายการ';
+            });
+            listEl.appendChild(toggleBtn);
+          }
+
+          listEl.appendChild(ul);
 
           // คลิกทั้งแถว → zoom ให้เห็นบ้าน+สถานที่
-          listEl.querySelectorAll('li').forEach((li, i) => {
+          listEl.querySelectorAll('li[data-index]').forEach((li) => {
             li.addEventListener('click', (ev) => {
-              // กันไม่ให้ปุ่มนำทางยิงซ้ำ
               if (ev.target && ev.target.classList.contains('poi-nav-btn')) return;
-
-              const p = allowed[i];
-              const marker = poiMarkers[i];
+              const idx = Number(li.dataset.index);
+              const p = allowed[idx];
+              const marker = poiMarkers[idx];
               if (!p || !marker) return;
-
               const fg = L.featureGroup([detailHouseMarker, marker]);
               detailMap.fitBounds(fg.getBounds().pad(0.35));
               marker.openPopup();
@@ -417,8 +466,9 @@ async function renderPropertyDetails(property) {
               window.open(gurl, '_blank');
             });
           });
+
         } else {
-          listEl.innerHTML = `<li style="color:#6b7280;">ยังไม่มีสถานที่ใกล้เคียงที่บันทึกไว้</li>`;
+          listEl.innerHTML = `<p style="color:#6b7280;">ยังไม่มีสถานที่ใกล้เคียงที่บันทึกไว้</p>`;
         }
 
       } catch (err) {
