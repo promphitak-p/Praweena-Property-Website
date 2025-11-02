@@ -1,5 +1,12 @@
 // js/pages/property-detail.page.js
-
+//--------------------------------------------------
+// หน้ารายละเอียดทรัพย์ Praweena Property
+// - แกลเลอรี่ + lightbox
+// - YouTube
+// - แผนที่ใหญ่ (ใบเดียว) + POI ใต้แผนที่
+// - แผนที่ห้ามซูม/ห้ามลากด้วยเมาส์ (เฉพาะผู้ใช้)
+// - แต่ยังให้โค้ด fitBounds/zoom ได้ตอนกด POI
+//--------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { getBySlug } from '../services/propertiesService.js';
 import { createLead } from '../services/leadsService.js';
@@ -16,16 +23,31 @@ let detailHouseMarker = null;
 
 const container = $('#property-detail-container');
 
-// ใช้คำนวณความสูงแผนที่แบบ responsive
+// ============================
+// util: map height responsive
+// ============================
 function getResponsiveMapHeight() {
-  // ถ้าจอกว้าง >= 1024 ใช้ 400 ตามเดิม
   if (window.innerWidth >= 1024) return 400;
-  // mobile / tablet → เอาตามความกว้างจอ
-  const h = Math.floor(window.innerWidth * 0.55); // 55% ของความกว้างจอ
-  return Math.max(h, 260); // แต่ไม่ต่ำกว่า 260
+  const h = Math.floor(window.innerWidth * 0.55);
+  return Math.max(h, 260);
 }
 
-// --- Lightbox (เหมือนเดิม) ---
+// ==================================================
+// util: ล็อก interaction ของ Leaflet
+// ==================================================
+function lockUserInteraction(map) {
+  if (!map) return;
+  map.dragging.disable();
+  map.scrollWheelZoom.disable();
+  map.touchZoom.disable();
+  map.doubleClickZoom.disable();
+  map.boxZoom.disable();
+  map.keyboard.disable();
+}
+
+// ==================================================
+// Lightbox
+// ==================================================
 function setupLightbox(imageUrls) {
   let overlay = $('#lightbox-overlay');
   if (!overlay) {
@@ -38,31 +60,50 @@ function setupLightbox(imageUrls) {
     `;
     document.body.append(overlay);
   }
+
   const gallery = $('.lightbox-gallery');
   const prevBtn = $('.lightbox-prev');
   const nextBtn = $('.lightbox-next');
   gallery.innerHTML = '';
 
   imageUrls.forEach(url => {
-    const img = el('img', { className: 'lightbox-image', attributes: { src: url, loading: 'lazy' } });
+    const img = el('img', {
+      className: 'lightbox-image',
+      attributes: { src: url, loading: 'lazy' }
+    });
     gallery.append(img);
   });
 
   function openLightbox(index) {
     overlay.classList.add('show');
-    gallery.scrollTo({ left: gallery.offsetWidth * index, behavior: 'auto' });
+    gallery.scrollTo({
+      left: gallery.offsetWidth * index,
+      behavior: 'auto'
+    });
   }
-  function closeLightbox() { overlay.classList.remove('show'); }
+  function closeLightbox() {
+    overlay.classList.remove('show');
+  }
 
-  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' }); });
-  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: gallery.offsetWidth, behavior: 'smooth' }); });
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' });
+  });
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    gallery.scrollBy({ left: gallery.offsetWidth, behavior: 'smooth' });
+  });
   $('.lightbox-close').addEventListener('click', closeLightbox);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeLightbox();
+  });
 
   return openLightbox;
 }
 
-// helper youtube + icon เหมือนเดิม
+// ==================================================
+// YouTube helpers
+// ==================================================
 function parseYouTubeId(input) {
   const raw = (input || '').trim();
   if (!raw) return '';
@@ -78,10 +119,16 @@ function parseYouTubeId(input) {
   } catch {}
   return '';
 }
+
 function collectYoutubeValues(p) {
   const candidates = [
-    p.youtube_video_ids, p.youtube_urls, p.youtube_url, p.youtube, p.videos
+    p.youtube_video_ids,
+    p.youtube_urls,
+    p.youtube_url,
+    p.youtube,
+    p.videos
   ].filter(Boolean);
+
   const flat = [];
   for (const v of candidates) {
     if (Array.isArray(v)) flat.push(...v);
@@ -97,16 +144,31 @@ function collectYoutubeValues(p) {
   }
   return Array.from(new Set(flat.map(s => s.trim()).filter(Boolean)));
 }
+
 function renderYouTubeGallery(videoIds = []) {
+  if (!videoIds.length) return null;
+
   const wrap = el('section', { style: 'margin-top:1.5rem;' });
-  const heading = el('h3', { textContent: 'วิดีโอแนะนำ', style: 'margin-bottom:.75rem;' });
+  const heading = el('h3', {
+    textContent: 'วิดีโอแนะนำ',
+    style: 'margin-bottom:.75rem;'
+  });
   const list = el('div', { id: 'youtube-gallery' });
+
   videoIds.forEach((id) => {
     const thumbUrl = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-    const card = el('div', { style: 'position:relative;margin-bottom:1rem;border-radius:12px;overflow:hidden;cursor:pointer;' });
-    const img = el('img', { attributes: { src: thumbUrl, alt: `YouTube: ${id}`, loading: 'lazy' }, style: 'width:100%;display:block;' });
-    const play = el('div', { style: 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);' });
+    const card = el('div', {
+      style: 'position:relative;margin-bottom:1rem;border-radius:12px;overflow:hidden;cursor:pointer;'
+    });
+    const img = el('img', {
+      attributes: { src: thumbUrl, alt: `YouTube: ${id}`, loading: 'lazy' },
+      style: 'width:100%;display:block;'
+    });
+    const play = el('div', {
+      style: 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);'
+    });
     play.innerHTML = `<svg width="72" height="72" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
+
     card.append(img, play);
     card.addEventListener('click', () => {
       const iframe = el('iframe', {
@@ -123,13 +185,18 @@ function renderYouTubeGallery(videoIds = []) {
       });
       card.replaceWith(iframe);
     }, { once: true });
+
     list.append(card);
   });
-  if (!list.children.length) return null;
+
   wrap.append(heading, list);
   return wrap;
 }
-function iconOf(t='') {
+
+// ==================================================
+// icon / color POI
+// ==================================================
+function iconOf(t = '') {
   const m = String(t).toLowerCase();
   if (m.includes('school') || m.includes('university') || m.includes('college') || m.includes('kindergarten')) return '🏫';
   if (m.includes('hospital') || m.includes('clinic') || m.includes('pharmacy')) return '🏥';
@@ -139,17 +206,20 @@ function iconOf(t='') {
   if (m.includes('cafe')) return '☕';
   return '📍';
 }
-function colorOf(t='') {
+function colorOf(t = '') {
   const m = String(t).toLowerCase();
-  if (m.includes('school')) return { stroke:'#1d4ed8', fill:'#93c5fd' };
-  if (m.includes('hospital') || m.includes('clinic')) return { stroke:'#7e22ce', fill:'#c4b5fd' };
-  if (m.includes('supermarket') || m.includes('convenience')) return { stroke:'#065f46', fill:'#34d399' };
-  if (m.includes('government') || m.includes('police')) return { stroke:'#111827', fill:'#9ca3af' };
-  return { stroke:'#16a34a', fill:'#4ade80' };
+  if (m.includes('school')) return { stroke: '#1d4ed8', fill: '#93c5fd' };
+  if (m.includes('hospital') || m.includes('clinic')) return { stroke: '#7e22ce', fill: '#c4b5fd' };
+  if (m.includes('supermarket') || m.includes('convenience')) return { stroke: '#065f46', fill: '#34d399' };
+  if (m.includes('government') || m.includes('police')) return { stroke: '#111827', fill: '#9ca3af' };
+  return { stroke: '#16a34a', fill: '#4ade80' };
 }
 
-// ==== หน้ารายละเอียด ====
+// ==================================================
+// render หลัก
+// ==================================================
 async function renderPropertyDetails(property) {
+  // meta
   const pageTitle = `${property.title} - Praweena Property`;
   const description = `ขาย${property.title} ราคา ${formatPrice(property.price)} ตั้งอยู่ที่ ${property.address}, ${property.district}, ${property.province}`;
   document.title = pageTitle;
@@ -166,8 +236,6 @@ async function renderPropertyDetails(property) {
     className: 'grid grid-cols-3',
     style: 'gap:2rem;align-items:flex-start;'
   });
-
-  // ⭐ mobile: ให้เป็นคอลัมน์เดียว
   if (window.innerWidth < 1024) {
     grid.style.display = 'block';
   }
@@ -175,51 +243,53 @@ async function renderPropertyDetails(property) {
   const leftCol = el('div', { className: 'col-span-2' });
   const rightCol = el('div', { className: 'col-span-1' });
 
-  // gallery
+  // ============ gallery ============
   const galleryWrapper = el('div', { className: 'gallery-wrapper' });
   const galleryContainer = el('div', { className: 'image-gallery' });
   const thumbnailContainer = el('div', { className: 'thumbnail-container' });
 
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
-  if (allImages.length === 0) allImages.push('/assets/img/placeholder.jpg');
+  if (!allImages.length) allImages.push('/assets/img/placeholder.jpg');
 
   const openLightbox = setupLightbox(allImages);
-  const thumbnailElements = [];
+  const thumbEls = [];
 
-  allImages.forEach((imageUrl, index) => {
+  allImages.forEach((url, index) => {
     const img = el('img', {
       className: 'gallery-image',
-      attributes: { src: imageUrl, alt: 'Property image', loading: 'lazy' }
+      attributes: { src: url, alt: 'Property image', loading: 'lazy' }
     });
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
 
     const thumb = el('img', {
       className: 'thumbnail-image',
-      attributes: { src: imageUrl, alt: `Thumbnail ${index + 1}` }
+      attributes: { src: url, alt: `Thumbnail ${index + 1}` }
     });
     thumb.addEventListener('click', () => {
       galleryContainer.scrollTo({ left: galleryContainer.offsetWidth * index, behavior: 'smooth' });
     });
     thumbnailContainer.append(thumb);
-    thumbnailElements.push(thumb);
+    thumbEls.push(thumb);
   });
 
-  if (thumbnailElements.length > 0) thumbnailElements[0].classList.add('active');
+  if (thumbEls.length) thumbEls[0].classList.add('active');
   galleryContainer.addEventListener('scroll', () => {
-    const scrollIndex = Math.round(galleryContainer.scrollLeft / galleryContainer.offsetWidth);
-    thumbnailElements.forEach((thumb, idx) => thumb.classList.toggle('active', idx === scrollIndex));
+    const idx = Math.round(galleryContainer.scrollLeft / galleryContainer.offsetWidth);
+    thumbEls.forEach((t, i) => t.classList.toggle('active', i === idx));
   });
 
   if (allImages.length > 1) {
-    const prevButton = el('button', { className: 'gallery-nav prev', textContent: '‹' });
-    const nextButton = el('button', { className: 'gallery-nav next', textContent: '›' });
-    prevButton.addEventListener('click', () => galleryContainer.scrollBy({ left: -galleryContainer.offsetWidth, behavior: 'smooth' }));
-    nextButton.addEventListener('click', () => galleryContainer.scrollBy({ left: galleryContainer.offsetWidth, behavior: 'smooth' }));
-    galleryWrapper.append(prevButton, nextButton);
+    const prevBtn = el('button', { className: 'gallery-nav prev', textContent: '‹' });
+    const nextBtn = el('button', { className: 'gallery-nav next', textContent: '›' });
+    prevBtn.addEventListener('click', () => galleryContainer.scrollBy({ left: -galleryContainer.offsetWidth, behavior: 'smooth' }));
+    nextBtn.addEventListener('click', () => galleryContainer.scrollBy({ left: galleryContainer.offsetWidth, behavior: 'smooth' }));
+    galleryWrapper.append(prevBtn, nextBtn);
   }
+
   galleryWrapper.prepend(galleryContainer);
 
+  // text
   const title = el('h1', { textContent: property.title, style: 'margin-top:1.5rem;' });
   const price = el('h2', { textContent: formatPrice(property.price), style: 'color:var(--brand);margin-bottom:1rem;' });
   const address = el('p', { textContent: `ที่อยู่: ${property.address || 'N/A'}, ${property.district}, ${property.province}` });
@@ -232,7 +302,7 @@ async function renderPropertyDetails(property) {
   const ytSection = renderYouTubeGallery(ytIds);
   if (ytSection) leftCol.append(ytSection);
 
-  // ========== MAP ==========
+  // ============ MAP =============
   const latRaw = property.lat ?? property.latitude ?? property.geo_lat;
   const lngRaw = property.lng ?? property.longitude ?? property.geo_lng;
   const lat = Number(latRaw);
@@ -254,15 +324,14 @@ async function renderPropertyDetails(property) {
     const mapId = 'map-' + (property.id || 'detail');
     const mapEl = el('div', {
       attributes: { id: mapId },
-      // ⭐ สูงแบบ responsive
       style: `width:100%;height:${getResponsiveMapHeight()}px;border-radius:12px;overflow:hidden;background:#f3f4f6;`
     });
     mapWrap.append(mapEl);
 
-    const listEl = el('div', { id: 'poi-list-main', style: 'margin-top:1rem;' });
-    mapWrap.append(listEl);
+    const poiListWrap = el('div', { id: 'poi-list-main', style: 'margin-top:1rem;' });
+    mapWrap.append(poiListWrap);
 
-    // โหลด poi
+    // ดึง POI ที่บันทึกไว้
     const { data: pois } = await supabase
       .from('property_poi')
       .select('name,type,distance_km,lat,lng')
@@ -281,11 +350,14 @@ async function renderPropertyDetails(property) {
           attributionControl: false,
         });
 
+        // 🔒 ล็อกไม่ให้ผู้ใช้เลื่อน/ซูม
+        lockUserInteraction(detailMap);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors'
         }).addTo(detailMap);
 
-        // PIN บ้านแบบมีโลโก้
+        // หมุดบ้าน
         const houseIcon = L.divIcon({
           className: '',
           html: `
@@ -328,11 +400,13 @@ async function renderPropertyDetails(property) {
         const poiMarkers = [];
         const allowed = pois || [];
 
+        // วาด POI
         if (allowed.length) {
           allowed.forEach((p, i) => {
             const plat = Number(p.lat);
             const plng = Number(p.lng);
             if (!Number.isFinite(plat) || !Number.isFinite(plng)) return;
+
             const style = colorOf(p.type);
             const marker = L.circleMarker([plat, plng], {
               radius: 6,
@@ -348,6 +422,7 @@ async function renderPropertyDetails(property) {
               <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}" target="_blank" style="color:#2563eb;">นำทางด้วย Google Maps</a>
             `);
 
+            // คลิกหมุด → ซูมดูบ้าน+ที่นี่
             marker.on('click', () => {
               const fg = L.featureGroup([detailHouseMarker, marker]);
               detailMap.fitBounds(fg.getBounds().pad(0.35));
@@ -359,44 +434,45 @@ async function renderPropertyDetails(property) {
           });
         }
 
+        // ซูมให้พอดีทั้งหมด
         if (bounds.length > 1) {
           detailMap.fitBounds(bounds, { padding: [16, 16], maxZoom: 16 });
         } else {
           detailMap.setView([lat, lng], 15);
         }
 
-        // ⭐ สำคัญมาก: แจ้ง Leaflet ว่าขนาดเปลี่ยน
-        setTimeout(() => {
-          detailMap.invalidateSize();
-        }, 200);
+        // แจ้ง leaflet ให้คำนวณขนาดใหม่ (กันแผนที่หด)
+        setTimeout(() => detailMap.invalidateSize(), 200);
 
-        // ----- รายการ POI แบบย่อ -----
+        // ====== รายการ POI ใต้แผนที่ (แบบย่อ + ดูทั้งหมด) ======
         if (allowed.length) {
           const maxShow = 6;
           const first = allowed.slice(0, maxShow);
-          const rest  = allowed.slice(maxShow);
+          const rest = allowed.slice(maxShow);
 
           const ul = document.createElement('ul');
           ul.style.listStyle = 'none';
           ul.style.padding = '0';
           ul.style.margin = '0';
 
+          // 6 ตัวแรก
           first.forEach((p, i) => {
             const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
-            const icon = iconOf(p.type);
             const li = document.createElement('li');
             li.dataset.index = i;
             li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
             li.innerHTML = `
-              <span style="font-size:1.1rem;">${icon}</span>
+              <span style="font-size:1.1rem;">${iconOf(p.type)}</span>
               <span>
-                <strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span>
+                <strong>${p.name}</strong> — ${km} กม.
+                <span style="color:#6b7280;">(${p.type || 'poi'})</span>
                 <button class="poi-nav-btn" data-i="${i}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
               </span>
             `;
             ul.appendChild(li);
           });
 
+          // ที่เหลือ
           let hiddenWrap = null;
           if (rest.length) {
             hiddenWrap = document.createElement('div');
@@ -405,14 +481,14 @@ async function renderPropertyDetails(property) {
             rest.forEach((p, rIdx) => {
               const realIdx = maxShow + rIdx;
               const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
-              const icon = iconOf(p.type);
               const li = document.createElement('li');
               li.dataset.index = realIdx;
               li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
               li.innerHTML = `
-                <span style="font-size:1.1rem;">${icon}</span>
+                <span style="font-size:1.1rem;">${iconOf(p.type)}</span>
                 <span>
-                  <strong>${p.name}</strong> — ${km} กม. <span style="color:#6b7280;">(${p.type || 'poi'})</span>
+                  <strong>${p.name}</strong> — ${km} กม.
+                  <span style="color:#6b7280;">(${p.type || 'poi'})</span>
                   <button class="poi-nav-btn" data-i="${realIdx}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
                 </span>
               `;
@@ -428,30 +504,29 @@ async function renderPropertyDetails(property) {
               const open = hiddenWrap.style.display === 'block';
               hiddenWrap.style.display = open ? 'none' : 'block';
               toggleBtn.textContent = open ? 'ดูสถานที่ใกล้เคียงทั้งหมด' : 'ซ่อนรายการ';
-              // เผื่อสูงขึ้น → แจ้งแผนที่อีกรอบ
               setTimeout(() => detailMap.invalidateSize(), 120);
             });
-            listEl.appendChild(toggleBtn);
+            poiListWrap.appendChild(toggleBtn);
           }
 
-          listEl.appendChild(ul);
+          poiListWrap.appendChild(ul);
 
-          // คลิกทั้งแถว
-          listEl.querySelectorAll('li[data-index]').forEach((li) => {
+          // คลิกรายการ → ซูม
+          poiListWrap.querySelectorAll('li[data-index]').forEach((li) => {
             li.addEventListener('click', (ev) => {
               if (ev.target && ev.target.classList.contains('poi-nav-btn')) return;
               const idx = Number(li.dataset.index);
               const p = allowed[idx];
-              const m = poiMarkers[idx];
-              if (!p || !m) return;
-              const fg = L.featureGroup([detailHouseMarker, m]);
+              const marker = poiMarkers[idx];
+              if (!p || !marker) return;
+              const fg = L.featureGroup([detailHouseMarker, marker]);
               detailMap.fitBounds(fg.getBounds().pad(0.35));
-              m.openPopup();
+              marker.openPopup();
             });
           });
 
-          // ปุ่มนำทาง
-          listEl.querySelectorAll('.poi-nav-btn').forEach((btn) => {
+          // ปุ่มนำทาง → Google Maps
+          poiListWrap.querySelectorAll('.poi-nav-btn').forEach((btn) => {
             btn.addEventListener('click', (ev) => {
               ev.stopPropagation();
               const idx = Number(btn.dataset.i);
@@ -462,16 +537,15 @@ async function renderPropertyDetails(property) {
             });
           });
         } else {
-          listEl.innerHTML = `<p style="color:#6b7280;">ยังไม่มีสถานที่ใกล้เคียงที่บันทึกไว้</p>`;
+          poiListWrap.innerHTML = `<p style="color:#6b7280;">ยังไม่มีสถานที่ใกล้เคียงที่บันทึกไว้</p>`;
         }
 
-        // ⭐ ตอนเปลี่ยนขนาดจอ → รีเฟรชขนาดแผนที่
+        // resize → update map
         window.addEventListener('resize', () => {
           const newH = getResponsiveMapHeight();
           mapEl.style.height = newH + 'px';
           setTimeout(() => detailMap.invalidateSize(), 120);
         });
-
       } catch (err) {
         console.warn('Leaflet fallback', err);
         mapEl.innerHTML = `<iframe src="https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
@@ -479,22 +553,24 @@ async function renderPropertyDetails(property) {
     }, 0);
   }
 
-  // ---------- Share + lead (เหมือนเดิมย่อ) ----------
+  // ===== share + lead =====
   const shareBox = el('div', { className: 'share-buttons' });
   shareBox.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
-  const url = window.location.href;
-  const text = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
-  const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-  const line = `https://line.me/R/share?text=${encodeURIComponent(text + '\n' + url)}`;
-  const mss = `fb-messenger://share?link=${encodeURIComponent(url)}`;
+  const currentUrl = window.location.href;
+  const msg = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
+  const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
+  const line = `https://line.me/R/share?text=${encodeURIComponent(msg + '\n' + currentUrl)}`;
+  const mss = `fb-messenger://share?link=${encodeURIComponent(currentUrl)}`;
 
-  const fbA = el('a', { attributes:{href:fb,target:'_blank'}, textContent:'Facebook' });
-  const lineA = el('a', { attributes:{href:line,target:'_blank'}, textContent:'LINE', style:'margin-left:.5rem;' });
-  const mssA = el('a', { attributes:{href:mss,target:'_blank'}, textContent:'Messenger', style:'margin-left:.5rem;' });
+  const fbA = el('a', { attributes: { href: fb, target: '_blank' }, textContent: 'Facebook' });
+  const lineA = el('a', { attributes: { href: line, target: '_blank' }, textContent: 'LINE', style: 'margin-left:.5rem;' });
+  const mssA = el('a', { attributes: { href: mss, target: '_blank' }, textContent: 'Messenger', style: 'margin-left:.5rem;' });
 
-  const formCard = el('div', { style:'background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 5px 20px rgba(15,23,42,0.08);margin-top:1.5rem;' });
-  const formHd = el('h3', { textContent:'สนใจนัดชม / สอบถามข้อมูล' });
-  const form = el('form', { attributes:{id:'lead-form'} });
+  const formCard = el('div', {
+    style: 'background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 5px 20px rgba(15,23,42,0.08);margin-top:1.5rem;'
+  });
+  const formHd = el('h3', { textContent: 'สนใจนัดชม / สอบถามข้อมูล' });
+  const form = el('form', { attributes: { id: 'lead-form' } });
   form.innerHTML = `
     <input type="hidden" name="property_id" value="${property.id}">
     <input type="hidden" name="property_slug" value="${property.slug || ''}">
@@ -512,6 +588,9 @@ async function renderPropertyDetails(property) {
   container.append(grid);
 }
 
+// ==================================================
+// lead submit
+// ==================================================
 async function handleLeadSubmit(e) {
   e.preventDefault();
   const form = e.target;
@@ -527,10 +606,14 @@ async function handleLeadSubmit(e) {
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
   }
+
   btn.disabled = false;
   btn.textContent = 'ส่งข้อมูล';
 }
 
+// ==================================================
+// โหลดประกาศ
+// ==================================================
 async function loadProperty() {
   const params = new URLSearchParams(window.location.search);
   const slug = params.get('slug');
@@ -551,6 +634,9 @@ async function loadProperty() {
   await renderPropertyDetails(data);
 }
 
+// ==================================================
+// main
+// ==================================================
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   signOutIfAny();
