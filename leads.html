@@ -1,48 +1,48 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
   <title>รายชื่อผู้สนใจ (Leads) - Praweena Property</title>
-  <link rel="stylesheet" href="/assets/css/base.css">
-  <link rel="stylesheet" href="/assets/css/layout.css">
-  <link rel="stylesheet" href="/assets/css/components.css">
-  
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">  
-  <link rel="manifest" href="/assets/favicon/site.webmanifest">
-  
-  <link rel="stylesheet" href="/assets/css/base.css">
-  <link rel="stylesheet" href="/assets/css/layout.css">
-  <link rel="stylesheet" href="/assets/css/components.css">
-  
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png" />
+  <link rel="manifest" href="/assets/favicon/site.webmanifest" />
 </head>
 
 <body>
-
   <header class="header">
     <div class="container">
-      <nav class="nav">
-<a href="/index.html" class="logo">
-  <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
-  <span class="logo-text">Praweena Property</span>
-</a>
+      <nav class="nav" aria-label="หลัก">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img" />
+          <span class="logo-text">Praweena Property</span>
+        </a>
         <ul class="nav-links">
-
           <li><a href="/index.html">หน้าแรก</a></li>
           <li><a href="/dashboard.html">แดชบอร์ด</a></li>
-          <li><a href="/leads.html">ผู้สนใจ</a></li>
-          <li><a href="#" id="sign-out-btn" style="display: none;">ออกจากระบบ</a></li>
+          <li><a href="/leads.html" aria-current="page">ผู้สนใจ</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none">ออกจากระบบ</a></li>
         </ul>
-				  <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="เมนู">☰</button>
       </nav>
     </div>
   </header>
 
   <main class="container">
-    <h1 style="margin-bottom: 2rem;">รายชื่อผู้สนใจ (Leads)</h1>
-	<div id="role-indicator"></div>
+    <h1 style="margin-bottom:2rem">รายชื่อผู้สนใจ (Leads)</h1>
+    <div id="role-indicator"></div>
+
+    <!-- controls (สวิตช์เรียงล่าสุดก่อน จะถูกเติมโดย JS) -->
+    <div id="leads-controls"></div>
 
     <div class="table-wrapper">
       <table id="leads-table">
@@ -56,12 +56,12 @@
             <th>สถานะ</th>
           </tr>
         </thead>
-        <tbody>
-          </tbody>
+        <tbody></tbody>
       </table>
     </div>
   </main>
 
+  <!-- JS (module จะ import guard, services, mobileNav เอง) -->
   <script type="module" src="/js/pages/leads.page.js"></script>
 </body>
 </html>
