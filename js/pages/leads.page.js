@@ -101,7 +101,7 @@ if (lead.phone) {
   const p = propertyCellInfo(lead);
   if (p.slug) {
     const url = `/property-detail.html?slug=${encodeURIComponent(p.slug)}`;
-    tdProp.append(el('a', { attributes: { href: url, target: '_blank', rel="noopener noreferrer" }, textContent: p.title }));
+    tdProp.append(el('a', { attributes: { href: url, target: '_blank', rel: 'noopener noreferrer' }, textContent: p.title }));
   } else {
     tdProp.textContent = p.title;
   }
