@@ -66,15 +66,42 @@ function renderRow(lead) {
 
   const tdDate = el('td', { textContent: fmtDate(lead.created_at) });
   const tdName = el('td', { textContent: lead.name || '-' });
-  const tdPhone = el('td');
-  if (lead.phone) tdPhone.append(el('a', { attributes: { href: `tel:${lead.phone}` }, textContent: lead.phone }));
-  else tdPhone.textContent = '-';
+  
+const tdPhone = el('td');
+
+if (lead.phone) {
+  // ลิงก์โทร
+  const phoneLink = el('a', {
+    attributes: { href: `tel:${lead.phone}` },
+    textContent: lead.phone
+  });
+
+  // ปุ่มคัดลอก
+  const copyBtn = el('button', {
+    className: 'btn-copy-phone',
+    textContent: 'คัดลอก'
+  });
+
+  copyBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      await navigator.clipboard.writeText(lead.phone);
+      toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success');
+    } catch {
+      toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error');
+    }
+  });
+
+  tdPhone.append(phoneLink, ' ', copyBtn);
+} else {
+  tdPhone.textContent = '-';
+}
 
   const tdProp = el('td');
   const p = propertyCellInfo(lead);
   if (p.slug) {
     const url = `/property-detail.html?slug=${encodeURIComponent(p.slug)}`;
-    tdProp.append(el('a', { attributes: { href: url, target: '_blank', rel: 'noopener' }, textContent: p.title }));
+    tdProp.append(el('a', { attributes: { href: url, target: '_blank', rel="noopener noreferrer" }, textContent: p.title }));
   } else {
     tdProp.textContent = p.title;
   }
