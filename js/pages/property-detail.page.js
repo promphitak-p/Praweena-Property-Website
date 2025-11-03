@@ -1,11 +1,11 @@
-// js/pages/property-detail.page.js
 //--------------------------------------------------
 // หน้ารายละเอียดทรัพย์ Praweena Property
 // - แกลเลอรี่ + lightbox
 // - YouTube
 // - แผนที่ใหญ่ (ใบเดียว) + POI ใต้แผนที่
 // - แผนที่ห้ามซูม/ห้ามลากด้วยเมาส์ (เฉพาะผู้ใช้)
-// - แต่ยังให้โค้ด fitBounds/zoom ได้ตอนกด POI
+// - Share ปุ่มไอคอน + แยก mobile / desktop สำหรับ Messenger
+// - Lead form
 //--------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { getBySlug } from '../services/propertiesService.js';
@@ -553,19 +553,97 @@ async function renderPropertyDetails(property) {
     }, 0);
   }
 
-  // ===== share + lead =====
+  // ==================================================
+  // SHARE + LEAD (รวมอยู่ที่นี่)
+  // ==================================================
   const shareBox = el('div', { className: 'share-buttons' });
-  shareBox.innerHTML = `<p>แชร์ประกาศนี้:</p>`;
+  shareBox.innerHTML = `<p style="font-weight:600;margin-bottom:.5rem;">แชร์ประกาศนี้</p>`;
+
   const currentUrl = window.location.href;
-  const msg = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
-  const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
-  const line = `https://line.me/R/share?text=${encodeURIComponent(msg + '\n' + currentUrl)}`;
-  const mss = `fb-messenger://share?link=${encodeURIComponent(currentUrl)}`;
+  const shareText = `น่าสนใจ! ${property.title} ราคา ${formatPrice(property.price)}`;
 
-  const fbA = el('a', { attributes: { href: fb, target: '_blank' }, textContent: 'Facebook' });
-  const lineA = el('a', { attributes: { href: line, target: '_blank' }, textContent: 'LINE', style: 'margin-left:.5rem;' });
-  const mssA = el('a', { attributes: { href: mss, target: '_blank' }, textContent: 'Messenger', style: 'margin-left:.5rem;' });
+  // ตรวจว่าเป็นมือถือไหม
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+  // 1) Messenger แบบเปิดแอป (มือถือ)
+  const messengerAppUrl = `fb-messenger://share?link=${encodeURIComponent(currentUrl)}`;
+
+  // 2) Messenger แบบเปิดเว็บ (เดสก์ท็อป)
+  // 👉 ใส่ app_id ของกุ้งเองแทน YOUR_APP_ID นะ
+  const messengerWebUrl =
+    `https://www.facebook.com/dialog/send?link=${encodeURIComponent(currentUrl)}&app_id=YOUR_APP_ID&redirect_uri=${encodeURIComponent(currentUrl)}`;
+
+  const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText + '\n' + currentUrl)}`;
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
+  const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`;
+
+  // helper สร้างปุ่ม
+  function makeShareBtn({ href, label, svg, extraStyle = '' }) {
+    const a = el('a', {
+      attributes: { href, target: '_blank', rel: 'noopener' },
+      style: `
+        display:inline-flex;
+        align-items:center;
+        gap:.4rem;
+        background:#f3f4f6;
+        border:1px solid #e5e7eb;
+        border-radius:9999px;
+        padding:.35rem .8rem;
+        font-size:.8rem;
+        text-decoration:none;
+        color:#111827;
+        margin-right:.4rem;
+        ${extraStyle}
+      `
+    });
+    a.innerHTML = `${svg}<span>${label}</span>`;
+    return a;
+  }
+
+  // Messenger เฉพาะอุปกรณ์
+  if (isMobile) {
+    // 📱 mobile
+    const messengerBtnMobile = makeShareBtn({
+      href: messengerAppUrl,
+      label: 'Messenger',
+      svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#0084FF" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 4.98 0 11.13 0 14.57 1.71 17.6 4.45 19.5v4.15l4.07-2.23c1.01.28 2.09.44 3.21.44 6.63 0 12-4.98 12-11.13C23.73 4.98 18.36 0 12 0zm1.19 14.98l-2.97-3.17-5.82 3.17 6.39-6.78 3.03 3.17 5.76-3.17-6.39 6.78z"/></svg>`
+    });
+    shareBox.appendChild(messengerBtnMobile);
+  } else {
+    // 🖥 desktop
+    const messengerBtnWeb = makeShareBtn({
+      href: messengerWebUrl,
+      label: 'Messenger',
+      svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#0084FF" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 4.98 0 11.13 0 14.57 1.71 17.6 4.45 19.5v4.15l4.07-2.23c1.01.28 2.09.44 3.21.44 6.63 0 12-4.98 12-11.13C23.73 4.98 18.36 0 12 0zm1.19 14.98l-2.97-3.17-5.82 3.17 6.39-6.78 3.03 3.17 5.76-3.17-6.39 6.78z"/></svg>`
+    });
+    shareBox.appendChild(messengerBtnWeb);
+  }
+
+  // LINE
+  const lineBtn = makeShareBtn({
+    href: lineUrl,
+    label: 'LINE',
+    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#06C755" xmlns="http://www.w3.org/2000/svg"><path d="M20.666 10.08c0-3.63-3.46-6.58-7.733-6.58-4.273 0-7.733 2.95-7.733 6.58 0 3.25 2.934 5.96 6.836 6.5.267.058.63.178.72.408.082.213.054.545.026.758l-.115.7c-.035.213-.17.84.74.458 3.512-1.46 5.68-3.997 5.68-7.824z"/></svg>`
+  });
+  shareBox.appendChild(lineBtn);
+
+  // Facebook
+  const fbBtn = makeShareBtn({
+    href: facebookUrl,
+    label: 'Facebook',
+    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
+  });
+  shareBox.appendChild(fbBtn);
+
+  // X / Twitter
+  const xBtn = makeShareBtn({
+    href: twitterUrl,
+    label: 'X / Twitter',
+    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#000" xmlns="http://www.w3.org/2000/svg"><path d="M18.9 1.2h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.59l5.24 7.18 6.07-7.14z"/></svg>`
+  });
+  shareBox.appendChild(xBtn);
+
+  // ====== Lead form ======
   const formCard = el('div', {
     style: 'background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 5px 20px rgba(15,23,42,0.08);margin-top:1.5rem;'
   });
@@ -581,7 +659,8 @@ async function renderPropertyDetails(property) {
   `;
   form.addEventListener('submit', handleLeadSubmit);
 
-  rightCol.append(shareBox, fbA, lineA, mssA, formCard);
+  // ใส่ลงคอลขวา
+  rightCol.append(shareBox, formCard);
   formCard.append(formHd, form);
 
   grid.append(leftCol, rightCol);
