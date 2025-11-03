@@ -1,59 +1,62 @@
 // js/services/leadsService.js
 
-// ❗ ใช้ตัวเดียวกับที่หน้าเพจใช้
+// ใช้ตัวเดียวกับที่ทุกเพจใช้
 import { supabase } from '../utils/supabaseClient.js';
 
 /**
  * สร้าง Lead ใหม่จากหน้า property
- * payload ที่คาดหวัง:
+ * payload:
  * {
- *   name: string,
- *   phone: string,
- *   note?: string,
- *   property_id?: number | string,
- *   property_slug?: string,
- *   source_url?: string,
- *   utm_source?: string,
- *   utm_medium?: string,
- *   utm_campaign?: string
+ *   name, phone, note?,
+ *   property_id?, property_slug?,
+ *   source_url?, utm_source?, utm_medium?, utm_campaign?
  * }
  */
 export async function createLead(rawPayload = {}) {
-  // 1) แปลงเป็นฟอร์แมตที่ DB รับชัวร์
   const payload = {
     name: rawPayload.name ?? '',
     phone: rawPayload.phone ?? '',
     note: rawPayload.note ?? '',
-    property_id: rawPayload.property_id
-      ? Number(rawPayload.property_id)
-      : null,
+    property_id: rawPayload.property_id != null ? Number(rawPayload.property_id) : null,
     property_slug: rawPayload.property_slug ?? null,
-    source_url: rawPayload.source_url ?? (typeof window !== 'undefined' ? window.location.href : null),
+    source_url:
+      rawPayload.source_url ??
+      (typeof window !== 'undefined' ? window.location.href : null),
     utm_source: rawPayload.utm_source ?? null,
     utm_medium: rawPayload.utm_medium ?? null,
     utm_campaign: rawPayload.utm_campaign ?? null,
   };
 
-  // 2) ยิงเข้า supabase
   const { data, error } = await supabase.from('leads').insert(payload);
-
   return { data, error };
 }
 
 /**
- * (สำหรับ Staff/Admin) ดึงรายการ Leads ทั้งหมด
+ * ดึงรายการ Leads ทั้งหมด
+ * - พยายาม join กับ properties ก่อน (ต้องมี FK leads.property_id → properties.id)
+ * - ถ้า join ไม่ได้ (ไม่มีความสัมพันธ์/ไม่มีสิทธิ์) → fallback เป็น select ธรรมดา
  */
 export async function listLeads() {
-  return await supabase
+  // 1) ลอง join ก่อน
+  let { data, error } = await supabase
     .from('leads')
     .select(`
-      *,
-      properties (
-        title,
-        slug
-      )
+      id, name, phone, note, status,
+      property_id, property_slug, created_at,
+      properties ( title, slug )
     `)
     .order('created_at', { ascending: false });
+
+  // 2) ถ้า join พัง (เช่น ไม่มี FK) → fallback
+  if (error) {
+    console.warn('[leadsService] join properties failed:', error.message);
+    ({ data, error } = await supabase
+      .from('leads')
+      .select('id, name, phone, note, status, property_id, property_slug, created_at')
+      .order('created_at', { ascending: false }));
+  }
+
+  return { data: data ?? [], error: error ?? null };
 }
 
 /**
