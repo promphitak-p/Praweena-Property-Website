@@ -74,7 +74,6 @@ export function brandIcon(opts = {}) {
   });
 }
 
-
 // POI icon by type (PNG/SVG per brand later)
 export function iconForPoiType(type = '') {
   const basePath = '/assets/img/poi/';
