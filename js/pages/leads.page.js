@@ -149,6 +149,29 @@ function renderEmpty() {
   tableBody.append(tr);
 }
 
+let q = ''; // query
+function ensureSearch() {
+  let box = document.getElementById('leads-search');
+  if (box) return;
+  box = el('div', { id:'leads-search', style:'margin:.5rem 0 1rem 0;display:flex;gap:.5rem;' });
+  const input = el('input', { className:'form-control', attributes:{placeholder:'ค้นหาชื่อ/เบอร์/ทรัพย์...'} });
+  const btn   = el('button', { className:'btn', textContent:'ค้นหา' });
+  btn.onclick = ()=>{ q = input.value.trim(); loadAndRender(); };
+  box.append(input, btn);
+  pageContainer?.insertBefore(box, pageContainer.querySelector('#leads-controls') || pageContainer.querySelector('.table-wrapper'));
+}
+
+let rows = Array.isArray(data) ? data : [];
+if (q) {
+  const needle = q.toLowerCase();
+  rows = rows.filter(r =>
+    (r.name||'').toLowerCase().includes(needle) ||
+    (r.phone||'').toLowerCase().includes(needle) ||
+    (r.property_slug||r.property_slug_final||'').toLowerCase().includes(needle) ||
+    (r.properties?.title||r.property_title||'').toLowerCase().includes(needle)
+  );
+}
+
 // ----- Controls (toggle newest first) -----
 function ensureControls() {
   let ctr = $('#leads-controls');

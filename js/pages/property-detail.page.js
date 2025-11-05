@@ -17,6 +17,9 @@ import { formatPrice } from '../utils/format.js';
 import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { supabase } from '../utils/supabaseClient.js';
+import { renderShareBar } from '../widgets/share.widget.js';
+import { mountPayCalc } from '../widgets/payCalc.widget.js';
+import { notifyLeadNew } from '../services/notifyService.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
@@ -327,6 +330,13 @@ async function renderPropertyDetails(property) {
       style: `width:100%;height:${getResponsiveMapHeight()}px;border-radius:12px;overflow:hidden;background:#f3f4f6;`
     });
     mapWrap.append(mapEl);
+	
+const openInGmaps = el('a', {
+  attributes:{ href:`https://www.google.com/maps?q=${lat},${lng}`, target:'_blank', rel:'noopener' },
+  textContent:'🗺️ เปิดใน Google Maps',
+  style:'display:inline-block;margin-top:.5rem;color:#2563eb;'
+});
+mapWrap.append(openInGmaps);
 
     const poiListWrap = el('div', { id: 'poi-list-main', style: 'margin-top:1rem;' });
     mapWrap.append(poiListWrap);
@@ -650,6 +660,14 @@ shareBox.appendChild(
   })
 );
 
+const shareWrap = el('div', { id:'share-bar' });
+rightCol.append(shareWrap, formCard);
+renderShareBar(shareWrap, {
+  title: `${property.title} | ราคา ${formatPrice(property.price)} บาท`,
+  url: window.location.href,
+  image: property.cover_url
+});
+
 // ✅ ปุ่มคัดลอกข้อความ (หัวเรื่อง + ราคา + ลิงก์)
 const copyBtn = makeShareBtn({
   href: '#',
@@ -708,7 +726,17 @@ async function handleLeadSubmit(e) {
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
   }
-
+  
+    // ส่งแจ้งเตือนไป LINE
+  const lead = {
+    name: payload.name,
+    phone: payload.phone,
+    note: payload.note,
+    property_title: (window.__currentProperty?.title) || '',
+    property_slug: payload.property_slug || ''
+  };
+  notifyLeadNew(lead); // ไม่ต้องใส่ to ก็ได้ จะใช้ LINE_DEFAULT_TO
+}
   btn.disabled = false;
   btn.textContent = 'ส่งข้อมูล';
 }
@@ -745,3 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMobileNav();
   loadProperty();
 });
+
+const calcWrap = el('div', { id:'paycalc' });
+rightCol.append(calcWrap);
+mountPayCalc(calcWrap, { price: +property.price || 0 });
