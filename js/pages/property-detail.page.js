@@ -739,7 +739,7 @@ async function handleLeadSubmit(e) {
 }
   btn.disabled = false;
   btn.textContent = 'ส่งข้อมูล';
-}
+
 
 // ==================================================
 // โหลดประกาศ
