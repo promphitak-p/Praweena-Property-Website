@@ -193,26 +193,28 @@ function ensureControls() {
 // ----- Data loading -----
 async function loadAndRender() {
   renderSkeleton();
-  // listLeads() ใน services ควรจัดเรียง DESC อยู่แล้ว; ถ้าต้องสลับให้จัดใน client
-  let { data, error } = await listLeads();
+  const result = await listLeads();   // ← เก็บผลลัพธ์ไว้ในตัวเดียว
+  const data = result.data || [];     // ← ดึงเฉพาะ data
+  const error = result.error;
+
   if (error) {
     clear(tableBody);
     console.error(error);
     toast('เกิดข้อผิดพลาดขณะดึงข้อมูล: ' + error.message, 4000, 'error');
     return;
   }
+
   const rows = Array.isArray(data) ? data : [];
-  // สลับลำดับฝั่ง client ตาม newestFirst
   rows.sort((a, b) => {
     const da = new Date(a.created_at).getTime();
     const db = new Date(b.created_at).getTime();
     return newestFirst ? db - da : da - db;
-    // DESC เมื่อ newestFirst = true
   });
 
   if (!rows.length) return renderEmpty();
 
   clear(tableBody);
+  console.log('[LEADS]', rows);
   rows.forEach(renderRow);
 }
 

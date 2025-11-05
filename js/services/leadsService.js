@@ -44,10 +44,8 @@ export async function createLead(rawPayload = {}) {
  */
 
 export async function listLeads() {
-  // ถ้า view ไม่มี จะ fallback ไปตาราง leads + nested select ได้ (ตามของเดิม)
   const v = await supabase.from('leads_with_property').select('*').order('created_at',{ascending:false});
   if (!v.error && Array.isArray(v.data)) return v;
-  // fallback (ของเดิม)
   return await supabase
     .from('leads')
     .select(`*, properties (title, slug)`)
