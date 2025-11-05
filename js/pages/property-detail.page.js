@@ -24,6 +24,8 @@ import { notifyLeadNew } from '../services/notifyService.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
+let leadSubmitting = false;                 // กันกดซ้ำระหว่างส่ง
+let __lastLeadSig = { sig: null, at: 0 };   // กันส่ง LINE ซ้ำภายในช่วงสั้นๆ
 
 const container = $('#property-detail-container');
 
@@ -222,23 +224,21 @@ function colorOf(t = '') {
 // ==================================================
 // lead submit
 // ==================================================
-let leadSubmitting = false; // 🔒 กันกดซ้ำ
-
 async function handleLeadSubmit(e) {
   e.preventDefault();
-  if (leadSubmitting) return;         // กันดับเบิลคลิก/รี-บายนด์
+  if (leadSubmitting) return; // กันดับเบิลคลิก / bind ซ้ำ
   leadSubmitting = true;
 
   const form = e.target;
   const btn  = form.querySelector('button[type=submit]');
+  const old  = btn.textContent;
   btn.disabled = true;
-  const oldTxt = btn.textContent;
   btn.textContent = 'กำลังส่ง...';
 
   try {
     const payload = getFormData(form);
 
-    // บันทึกลง DB
+    // 1) บันทึกลง DB
     const { error } = await createLead(payload);
     if (error) {
       toast('เกิดข้อผิดพลาด: ' + error.message, 3000, 'error');
@@ -248,24 +248,37 @@ async function handleLeadSubmit(e) {
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
 
-    // ✅ แจ้ง LINE แค่ครั้งเดียว หลังบันทึกสำเร็จ
+    // 2) เตรียมข้อมูลแจ้ง LINE
     const lead = {
-      name: payload.name,
-      phone: payload.phone,
-      note: payload.note,
+      name: (payload.name || '').trim(),
+      phone: (payload.phone || '').trim(),
+      note: payload.note || '',
       property_title: window.__currentProperty?.title || '',
       property_slug: payload.property_slug || ''
     };
-    await notifyLeadNew(lead);
+
+    // 3) ทำ "ลายเซ็น" กันส่งซ้ำ 45 วินาที (idempotency guard)
+    const now = Date.now();
+    const sig = JSON.stringify({
+      n: lead.name, p: lead.phone, s: lead.property_slug,
+      id: window.__currentProperty?.id || null
+    });
+
+    // ถ้าเหมือนอันก่อนหน้าและยังไม่เกิน 45s → ข้ามการ notify
+    if (__lastLeadSig.sig === sig && (now - __lastLeadSig.at) < 45000) {
+      console.debug('[notify] skipped (duplicate within 45s)');
+    } else {
+      __lastLeadSig = { sig, at: now };
+      await notifyLeadNew(lead); // ✅ ยิงครั้งเดียว
+    }
 
   } catch (err) {
     console.error(err);
     toast('ส่งข้อมูลไม่สำเร็จ', 2500, 'error');
   } finally {
-    // ปลดล็อก
     leadSubmitting = false;
     btn.disabled = false;
-    btn.textContent = oldTxt;
+    btn.textContent = old;
   }
 }
 
@@ -720,6 +733,12 @@ async function renderPropertyDetails(property) {
   `;
   form.addEventListener('submit', handleLeadSubmit);
   formCard.append(formHd, form);
+  
+  // ...หลังสร้าง form.innerHTML แล้ว
+if (!form.dataset.boundSubmit) {
+  form.addEventListener('submit', handleLeadSubmit);
+  form.dataset.boundSubmit = '1';
+}
 
   // mount share widget + กล่องแชร์ custom
   rightCol.append(shareWrap);
