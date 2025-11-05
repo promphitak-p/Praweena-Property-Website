@@ -2,12 +2,12 @@
 // --------------------------------------------------
 // รายชื่อผู้สนใจ (Leads)
 // - guard หน้า + ตรวจสิทธิ์แอดมิน
-// - ดึง leads โดยพยายาม join กับ properties (ผ่าน services)
-//   และรองรับกรณี properties ไม่มี/join ไม่ได้ (services ควร fallback)
-// - Toggle "ดูล่าสุดก่อน" (DESC/ASC)
-// - Inline status update
-// - ลิงก์ไปหน้าทรัพย์เมื่อมี slug
+// - ดึง leads + จัดเรียง (toggle ใหม่สุดก่อน)
+// - ปุ่มโทร + ปุ่มคัดลอกเบอร์
+// - อัปเดตสถานะแบบ inline (new / contacted / qualified / won / lost)
+// - ลิงก์ไปหน้าทรัพย์จาก slug ถ้ามี
 // --------------------------------------------------
+
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
@@ -36,22 +36,18 @@ function fmtDate(dt) {
     return dt ?? '';
   }
 }
-
 function propertyCellInfo(row) {
-  // ถ้า services join มาด้วยจะมี row.properties
   if (row?.properties && (row.properties.title || row.properties.slug)) {
     return { title: row.properties.title || row.properties.slug, slug: row.properties.slug || row.property_slug || '' };
   }
-  // ถ้าไม่มีความสัมพันธ์ ให้ใช้ property_slug ตรง ๆ
   if (row?.property_slug) return { title: row.property_slug, slug: row.property_slug };
   return { title: '-', slug: '' };
 }
-
 function buildStatusSelect(current, onChange) {
   const sel = el('select', { className: 'form-control' });
   LEAD_STATUSES.forEach(s => {
     const opt = el('option', { textContent: s, attributes: { value: s } });
-    if (s === current) opt.selected = true;
+    if (s === (current || 'new')) opt.selected = true;
     sel.append(opt);
   });
   if (typeof onChange === 'function') {
@@ -66,37 +62,34 @@ function renderRow(lead) {
 
   const tdDate = el('td', { textContent: fmtDate(lead.created_at) });
   const tdName = el('td', { textContent: lead.name || '-' });
-  
-const tdPhone = el('td');
 
-if (lead.phone) {
-  // ลิงก์โทร
-  const phoneLink = el('a', {
-    attributes: { href: `tel:${lead.phone}` },
-    textContent: lead.phone
-  });
+  // โทร + คัดลอกเบอร์
+  const tdPhone = el('td');
+  if (lead.phone) {
+    const phoneLink = el('a', {
+      attributes: { href: `tel:${lead.phone}` },
+      textContent: lead.phone
+    });
+    const copyBtn = el('button', {
+      className: 'btn-copy-phone',
+      textContent: 'คัดลอก',
+      style: 'margin-left:.5rem;padding:.25rem .5rem;border:1px solid #e5e7eb;background:#f9fafb;border-radius:6px;cursor:pointer;font-size:.8rem;'
+    });
+    copyBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await navigator.clipboard.writeText(lead.phone);
+        toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success');
+      } catch {
+        toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error');
+      }
+    });
+    tdPhone.append(phoneLink, copyBtn);
+  } else {
+    tdPhone.textContent = '-';
+  }
 
-  // ปุ่มคัดลอก
-  const copyBtn = el('button', {
-    className: 'btn-copy-phone',
-    textContent: 'คัดลอก'
-  });
-
-  copyBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    try {
-      await navigator.clipboard.writeText(lead.phone);
-      toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success');
-    } catch {
-      toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error');
-    }
-  });
-
-  tdPhone.append(phoneLink, ' ', copyBtn);
-} else {
-  tdPhone.textContent = '-';
-}
-
+  // ลิงก์ไปหน้าทรัพย์
   const tdProp = el('td');
   const p = propertyCellInfo(lead);
   if (p.slug) {
@@ -108,16 +101,20 @@ if (lead.phone) {
 
   const tdNote = el('td', { textContent: lead.note || '-' });
 
+  // สถานะ (inline update)
   const tdStatus = el('td');
   const select = buildStatusSelect(lead.status || 'new', async (newStatus, elSel) => {
-    // optimistic UI
     const prev = lead.status || 'new';
     lead.status = newStatus;
     const { error } = await updateLead(lead.id, { status: newStatus });
     if (error) {
+      // กรณีตารางยังไม่มีคอลัมน์ status ให้ย้อนกลับและแจ้งเตือนชัดเจน
       lead.status = prev;
       elSel.value = prev;
-      toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
+      const msg = (error?.message || 'อัปเดตสถานะไม่สำเร็จ');
+      toast(msg.includes('column') && msg.includes('status')
+        ? 'ยังไม่มีคอลัมน์ status ในตาราง leads กรุณาเพิ่มก่อน'
+        : `อัปเดตสถานะไม่สำเร็จ: ${msg}`, 4000, 'error');
     } else {
       toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
     }
@@ -137,7 +134,6 @@ function renderSkeleton() {
   }));
   tableBody.append(tr);
 }
-
 function renderEmpty() {
   clear(tableBody);
   const tr = el('tr');
@@ -147,29 +143,6 @@ function renderEmpty() {
     textContent: 'ยังไม่มีผู้สนใจติดต่อเข้ามา'
   }));
   tableBody.append(tr);
-}
-
-let q = ''; // query
-function ensureSearch() {
-  let box = document.getElementById('leads-search');
-  if (box) return;
-  box = el('div', { id:'leads-search', style:'margin:.5rem 0 1rem 0;display:flex;gap:.5rem;' });
-  const input = el('input', { className:'form-control', attributes:{placeholder:'ค้นหาชื่อ/เบอร์/ทรัพย์...'} });
-  const btn   = el('button', { className:'btn', textContent:'ค้นหา' });
-  btn.onclick = ()=>{ q = input.value.trim(); loadAndRender(); };
-  box.append(input, btn);
-  pageContainer?.insertBefore(box, pageContainer.querySelector('#leads-controls') || pageContainer.querySelector('.table-wrapper'));
-}
-
-let rows = Array.isArray(data) ? data : [];
-if (q) {
-  const needle = q.toLowerCase();
-  rows = rows.filter(r =>
-    (r.name||'').toLowerCase().includes(needle) ||
-    (r.phone||'').toLowerCase().includes(needle) ||
-    (r.property_slug||r.property_slug_final||'').toLowerCase().includes(needle) ||
-    (r.properties?.title||r.property_title||'').toLowerCase().includes(needle)
-  );
 }
 
 // ----- Controls (toggle newest first) -----
@@ -193,36 +166,39 @@ function ensureControls() {
 // ----- Data loading -----
 async function loadAndRender() {
   renderSkeleton();
-  const result = await listLeads();   // ← เก็บผลลัพธ์ไว้ในตัวเดียว
-  const data = result.data || [];     // ← ดึงเฉพาะ data
-  const error = result.error;
+
+  // ⬇️ แก้ scope ให้ชัดเจน ป้องกัน "data is not defined"
+  const result = await listLeads();
+  const data = result?.data || [];
+  const error = result?.error;
 
   if (error) {
     clear(tableBody);
-    console.error(error);
+    console.error('[LEADS] load error:', error);
     toast('เกิดข้อผิดพลาดขณะดึงข้อมูล: ' + error.message, 4000, 'error');
     return;
   }
 
-  const rows = Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data) ? data.slice() : [];
   rows.sort((a, b) => {
     const da = new Date(a.created_at).getTime();
     const db = new Date(b.created_at).getTime();
-    return newestFirst ? db - da : da - db;
+    return newestFirst ? db - da : da - db; // DESC เมื่อ newestFirst = true
   });
 
   if (!rows.length) return renderEmpty();
 
   clear(tableBody);
-  console.log('[LEADS]', rows);
+  // console.log('[LEADS]', rows); // เปิดใช้เวลา debug ได้
   rows.forEach(renderRow);
 }
 
 // ----- Main -----
 document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage();           // ต้องล็อกอิน
+  await protectPage(); // ต้องล็อกอิน
+
   const ok = await requireAdminPage({ redirect: '/index.html', showBadge: true });
-  if (!ok) return;               // ไม่ใช่แอดมิน → รีไดเรกต์แล้วหยุด
+  if (!ok) return; // ไม่ใช่แอดมิน → รีไดเรกต์แล้วหยุด
 
   setupNav();
   signOutIfAny();
