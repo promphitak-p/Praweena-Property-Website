@@ -222,36 +222,51 @@ function colorOf(t = '') {
 // ==================================================
 // lead submit
 // ==================================================
+let leadSubmitting = false; // 🔒 กันกดซ้ำ
+
 async function handleLeadSubmit(e) {
   e.preventDefault();
+  if (leadSubmitting) return;         // กันดับเบิลคลิก/รี-บายนด์
+  leadSubmitting = true;
+
   const form = e.target;
-  const btn = form.querySelector('button[type=submit]');
+  const btn  = form.querySelector('button[type=submit]');
   btn.disabled = true;
+  const oldTxt = btn.textContent;
   btn.textContent = 'กำลังส่ง...';
 
-  const payload = getFormData(form);
-  const { error } = await createLead(payload);
+  try {
+    const payload = getFormData(form);
 
-  if (error) {
-    toast('เกิดข้อผิดพลาด: ' + error.message, 3000, 'error');
-  } else {
+    // บันทึกลง DB
+    const { error } = await createLead(payload);
+    if (error) {
+      toast('เกิดข้อผิดพลาด: ' + error.message, 3000, 'error');
+      return;
+    }
+
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
 
-    // ส่งแจ้งเตือนไป LINE
+    // ✅ แจ้ง LINE แค่ครั้งเดียว หลังบันทึกสำเร็จ
     const lead = {
       name: payload.name,
       phone: payload.phone,
       note: payload.note,
-      property_title: (window.__currentProperty?.title) || '',
+      property_title: window.__currentProperty?.title || '',
       property_slug: payload.property_slug || ''
     };
-    // ไม่ต้องใส่ to ก็ได้ จะใช้ LINE_DEFAULT_TO
-    notifyLeadNew(lead);
-  }
+    await notifyLeadNew(lead);
 
-  btn.disabled = false;
-  btn.textContent = 'ส่งข้อมูล';
+  } catch (err) {
+    console.error(err);
+    toast('ส่งข้อมูลไม่สำเร็จ', 2500, 'error');
+  } finally {
+    // ปลดล็อก
+    leadSubmitting = false;
+    btn.disabled = false;
+    btn.textContent = oldTxt;
+  }
 }
 
 // ==================================================
