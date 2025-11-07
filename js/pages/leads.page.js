@@ -2,17 +2,16 @@
 // --------------------------------------------------
 // รายชื่อผู้สนใจ (Leads)
 // - guard หน้า + ตรวจสิทธิ์แอดมิน
-// - ดึง leads + จัดเรียง (toggle ใหม่สุดก่อน)
-// - ปุ่มโทร + ปุ่มคัดลอกเบอร์
-// - อัปเดตสถานะแบบ inline (new / contacted / qualified / won / lost)
-// - ลิงก์ไปหน้าทรัพย์จาก slug ถ้ามี
+// - Toggle "ดูล่าสุดก่อน" (DESC/ASC)
+// - Inline status update (+ แจ้ง LINE เมื่ออัปเดตสำเร็จ)
+// - ลิงก์ไปหน้าทรัพย์ & ปุ่มคัดลอกเบอร์
 // --------------------------------------------------
-
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { requireAdminPage } from '../auth/adminGuard.js';
 import { listLeads, updateLead } from '../services/leadsService.js';
+import { notifyLeadNew } from '../services/notifyService.js';
 import { setupNav } from '../utils/config.js';
 import { el, $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
@@ -36,6 +35,7 @@ function fmtDate(dt) {
     return dt ?? '';
   }
 }
+
 function propertyCellInfo(row) {
   if (row?.properties && (row.properties.title || row.properties.slug)) {
     return { title: row.properties.title || row.properties.slug, slug: row.properties.slug || row.property_slug || '' };
@@ -43,11 +43,12 @@ function propertyCellInfo(row) {
   if (row?.property_slug) return { title: row.property_slug, slug: row.property_slug };
   return { title: '-', slug: '' };
 }
+
 function buildStatusSelect(current, onChange) {
   const sel = el('select', { className: 'form-control' });
   LEAD_STATUSES.forEach(s => {
     const opt = el('option', { textContent: s, attributes: { value: s } });
-    if (s === (current || 'new')) opt.selected = true;
+    if (s === current) opt.selected = true;
     sel.append(opt);
   });
   if (typeof onChange === 'function') {
@@ -63,33 +64,19 @@ function renderRow(lead) {
   const tdDate = el('td', { textContent: fmtDate(lead.created_at) });
   const tdName = el('td', { textContent: lead.name || '-' });
 
-  // โทร + คัดลอกเบอร์
+  // เบอร์โทร + ปุ่มคัดลอก
   const tdPhone = el('td');
   if (lead.phone) {
-    const phoneLink = el('a', {
-      attributes: { href: `tel:${lead.phone}` },
-      textContent: lead.phone
-    });
-    const copyBtn = el('button', {
-      className: 'btn-copy-phone',
-      textContent: 'คัดลอก',
-      style: 'margin-left:.5rem;padding:.25rem .5rem;border:1px solid #e5e7eb;background:#f9fafb;border-radius:6px;cursor:pointer;font-size:.8rem;'
-    });
+    const phoneLink = el('a', { attributes: { href: `tel:${lead.phone}` }, textContent: lead.phone });
+    const copyBtn = el('button', { className: 'btn-copy-phone', textContent: 'คัดลอก' });
     copyBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      try {
-        await navigator.clipboard.writeText(lead.phone);
-        toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success');
-      } catch {
-        toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error');
-      }
+      try { await navigator.clipboard.writeText(lead.phone); toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success'); }
+      catch { toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error'); }
     });
-    tdPhone.append(phoneLink, copyBtn);
-  } else {
-    tdPhone.textContent = '-';
-  }
+    tdPhone.append(phoneLink, ' ', copyBtn);
+  } else tdPhone.textContent = '-';
 
-  // ลิงก์ไปหน้าทรัพย์
   const tdProp = el('td');
   const p = propertyCellInfo(lead);
   if (p.slug) {
@@ -101,22 +88,31 @@ function renderRow(lead) {
 
   const tdNote = el('td', { textContent: lead.note || '-' });
 
-  // สถานะ (inline update)
   const tdStatus = el('td');
   const select = buildStatusSelect(lead.status || 'new', async (newStatus, elSel) => {
     const prev = lead.status || 'new';
+    // optimistic UI
     lead.status = newStatus;
+    elSel.disabled = true;
     const { error } = await updateLead(lead.id, { status: newStatus });
+    elSel.disabled = false;
+
     if (error) {
-      // กรณีตารางยังไม่มีคอลัมน์ status ให้ย้อนกลับและแจ้งเตือนชัดเจน
       lead.status = prev;
       elSel.value = prev;
-      const msg = (error?.message || 'อัปเดตสถานะไม่สำเร็จ');
-      toast(msg.includes('column') && msg.includes('status')
-        ? 'ยังไม่มีคอลัมน์ status ในตาราง leads กรุณาเพิ่มก่อน'
-        : `อัปเดตสถานะไม่สำเร็จ: ${msg}`, 4000, 'error');
+      toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
     } else {
       toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
+
+      // 🔔 แจ้ง LINE ว่ามีการอัปเดตสถานะ (Lead Update)
+      const prop = propertyCellInfo(lead);
+      await notifyLeadNew({
+        name: lead.name,
+        phone: lead.phone,
+        note: `อัปเดตสถานะเป็น: ${newStatus}`,
+        property_title: prop.title,
+        property_slug: lead.property_slug || prop.slug || ''
+      });
     }
   });
   tdStatus.append(select);
@@ -134,6 +130,7 @@ function renderSkeleton() {
   }));
   tableBody.append(tr);
 }
+
 function renderEmpty() {
   clear(tableBody);
   const tr = el('tr');
@@ -166,39 +163,31 @@ function ensureControls() {
 // ----- Data loading -----
 async function loadAndRender() {
   renderSkeleton();
-
-  // ⬇️ แก้ scope ให้ชัดเจน ป้องกัน "data is not defined"
-  const result = await listLeads();
-  const data = result?.data || [];
-  const error = result?.error;
-
+  let { data, error } = await listLeads();
   if (error) {
     clear(tableBody);
-    console.error('[LEADS] load error:', error);
+    console.error(error);
     toast('เกิดข้อผิดพลาดขณะดึงข้อมูล: ' + error.message, 4000, 'error');
     return;
   }
-
-  const rows = Array.isArray(data) ? data.slice() : [];
+  const rows = Array.isArray(data) ? data : [];
   rows.sort((a, b) => {
     const da = new Date(a.created_at).getTime();
     const db = new Date(b.created_at).getTime();
-    return newestFirst ? db - da : da - db; // DESC เมื่อ newestFirst = true
+    return newestFirst ? db - da : da - db;
   });
 
   if (!rows.length) return renderEmpty();
 
   clear(tableBody);
-  // console.log('[LEADS]', rows); // เปิดใช้เวลา debug ได้
   rows.forEach(renderRow);
 }
 
 // ----- Main -----
 document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage(); // ต้องล็อกอิน
-
+  await protectPage();
   const ok = await requireAdminPage({ redirect: '/index.html', showBadge: true });
-  if (!ok) return; // ไม่ใช่แอดมิน → รีไดเรกต์แล้วหยุด
+  if (!ok) return;
 
   setupNav();
   signOutIfAny();
@@ -207,7 +196,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   ensureControls();
   await loadAndRender();
 
-  // กลับแท็บมาแล้วรีเฟรชสั้น ๆ
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') loadAndRender();
   });
