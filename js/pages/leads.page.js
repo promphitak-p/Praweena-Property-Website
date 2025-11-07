@@ -2,19 +2,20 @@
 // --------------------------------------------------
 // รายชื่อผู้สนใจ (Leads)
 // - guard หน้า + ตรวจสิทธิ์แอดมิน
+// - ดึง leads โดยพยายาม join กับ properties (ผ่าน services)
 // - Toggle "ดูล่าสุดก่อน" (DESC/ASC)
-// - Inline status update (+ แจ้ง LINE เมื่ออัปเดตสำเร็จ)
-// - ลิงก์ไปหน้าทรัพย์ & ปุ่มคัดลอกเบอร์
+// - Inline status update (+ แจ้ง LINE ตอนเปลี่ยนสถานะ)
+// - ลิงก์ไปหน้าทรัพย์เมื่อมี slug
 // --------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { requireAdminPage } from '../auth/adminGuard.js';
 import { listLeads, updateLead } from '../services/leadsService.js';
-import { notifyLeadNew } from '../services/notifyService.js';
 import { setupNav } from '../utils/config.js';
 import { el, $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
+import { notifyLeadStatusChange } from '../services/notifyService.js';
 
 // ----- DOM targets -----
 const tableBody = $('#leads-table tbody');
@@ -23,6 +24,9 @@ const pageContainer = document.querySelector('main.container');
 // ----- Config -----
 const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'];
 let newestFirst = true; // toggle ลำดับ
+
+// ป้องกันยิง notify ซ้ำเมื่อเปลี่ยนเร็ว ๆ
+const notifyingSet = new Set();
 
 // ----- Utils -----
 function fmtDate(dt) {
@@ -44,11 +48,11 @@ function propertyCellInfo(row) {
   return { title: '-', slug: '' };
 }
 
-function buildStatusSelect(current, onChange) {
+function buildStatusSelect(lead, onChange) {
   const sel = el('select', { className: 'form-control' });
   LEAD_STATUSES.forEach(s => {
     const opt = el('option', { textContent: s, attributes: { value: s } });
-    if (s === current) opt.selected = true;
+    if (s === (lead.status || 'new')) opt.selected = true;
     sel.append(opt);
   });
   if (typeof onChange === 'function') {
@@ -64,18 +68,24 @@ function renderRow(lead) {
   const tdDate = el('td', { textContent: fmtDate(lead.created_at) });
   const tdName = el('td', { textContent: lead.name || '-' });
 
-  // เบอร์โทร + ปุ่มคัดลอก
+  // โทร + คัดลอกเบอร์
   const tdPhone = el('td');
   if (lead.phone) {
     const phoneLink = el('a', { attributes: { href: `tel:${lead.phone}` }, textContent: lead.phone });
     const copyBtn = el('button', { className: 'btn-copy-phone', textContent: 'คัดลอก' });
     copyBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      try { await navigator.clipboard.writeText(lead.phone); toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success'); }
-      catch { toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error'); }
+      try {
+        await navigator.clipboard.writeText(lead.phone);
+        toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success');
+      } catch {
+        toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error');
+      }
     });
     tdPhone.append(phoneLink, ' ', copyBtn);
-  } else tdPhone.textContent = '-';
+  } else {
+    tdPhone.textContent = '-';
+  }
 
   const tdProp = el('td');
   const p = propertyCellInfo(lead);
@@ -89,11 +99,14 @@ function renderRow(lead) {
   const tdNote = el('td', { textContent: lead.note || '-' });
 
   const tdStatus = el('td');
-  const select = buildStatusSelect(lead.status || 'new', async (newStatus, elSel) => {
+  const select = buildStatusSelect(lead, async (newStatus, elSel) => {
     const prev = lead.status || 'new';
+    if (newStatus === prev) return;
+
     // optimistic UI
-    lead.status = newStatus;
     elSel.disabled = true;
+    lead.status = newStatus;
+
     const { error } = await updateLead(lead.id, { status: newStatus });
     elSel.disabled = false;
 
@@ -101,18 +114,28 @@ function renderRow(lead) {
       lead.status = prev;
       elSel.value = prev;
       toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
-    } else {
-      toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
+      return;
+    }
 
-      // 🔔 แจ้ง LINE ว่ามีการอัปเดตสถานะ (Lead Update)
-      const prop = propertyCellInfo(lead);
-      await notifyLeadNew({
+    toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
+
+    // 🔔 แจ้งเตือนเปลี่ยนสถานะ (กันยิงซ้ำด้วย Set)
+    const key = `lead-${lead.id}-${prev}->${newStatus}`;
+    if (notifyingSet.has(key)) return;
+    notifyingSet.add(key);
+    try {
+      await notifyLeadStatusChange({
+        lead_id: lead.id,
         name: lead.name,
         phone: lead.phone,
-        note: `อัปเดตสถานะเป็น: ${newStatus}`,
-        property_title: prop.title,
-        property_slug: lead.property_slug || prop.slug || ''
+        old_status: prev,
+        new_status: newStatus,
+        property_title: p.title,
+        property_slug: p.slug
       });
+    } finally {
+      // ปลดธงหลังดีเลย์เล็กน้อย กันดับเบิลคลิก
+      setTimeout(() => notifyingSet.delete(key), 1500);
     }
   });
   tdStatus.append(select);
