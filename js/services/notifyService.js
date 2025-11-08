@@ -40,26 +40,11 @@ export async function notifyLeadNew(lead = {}, to) {
   return postLine(lines.join('\n'), to, { kind: 'lead_new', lead });
 }
 
-export async function notifyLeadStatusChange(payload = {}, to) {
-  // payload: { lead_id, name, phone, old_status, new_status, property_title, property_slug }
-  const head = `🔔 เปลี่ยนสถานะ Lead`;
-  const title = payload.property_title ? `📍 ${payload.property_title}` : '';
-  const lines = [
-    head,
-    title,
-    payload.lead_id ? `#${payload.lead_id}` : '',
-    payload.name ? `👤 ชื่อ: ${payload.name}` : '',
-    payload.phone ? `📞 โทร: ${payload.phone}` : '',
-    `➡️ ${payload.old_status || '-'} → ${payload.new_status || '-'}`,
-    payload.property_slug ? `🔗 /property-detail.html?slug=${encodeURIComponent(payload.property_slug)}` : ''
-  ].filter(Boolean);
-  return postLine(lines.join('\n'), to, { kind: 'lead_status_change', payload });
-}
-
+// ✅ เวอร์ชันล่าสุด: แจ้งเตือนเฉพาะตอนเปลี่ยนสถานะ Lead
 export async function notifyLeadStatusChange(lead = {}, newStatus) {
   try {
-    const title = lead.properties?.title || lead.property_title || '';
-    const slug  = lead.properties?.slug  || lead.property_slug  || '';
+    const title = lead.property_title || lead.properties?.title || '';
+    const slug  = lead.property_slug || lead.properties?.slug  || '';
 
     const lines = [
       '🟢 อัปเดตสถานะ Lead',
