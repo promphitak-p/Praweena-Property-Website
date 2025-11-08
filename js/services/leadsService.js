@@ -1,25 +1,19 @@
 // js/services/leadsService.js
 import { supabase } from '../utils/supabaseClient.js';
 
-export async function createLead(rawPayload = {}) {
-  const payload = {
-    name: rawPayload.name ?? '',
-    phone: rawPayload.phone ?? '',
-    note: rawPayload.note ?? '',
-    property_id: rawPayload.property_id ? Number(rawPayload.property_id) : null,
-    property_slug: rawPayload.property_slug ?? null,
-    source_url: rawPayload.source_url ?? (typeof window !== 'undefined' ? window.location.href : null),
-    utm_source: rawPayload.utm_source ?? null,
-    utm_medium: rawPayload.utm_medium ?? null,
-    utm_campaign: rawPayload.utm_campaign ?? null,
-    status: 'new'
+export async function createLead(payload = {}) {
+  const insert = {
+    name: (payload.name || '').trim(),
+    phone: (payload.phone || '').trim(),
+    note: payload.note || '',
+    property_id: payload.property_id || null,
+    property_slug: payload.property_slug || null
   };
 
-  // ให้คืน row ที่เพิ่ง insert (จำเป็นสำหรับ lead_id)
   const { data, error } = await supabase
     .from('leads')
-    .insert(payload)
-    .select('*')
+    .insert(insert)
+    .select('id')   // << สำคัญ: เอา id กลับมา
     .single();
 
   return { data, error };

@@ -20,18 +20,19 @@ export async function listLogs({ type, limit = 200 } = {}) {
   return json.data || [];
 }
 
-// เรียก serverless function เขียน log (ไม่ไปแตะ lead_events ตรง ๆ)
-// client-side: เรียก serverless เท่านั้น
-// ✅ client: ส่ง log ไป serverless API
-export async function logLeadEvent(input) {
+// /js/services/logService.js
+// client → call serverless API เท่านั้น (ไม่แตะ lead_events โดยตรง)
+
+export async function logLeadEvent(input = {}) {
   try {
     const res = await fetch('/api/logs/lead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input || {})
     });
+
     if (!res.ok) throw new Error(await res.text());
-    return await res.json();
+    return await res.json(); // { ok:true, data }
   } catch (err) {
     console.error('[logLeadEvent] error', err);
     return { ok: false, error: err.message };
