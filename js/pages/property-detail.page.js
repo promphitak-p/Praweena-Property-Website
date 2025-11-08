@@ -22,7 +22,7 @@ import { supabase } from '../utils/supabaseClient.js';
 import { renderShareBar } from '../widgets/share.widget.js';
 import { mountPayCalc } from '../widgets/payCalc.widget.js';
 import { notifyLeadNew } from '../services/notifyService.js';
-import { logLeadEvent } from '../services/logService.js';
+import { logLeadEvent } from '../services/logsService.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
