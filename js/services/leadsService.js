@@ -11,10 +11,17 @@ export async function createLead(rawPayload = {}) {
     source_url: rawPayload.source_url ?? (typeof window !== 'undefined' ? window.location.href : null),
     utm_source: rawPayload.utm_source ?? null,
     utm_medium: rawPayload.utm_medium ?? null,
-    utm_campaign: rawPayload.utm_campaign ?? null
+    utm_campaign: rawPayload.utm_campaign ?? null,
+    status: 'new'
   };
 
-  const { data, error } = await supabase.from('leads').insert(payload);
+  // ให้คืน row ที่เพิ่ง insert (จำเป็นสำหรับ lead_id)
+  const { data, error } = await supabase
+    .from('leads')
+    .insert(payload)
+    .select('*')
+    .single();
+
   return { data, error };
 }
 

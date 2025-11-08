@@ -115,8 +115,14 @@ const select = buildStatusSelect(lead.status || 'new', async (newStatus, elSel) 
     toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
     return;
   }
-
+  
   toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
+  
+  await logLeadEvent({
+  event_type: 'lead.status_changed',
+  lead_id: lead.id,
+  payload: { old: prev, new: newStatus }
+});
 
   // ✅ แจ้ง LINE แยกข้อความเฉพาะเหตุการณ์เปลี่ยนสถานะ
   notifyLeadStatusChange(lead, newStatus);

@@ -22,6 +22,7 @@ import { renderShareBar } from '../widgets/share.widget.js';
 import { mountPayCalc } from '../widgets/payCalc.widget.js';
 import { notifyLeadNew } from '../services/notifyService.js';
 import { createLog } from '../services/logsService.js';
+import { logLeadEvent } from '../services/logService.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
@@ -787,13 +788,28 @@ async function loadProperty() {
 
   container.innerHTML = `<div class="skeleton" style="height:400px;border-radius:16px;"></div>`;
 
-  const { data, error } = await getBySlug(slug);
-  if (error || !data) {
-    clear(container);
-    container.textContent = 'ไม่พบข้อมูลประกาศนี้';
-    return;
-  }
-  await renderPropertyDetails(data);
+const { data, error } = await createLead(payload);
+if (error) { /* toast error แล้ว return */ }
+
+// แจ้ง LINE (ของคุณทำได้แล้ว)
+await notifyLeadNew({
+  name: payload.name,
+  phone: payload.phone,
+  note: payload.note,
+  property_title: window.__currentProperty?.title || '',
+  property_slug: payload.property_slug || ''
+});
+
+// ✅ เขียน log ผ่าน serverless (ไม่โดน RLS)
+if (data?.id) {
+  await logLeadEvent({
+    event_type: 'lead.created',
+    lead_id: data.id,
+    payload: {
+      property_slug: payload.property_slug || '',
+      source: 'property-detail.form'
+    }
+  });
 }
 
 // ==================================================
