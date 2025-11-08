@@ -21,21 +21,22 @@ export async function listLogs({ type, limit = 200 } = {}) {
 }
 
 // เรียก serverless function เขียน log (ไม่ไปแตะ lead_events ตรง ๆ)
-export async function logLeadEvent({ event_type, lead_id = null, payload = {} }) {
+// client-side: เรียก serverless เท่านั้น
+export async function logLeadEvent(input) {
   try {
     const res = await fetch('/api/logs/lead', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ event_type, lead_id, payload })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input || {})
     });
     if (!res.ok) {
-      const t = await res.text().catch(()=> '');
-      console.error('[logLeadEvent] server error', res.status, t);
-      return { ok:false, status: res.status, error: t || 'server error' };
+      const text = await res.text().catch(() => '');
+      console.error('[logLeadEvent] server error', res.status, text);
+      return { ok:false, status:res.status, error:text || 'server error' };
     }
-    return { ok:true };
+    return { ok:true, data: await res.json().catch(()=>null) };
   } catch (e) {
     console.error('[logLeadEvent] fetch error', e);
-    return { ok:false, error: String(e?.message||e) };
+    return { ok:false, error:String(e?.message || e) };
   }
 }
