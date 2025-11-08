@@ -16,6 +16,7 @@ import { setupNav } from '../utils/config.js';
 import { el, $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { notifyLeadStatusChange } from '../services/notifyService.js';
+import { createLog } from '../services/logsService.js';
 
 // ----- DOM targets -----
 const tableBody = $('#leads-table tbody');
@@ -99,25 +100,36 @@ function renderRow(lead) {
   const tdNote = el('td', { textContent: lead.note || '-' });
 
   const tdStatus = el('td');
-  const select = buildStatusSelect(lead, async (newStatus, elSel) => {
-    const prev = lead.status || 'new';
-    if (newStatus === prev) return;
+  
+const select = buildStatusSelect(lead.status || 'new', async (newStatus, elSel) => {
+  const prev = lead.status || 'new';
+  if (newStatus === prev) return; // ไม่ต้องทำอะไรถ้าเหมือนเดิม
 
-    // optimistic UI
-    elSel.disabled = true;
-    lead.status = newStatus;
+  // optimistic UI
+  lead.status = newStatus;
+  const { error } = await updateLead(lead.id, { status: newStatus });
 
-    const { error } = await updateLead(lead.id, { status: newStatus });
-    elSel.disabled = false;
+  if (error) {
+    lead.status = prev;
+    elSel.value = prev;
+    toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
+    return;
+  }
 
-    if (error) {
-      lead.status = prev;
-      elSel.value = prev;
-      toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
-      return;
-    }
+  toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
 
-    toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
+  // ✅ แจ้ง LINE แยกข้อความเฉพาะเหตุการณ์เปลี่ยนสถานะ
+  notifyLeadStatusChange(lead, newStatus);
+
+  // ✅ เขียน Log
+  createLog({
+    type: 'lead_status_change',
+    actor: 'admin', // จะให้ดึงอีเมลแอดมินจริงๆ ก็ได้
+    message: `Lead ${lead.name || '-'}: ${prev} -> ${newStatus}`,
+    meta: { lead_id: lead.id, prev, next: newStatus, phone: lead.phone || null }
+  }).catch(() => {});
+});
+
 
     // 🔔 แจ้งเตือนเปลี่ยนสถานะ (กันยิงซ้ำด้วย Set)
     const key = `lead-${lead.id}-${prev}->${newStatus}`;

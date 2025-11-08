@@ -21,6 +21,7 @@ import { supabase } from '../utils/supabaseClient.js';
 import { renderShareBar } from '../widgets/share.widget.js';
 import { mountPayCalc } from '../widgets/payCalc.widget.js';
 import { notifyLeadNew } from '../services/notifyService.js';
+import { createLog } from '../services/logsService.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
@@ -247,6 +248,16 @@ async function handleLeadSubmit(e) {
 
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
+	
+	createLog({
+  type: 'lead_new',
+  actor: 'guest',
+  message: `Lead ใหม่: ${payload.name || '-'} (${payload.phone || '-'})`,
+  meta: {
+    property_slug: payload.property_slug || null,
+    note: payload.note || null
+  }
+}).catch(()=>{});
 
     // 2) เตรียมข้อมูลแจ้ง LINE
     const lead = {

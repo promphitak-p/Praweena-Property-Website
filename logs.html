@@ -2,25 +2,26 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Notification Logs - Praweena Property</title>
-  <link rel="stylesheet" href="/assets/css/base.css" />
-  <link rel="stylesheet" href="/assets/css/layout.css" />
-  <link rel="stylesheet" href="/assets/css/components.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Logs - Praweena Property</title>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/layout.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
 </head>
 <body>
   <header class="header">
     <div class="container">
       <nav class="nav">
         <a href="/index.html" class="logo">
-          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img" />
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
           <span class="logo-text">Praweena Property</span>
         </a>
         <ul class="nav-links">
           <li><a href="/index.html">หน้าแรก</a></li>
           <li><a href="/dashboard.html">แดชบอร์ด</a></li>
           <li><a href="/leads.html">ผู้สนใจ</a></li>
-          <li><a href="/logs.html" class="active">Logs</a></li>
+          <li><a href="/logs.html">Logs</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
         </ul>
         <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
       </nav>
@@ -28,23 +29,27 @@
   </header>
 
   <main class="container">
-    <h1 style="margin-bottom: 1rem;">Notification Logs</h1>
+    <h1 style="margin-bottom:1rem;">Event Logs</h1>
+    <div id="role-indicator"></div>
 
-    <div id="logs-controls" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem;">
-      <button id="refresh-logs" class="btn">Refresh</button>
-      <button id="export-csv" class="btn">Export CSV</button>
-    </div>
+    <section id="controls" style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;">
+      <select id="type-filter" class="form-control" style="max-width:220px;">
+        <option value="">ทั้งหมด (all types)</option>
+        <option value="lead_new">lead_new</option>
+        <option value="lead_status_change">lead_status_change</option>
+      </select>
+      <button id="refresh-btn" class="btn">รีเฟรช</button>
+      <button id="export-csv-btn" class="btn">Export CSV</button>
+    </section>
 
     <div class="table-wrapper">
       <table id="logs-table">
         <thead>
           <tr>
             <th>เวลา</th>
-            <th>Level</th>
-            <th>Event</th>
-            <th>Status</th>
-            <th>To</th>
-            <th>Message</th>
+            <th>ประเภท</th>
+            <th>ผู้กระทำ</th>
+            <th>ข้อความ</th>
           </tr>
         </thead>
         <tbody></tbody>

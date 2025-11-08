@@ -55,3 +55,27 @@ export async function notifyLeadStatusChange(payload = {}, to) {
   ].filter(Boolean);
   return postLine(lines.join('\n'), to, { kind: 'lead_status_change', payload });
 }
+
+export async function notifyLeadStatusChange(lead = {}, newStatus) {
+  try {
+    const title = lead.properties?.title || lead.property_title || '';
+    const slug  = lead.properties?.slug  || lead.property_slug  || '';
+
+    const lines = [
+      '🟢 อัปเดตสถานะ Lead',
+      title ? `📍 ${title}` : null,
+      `➡️ สถานะใหม่: ${newStatus}`,
+      lead.name ? `👤 ชื่อ: ${lead.name}` : null,
+      lead.phone ? `📞 โทร: ${lead.phone}` : null,
+      slug ? `🔗 /property-detail.html?slug=${encodeURIComponent(slug)}` : null
+    ].filter(Boolean);
+
+    await fetch('/api/notify/line', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: lines.join('\n') })
+    });
+  } catch (err) {
+    console.warn('[notifyLeadStatusChange] warn:', err);
+  }
+}
