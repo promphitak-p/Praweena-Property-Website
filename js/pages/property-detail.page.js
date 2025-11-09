@@ -7,7 +7,6 @@
 // - Share ปุ่มไอคอน (LINE/X มีหัวเรื่องติดไป)
 // - Lead form + แจ้งเตือนผ่าน LINE Messaging API (ครั้งเดียว)
 // - ผ่อนประมาณ (PayCalc)
-// - เขียน Log ผ่าน serverless (/api/logs/lead) ไม่โดน RLS
 //--------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { getBySlug } from '../services/propertiesService.js';
@@ -180,7 +179,7 @@ async function handleLeadSubmit(e) {
   try {
     const payload = getFormData(form);
 
-    // (1) บันทึกลง DB และขอ row กลับเพื่อใช้ id
+    // (1) บันทึกลง DB และขอ row กลับเพื่อใช้ id (ถ้ามี)
     const { data, error } = await createLead(payload);
     if (error) {
       toast('เกิดข้อผิดพลาด: ' + error.message, 3000, 'error');
@@ -189,32 +188,28 @@ async function handleLeadSubmit(e) {
 
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
-	
-// (2) แจ้ง LINE — กันซ้ำ 45 วินาทีด้วย signature
-const lead = {
-  name: (payload.name || '').trim(),
-  phone: (payload.phone || '').trim(),
-  note: payload.note || '',
-  property_title: window.__currentProperty?.title || '',
-  property_slug: payload.property_slug || ''
-};
-const now = Date.now();
-const sig = JSON.stringify({
-  n: lead.name, p: lead.phone, s: lead.property_slug,
-  id: window.__currentProperty?.id || null
-});
 
-if (!(__lastLeadSig.sig === sig && (now - __lastLeadSig.at) < 45000)) {
-  __lastLeadSig = { sig, at: now };
+    // (2) แจ้ง LINE — กันซ้ำ 45 วินาทีด้วย signature
+    const lead = {
+      name: (payload.name || '').trim(),
+      phone: (payload.phone || '').trim(),
+      note: payload.note || '',
+      property_title: window.__currentProperty?.title || '',
+      property_slug: payload.property_slug || ''
+    };
+    const now = Date.now();
+    const sig = JSON.stringify({ n: lead.name, p: lead.phone, s: lead.property_slug, id: window.__currentProperty?.id || null });
 
-  // ⬇️ ใส่ try/catch ตรงนี้
-  try {
-    const r = await notifyLeadNew(lead);
-    if (!r?.ok) console.warn('notifyLeadNew returned not ok:', r);
-  } catch (e) {
-    console.warn('notifyLeadNew failed', e);
-  }
-}
+    if (!(__lastLeadSig.sig === sig && (now - __lastLeadSig.at) < 45000)) {
+      __lastLeadSig = { sig, at: now };
+      try {
+        await notifyLeadNew(lead);
+      } catch (err) {
+        console.warn('notifyLeadNew failed', err);
+      }
+    } else {
+      console.debug('[notify] skipped duplicate within 45s');
+    }
 
   } catch (err) {
     console.error(err);
@@ -500,7 +495,7 @@ async function renderPropertyDetails(property) {
   }));
   shareBox.appendChild(makeShareBtn({
     href: facebookUrl, label: 'Facebook',
-    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
+    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24ล-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
   }));
   shareBox.appendChild(makeShareBtn({
     href: twitterUrl, label: 'X / Twitter',
