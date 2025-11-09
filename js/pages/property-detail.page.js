@@ -191,32 +191,31 @@ async function handleLeadSubmit(e) {
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
 	
-	// (หลัง createLead สำเร็จและได้ data.id)
-if (data?.id) {
-  await logLeadEvent({
-    event_type: 'lead.created',
-    lead_id: data.id,
-    payload: {
-      property_slug: payload.property_slug || '',
-      source: 'property-detail.form'
-    }
-  });
-}
+// (2) แจ้ง LINE — กันซ้ำ 45 วินาทีด้วย signature
+const lead = {
+  name: (payload.name || '').trim(),
+  phone: (payload.phone || '').trim(),
+  note: payload.note || '',
+  property_title: window.__currentProperty?.title || '',
+  property_slug: payload.property_slug || ''
+};
+const now = Date.now();
+const sig = JSON.stringify({
+  n: lead.name, p: lead.phone, s: lead.property_slug,
+  id: window.__currentProperty?.id || null
+});
 
-    // (2) แจ้ง LINE — กันซ้ำ 45 วินาทีด้วย signature
-    const lead = {
-      name: (payload.name || '').trim(),
-      phone: (payload.phone || '').trim(),
-      note: payload.note || '',
-      property_title: window.__currentProperty?.title || '',
-      property_slug: payload.property_slug || ''
-    };
-    const now = Date.now();
-    const sig = JSON.stringify({ n: lead.name, p: lead.phone, s: lead.property_slug, id: window.__currentProperty?.id || null });
-    if (!(__lastLeadSig.sig === sig && (now - __lastLeadSig.at) < 45000)) {
-      __lastLeadSig = { sig, at: now };
-      await notifyLeadNew(lead);
-    }
+if (!(__lastLeadSig.sig === sig && (now - __lastLeadSig.at) < 45000)) {
+  __lastLeadSig = { sig, at: now };
+
+  // ⬇️ ใส่ try/catch ตรงนี้
+  try {
+    const r = await notifyLeadNew(lead);
+    if (!r?.ok) console.warn('notifyLeadNew returned not ok:', r);
+  } catch (e) {
+    console.warn('notifyLeadNew failed', e);
+  }
+}
 
     // (3) เขียน log ผ่าน serverless (ไม่โดน RLS)
     if (data?.id) {
