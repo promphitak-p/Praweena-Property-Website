@@ -493,10 +493,11 @@ async function renderPropertyDetails(property) {
     href: lineUrl, label: 'LINE',
     svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#06C755" xmlns="http://www.w3.org/2000/svg"><path d="M20.666 10.08c0-3.63-3.46-6.58-7.733-6.58-4.273 0-7.733 2.95-7.733 6.58 0 3.25 2.934 5.96 6.836 6.5.267.058.630.178.720.408.082.213.054.545.026.758l-.115.7c-.035.213-.17.84.74.458 3.512-1.46 5.68-3.997 5.68-7.824z"/></svg>`
   }));
-  shareBox.appendChild(makeShareBtn({
-    href: facebookUrl, label: 'Facebook',
-    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24ล-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
-  }));
+shareBox.appendChild(makeShareBtn({
+  href: facebookUrl, label: 'Facebook',
+  svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
+}));
+
   shareBox.appendChild(makeShareBtn({
     href: twitterUrl, label: 'X / Twitter',
     svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#000" xmlns="http://www.w3.org/2000/svg"><path d="M18.9 1.2h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.59l5.24 7.18 6.07-7.14z"/></svg>`
