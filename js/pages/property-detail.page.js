@@ -190,6 +190,18 @@ async function handleLeadSubmit(e) {
 
     toast('ส่งข้อมูลสำเร็จ!', 2500, 'success');
     form.reset();
+	
+	// (หลัง createLead สำเร็จและได้ data.id)
+if (data?.id) {
+  await logLeadEvent({
+    event_type: 'lead.created',
+    lead_id: data.id,
+    payload: {
+      property_slug: payload.property_slug || '',
+      source: 'property-detail.form'
+    }
+  });
+}
 
     // (2) แจ้ง LINE — กันซ้ำ 45 วินาทีด้วย signature
     const lead = {
