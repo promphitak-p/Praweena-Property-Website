@@ -22,7 +22,6 @@ import { supabase } from '../utils/supabaseClient.js';
 import { renderShareBar } from '../widgets/share.widget.js';
 import { mountPayCalc } from '../widgets/payCalc.widget.js';
 import { notifyLeadNew } from '../services/notifyService.js';
-import { logLeadEvent } from '../services/logsService.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
@@ -217,14 +216,6 @@ if (!(__lastLeadSig.sig === sig && (now - __lastLeadSig.at) < 45000)) {
   }
 }
 
-    // (3) เขียน log ผ่าน serverless (ไม่โดน RLS)
-    if (data?.id) {
-      await logLeadEvent({
-        event_type: 'lead.created',
-        lead_id: data.id,
-        payload: { property_slug: payload.property_slug || '', source: 'property-detail.form' }
-      });
-    }
   } catch (err) {
     console.error(err);
     toast('ส่งข้อมูลไม่สำเร็จ', 2500, 'error');
