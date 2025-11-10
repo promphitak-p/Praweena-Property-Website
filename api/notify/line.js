@@ -52,27 +52,13 @@ export default async function handler(req, res) {
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ ok: false, error: 'message is required (string)' });
     }
-
-    // ⛳ DEBUG: ไม่ยิง LINE, แค่บันทึก log แล้วตอบ 200
-    if (debug) {
-      await writeLog({
-        level: 'info',
-        event: 'line_notify_debug',
-        status_code: 200,
-        message,
-        send_to: isValidLineUserId(to) ? to : null,
-        meta: { note: 'debug mode: skip LINE call', meta },
-        request_id: requestId
-      });
-      return res.status(200).json({ ok: true, debug: true, request_id: requestId });
+    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN; 
+    if (!token) {
+      return res.status(500).json({ ok: false, error: 'Missing LINE_CHANNEL_ACCESS_TOKEN' });
     }
 
-
-    // เลือก "to" ที่ใช้งานได้จริงเท่านั้น (ไม่งั้นจะ broadcast)
-    const envDefault = process.env.LINE_DEFAULT_TO;
-    const candidate = (to && String(to).trim()) || (envDefault && String(envDefault).trim()) || '';
+    const candidate = (to && String(to).trim()) || (process.env.LINE_DEFAULT_TO || '').trim();
     const hasValidTo = isValidLineUserId(candidate);
-
     const endpoint = hasValidTo
       ? 'https://api.line.me/v2/bot/message/push'
       : 'https://api.line.me/v2/bot/message/broadcast';
@@ -81,22 +67,34 @@ export default async function handler(req, res) {
       ? { to: candidate, messages: [{ type: 'text', text: message.slice(0, 5000) }] }
       : { messages: [{ type: 'text', text: message.slice(0, 5000) }] };
 
-    const apiRes = await fetch(endpoint, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    let apiRes, bodyText = '';
+    try {
+      apiRes = await fetch(endpoint, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      bodyText = await apiRes.text(); // LINE อาจไม่คืน JSON
+    } catch (e) {
+      await writeLog({
+        level: 'error',
+        event: 'line_fetch_exception',
+        status_code: 0,
+        message,
+        send_to: hasValidTo ? candidate : null,
+        meta: { error: String(e?.stack || e), endpoint, payload },
+        request_id: requestId
+      });
+      return res.status(502).json({ ok: false, error: 'fetch failed', detail: String(e?.message || e), request_id: requestId });
+    }
 
-    const text = await apiRes.text(); // LINE บางกรณีไม่คืน JSON
-
-    // ---- write log ทุกเคส ----
     await writeLog({
       level: apiRes.ok ? 'info' : 'error',
       event: 'line_notify',
       status_code: apiRes.status,
       message,
       send_to: hasValidTo ? candidate : null,
-      meta: { hasValidTo, endpoint, payload, lineResponse: text, meta },
+      meta: { endpoint, payload, lineResponse: bodyText },
       request_id: requestId
     });
 
@@ -106,21 +104,9 @@ export default async function handler(req, res) {
         status: apiRes.status,
         endpoint,
         hasValidTo,
-        body: text
+        lineResponse: bodyText,
+        request_id: requestId
       });
     }
 
     return res.status(200).json({ ok: true, status: apiRes.status, endpoint, hasValidTo, request_id: requestId });
-  } catch (err) {
-    await writeLog({
-      level: 'error',
-      event: 'line_notify_exception',
-      status_code: 0,
-      message: req.body?.message,
-      send_to: isValidLineUserId(req.body?.to) ? req.body.to : null,
-      meta: { error: String(err?.stack || err?.message || err) },
-      request_id: requestId
-    });
-    return res.status(500).json({ ok: false, error: String(err?.message || err), request_id: requestId });
-  }
-}
