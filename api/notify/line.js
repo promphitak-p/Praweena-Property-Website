@@ -44,24 +44,28 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
   }
 
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  if (!token) {
-    return res.status(500).json({ ok: false, error: 'Missing LINE_CHANNEL_ACCESS_TOKEN' });
-  }
-
-  // ผูก request_id ง่าย ๆ ไว้ตามรอย (เช่นจากหน้า detail)
   const requestId = req.headers['x-request-id'] || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const debug = String(process.env.LINE_NOTI_DEBUG || '').trim() === '1';
 
   try {
-    const raw = req.body;
-    const body = typeof raw === 'string' ? JSON.parse(raw) : raw;   // <== กันกรณี req.body เป็นสตริง
-    const { message, to, meta } = body || {};
+    const { message, to, meta } = req.body || {};
     if (!message || typeof message !== 'string') {
-      return res.status(400).json({ ok:false, error:'message is required (string)' });
+      return res.status(400).json({ ok: false, error: 'message is required (string)' });
     }
 
-    // 🔧 DEBUG: ตัดทุกอย่างออกก่อน เพื่อดูว่า function วิ่งได้มั้ย
-    return res.status(200).json({ ok:true, debug:'handler-ok', echo:{ message, to, meta } });
+    // ⛳ DEBUG: ไม่ยิง LINE, แค่บันทึก log แล้วตอบ 200
+    if (debug) {
+      await writeLog({
+        level: 'info',
+        event: 'line_notify_debug',
+        status_code: 200,
+        message,
+        send_to: isValidLineUserId(to) ? to : null,
+        meta: { note: 'debug mode: skip LINE call', meta },
+        request_id: requestId
+      });
+      return res.status(200).json({ ok: true, debug: true, request_id: requestId });
+    }
 
 
     // เลือก "to" ที่ใช้งานได้จริงเท่านั้น (ไม่งั้นจะ broadcast)
