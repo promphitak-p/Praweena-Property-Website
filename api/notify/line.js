@@ -17,8 +17,7 @@ const supabase =
   process.env.SUPABASE_URL
     ? createClient(
         process.env.SUPABASE_URL,
-        // ใช้ Service Role หากมี (ผ่าน RLS) ไม่งั้น fallback เป็น ANON (เฉพาะกรณี RLS ผ่อนผัน)
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
+        process.env.SUPABASE_ANON_KEY,       // << ใช้ anon key ได้เลย
         { auth: { persistSession: false } }
       )
     : null;
@@ -26,18 +25,17 @@ const supabase =
 async function writeLog(row) {
   if (!supabase) return;
   try {
-    await supabase.from('notify_logs').insert({
-      level: row.level || 'info',
-      source: 'api/notify/line',
-      event: row.event || 'line_notify',
-      status_code: row.status_code ?? null,
-      message: row.message ?? null,
-      send_to: row.send_to ?? null,
-      meta: row.meta ?? null,
-      request_id: row.request_id ?? null
+    await supabase.rpc('log_notify', {
+      _level:       row.level || 'info',
+      _event:       row.event || 'line_notify',
+      _status_code: row.status_code ?? null,
+      _message:     row.message ?? null,
+      _send_to:     row.send_to ?? null,
+      _meta:        row.meta ?? null,
+      _request_id:  row.request_id ?? null
     });
   } catch (_) {
-    // เงียบไว้ ไม่ให้กระทบ response ผู้ใช้
+    // เงียบไว้ ไม่กระทบ response
   }
 }
 
