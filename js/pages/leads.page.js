@@ -16,7 +16,6 @@ import { setupNav } from '../utils/config.js';
 import { el, $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { notifyLeadStatusChange } from '../services/notifyService.js';
-import { createLog } from '../services/logsService.js';
 
 // ----- DOM targets -----
 const tableBody = $('#leads-table tbody');
@@ -101,41 +100,41 @@ function renderRow(lead) {
 
   const tdStatus = el('td');
   
-const select = buildStatusSelect(lead.status || 'new', async (newStatus, elSel) => {
+  const select = buildStatusSelect(lead, async (newStatus, elSel) => {
   const prev = lead.status || 'new';
   if (newStatus === prev) return; // ไม่ต้องทำอะไรถ้าเหมือนเดิม
 
   // optimistic UI
   lead.status = newStatus;
   const { error } = await updateLead(lead.id, { status: newStatus });
-
   if (error) {
     lead.status = prev;
     elSel.value = prev;
     toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
     return;
   }
-  
   toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
   
-  await logLeadEvent({
-  event_type: 'lead.status_changed',
-  lead_id: lead.id,
-  payload: { old: prev, new: newStatus }
-});
-
-  // ✅ แจ้ง LINE แยกข้อความเฉพาะเหตุการณ์เปลี่ยนสถานะ
-  notifyLeadStatusChange(lead, newStatus);
-
-  // ✅ เขียน Log
-  createLog({
-    type: 'lead_status_change',
-    actor: 'admin', // จะให้ดึงอีเมลแอดมินจริงๆ ก็ได้
-    message: `Lead ${lead.name || '-'}: ${prev} -> ${newStatus}`,
-    meta: { lead_id: lead.id, prev, next: newStatus, phone: lead.phone || null }
-  }).catch(() => {});
-});
-
+  // แจ้ง LINE (กันยิงซ้ำด้วย Set)
+  const key = `lead-${lead.id}-${prev}->${newStatus}`;
+  if (!notifyingSet.has(key)) {
+    notifyingSet.add(key);
+    try {
+      await notifyLeadStatusChange({
+        lead_id: lead.id,
+        name: lead.name,
+        phone: lead.phone,
+        old_status: prev,
+        new_status: newStatus,
+        ...propertyCellInfo(lead) // ให้ได้ title/slug ถ้ามี
+      });
+    } catch (e) {
+      console.warn('notifyLeadStatusChange failed', e);
+    } finally {
+      setTimeout(() => notifyingSet.delete(key), 1500);
+    }
+  }
+  });
 
     // 🔔 แจ้งเตือนเปลี่ยนสถานะ (กันยิงซ้ำด้วย Set)
     const key = `lead-${lead.id}-${prev}->${newStatus}`;
