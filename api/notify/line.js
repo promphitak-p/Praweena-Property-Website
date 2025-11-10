@@ -53,10 +53,16 @@ export default async function handler(req, res) {
   const requestId = req.headers['x-request-id'] || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   try {
-    const { message, to, meta } = req.body || {};
+    const raw = req.body;
+    const body = typeof raw === 'string' ? JSON.parse(raw) : raw;   // <== กันกรณี req.body เป็นสตริง
+    const { message, to, meta } = body || {};
     if (!message || typeof message !== 'string') {
-      return res.status(400).json({ ok: false, error: 'message is required (string)' });
+      return res.status(400).json({ ok:false, error:'message is required (string)' });
     }
+
+    // 🔧 DEBUG: ตัดทุกอย่างออกก่อน เพื่อดูว่า function วิ่งได้มั้ย
+    return res.status(200).json({ ok:true, debug:'handler-ok', echo:{ message, to, meta } });
+
 
     // เลือก "to" ที่ใช้งานได้จริงเท่านั้น (ไม่งั้นจะ broadcast)
     const envDefault = process.env.LINE_DEFAULT_TO;
