@@ -8,7 +8,7 @@ const SUPABASE_KEY =
 async function logWebhook(row) {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.warn('Supabase env missing, skip logging');
-    return;
+    return { ok: false, reason: 'missing_env' };
   }
 
   const payload = {
@@ -37,8 +37,18 @@ async function logWebhook(row) {
     if (!resp.ok) {
       console.error('log_notify RPC failed', resp.status, text);
     }
+
+    return {
+      ok: resp.ok,
+      status: resp.status,
+      body: text || null,
+    };
   } catch (err) {
     console.error('logWebhook exception:', err);
+    return {
+      ok: false,
+      error: String(err?.message || err),
+    };
   }
 }
 
@@ -57,7 +67,7 @@ export default async function handler(req, res) {
     const firstEvent = events[0] || null;
     const userId = firstEvent?.source?.userId ?? null;
 
-    await logWebhook({
+    const logResult = await logWebhook({
       level: 'info',
       event: 'line_webhook',
       status_code: 200,
@@ -71,11 +81,12 @@ export default async function handler(req, res) {
       ok: true,
       userId,
       request_id: requestId,
+      logResult,   // 👈 โชว์ผลจาก Supabase ด้วย
     });
   } catch (err) {
     console.error('line-webhook handler error:', err);
 
-    await logWebhook({
+    const logResult = await logWebhook({
       level: 'error',
       event: 'line_webhook_handler_error',
       status_code: 500,
@@ -89,6 +100,7 @@ export default async function handler(req, res) {
       ok: false,
       error: 'internal_error_logged',
       request_id: requestId,
+      logResult,
     });
   }
 }
