@@ -1,50 +1,41 @@
 // /api/line-webhook.js
-// รับ Webhook จาก LINE + log เข้า Supabase แบบไม่ให้ top-level พัง
+// รับ Webhook จาก LINE + log เข้า Supabase ผ่าน REST RPC (ไม่ใช้ supabase-js)
 
-import { createClient } from '@supabase/supabase-js';
-
-let cachedSupabase = null;
-
-function getSupabase() {
-  if (cachedSupabase) return cachedSupabase;
-
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.warn('Supabase env missing, skip logging');
-    return null;
-  }
-
-  try {
-    cachedSupabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false },
-    });
-    return cachedSupabase;
-  } catch (e) {
-    console.error('createClient error:', e);
-    return null;
-  }
-}
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 async function logWebhook(row) {
-  const supabase = getSupabase();
-  if (!supabase) return;
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn('Supabase env missing, skip logging');
+    return;
+  }
+
+  const payload = {
+    _level: row.level || 'info',
+    _event: row.event || 'line_webhook',
+    _status_code: row.status_code ?? null,
+    _message: row.message ?? null,
+    _send_to: row.send_to ?? null,
+    _meta: row.meta ?? null,
+    _request_id: row.request_id ?? null,
+  };
 
   try {
-    const { error } = await supabase.rpc('log_notify', {
-      _level: row.level || 'info',
-      _event: row.event || 'line_webhook',
-      _status_code: row.status_code ?? null,
-      _message: row.message ?? null,
-      _send_to: row.send_to ?? null,
-      _meta: row.meta ?? null,
-      _request_id: row.request_id ?? null,
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/log_notify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+      },
+      body: JSON.stringify(payload),
     });
 
-    if (error) {
-      console.error('log_notify error:', error);
+    const text = await resp.text();
+
+    if (!resp.ok) {
+      console.error('log_notify RPC failed', resp.status, text);
     }
   } catch (err) {
     console.error('logWebhook exception:', err);
@@ -94,7 +85,6 @@ export default async function handler(req, res) {
       request_id: requestId,
     });
 
-    // เพื่อความชัวร์กับ LINE: ตอบ 200 แต่อยู่ในสถานะ error ภายใน
     return res.status(200).json({
       ok: false,
       error: 'internal_error_logged',
