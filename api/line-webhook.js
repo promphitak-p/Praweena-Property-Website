@@ -1,88 +1,57 @@
 // /api/line-webhook.js
-import crypto from 'crypto';
+// ใช้สำหรับรับ Webhook จาก LINE เพื่อดู userId
 
-// ปิด bodyParser เพื่ออ่าน "raw body" สำหรับตรวจลายเซ็น
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+import { createClient } from '@supabase/supabase-js';
 
-// อ่าน raw body จาก req
-function readRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.setEncoding('utf8');
-    req.on('data', (chunk) => (data += chunk));
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
-  });
-}
+const supabase =
+  process.env.SUPABASE_URL
+    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+        auth: { persistSession: false },
+      })
+    : null;
 
-function verifySignature(channelSecret, body, signature) {
-  const hmac = crypto.createHmac('sha256', channelSecret);
-  hmac.update(body);
-  const expected = hmac.digest('base64');
-  return expected === signature;
+async function logWebhook(row) {
+  if (!supabase) return;
+  try {
+    await supabase.rpc('log_notify', {
+      _level: row.level || 'info',
+      _event: row.event || 'line_webhook',
+      _status_code: row.status_code ?? null,
+      _message: row.message ?? null,
+      _send_to: row.send_to ?? null,
+      _meta: row.meta ?? null,      // เก็บ body ทั้งก้อน
+      _request_id: row.request_id ?? null,
+    });
+  } catch {
+    // ไม่ต้องทำอะไร ปล่อยผ่าน
+  }
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(200).json({ ok: true, message: 'LINE webhook is alive' });
+    return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
   }
 
-  try {
-    const rawBody = await readRawBody(req);
-    const signature = req.headers['x-line-signature'] || '';
-    const secret = process.env.LINE_CHANNEL_SECRET || '';
+  const requestId =
+    req.headers['x-request-id'] ||
+    `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    // ถ้าตั้งค่า secret แล้วให้ตรวจลายเซ็น (ถ้าไม่ตั้ง จะข้ามตรวจได้)
-    if (secret) {
-      const ok = verifySignature(secret, rawBody, signature);
-      if (!ok) {
-        console.warn('[LINE Webhook] Invalid signature');
-        return res.status(401).json({ ok: false });
-      }
-    }
+  const body = req.body || {};
 
-    const body = JSON.parse(rawBody || '{}');
+  const userId =
+    body?.events?.[0]?.source?.userId ||
+    null;
 
-    // ---- ตัวอย่าง: loop ทุก event ----
-    if (Array.isArray(body.events)) {
-      for (const ev of body.events) {
-        console.log('[LINE Event]', ev.type, ev.source?.userId, ev.message?.text);
-
-        // กรณีข้อความ: ตอบกลับง่าย ๆ
-        // *ต้องมี LINE_CHANNEL_ACCESS_TOKEN ใน Environment
-        if (ev.type === 'message' && ev.message?.type === 'text') {
-          await replyText(ev.replyToken, `รับข้อความแล้วค่ะ: ${ev.message.text}`);
-        }
-      }
-    }
-
-    // LINE ต้องการ 200 เสมอ (ห้ามช้า/ห้าม timeout)
-    return res.status(200).json({ ok: true });
-  } catch (err) {
-    console.error('[LINE Webhook] error', err);
-    // อย่าตอบ 500 ตอน verify — ตอบ 200 ไปก่อนเพื่อไม่ให้ fail
-    return res.status(200).json({ ok: false });
-  }
-}
-
-// ---- helper: ตอบกลับผู้ใช้ ----
-async function replyText(replyToken, text) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  if (!token || !replyToken) return;
-
-  await fetch('https://api.line.me/v2/bot/message/reply', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      replyToken,
-      messages: [{ type: 'text', text }],
-    }),
+  await logWebhook({
+    level: 'info',
+    event: 'line_webhook',
+    status_code: 200,
+    message: 'received webhook',
+    send_to: userId,
+    meta: body,
+    request_id: requestId,
   });
+
+  // LINE แค่ต้องการ status 200 ก็พอ
+  return res.status(200).json({ ok: true, userId, request_id: requestId });
 }
