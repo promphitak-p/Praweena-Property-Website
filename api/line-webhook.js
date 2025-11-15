@@ -1,24 +1,36 @@
 // /api/line-webhook.js
-// รับ Webhook จาก LINE + log เข้า Supabase
+// รับ Webhook จาก LINE + log เข้า Supabase แบบไม่ให้ top-level พัง
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+let cachedSupabase = null;
 
-const supabase =
-  supabaseUrl && supabaseKey
-    ? createClient(supabaseUrl, supabaseKey, {
-        auth: { persistSession: false },
-      })
-    : null;
+function getSupabase() {
+  if (cachedSupabase) return cachedSupabase;
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase env missing, skip logging');
+    return null;
+  }
+
+  try {
+    cachedSupabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false },
+    });
+    return cachedSupabase;
+  } catch (e) {
+    console.error('createClient error:', e);
+    return null;
+  }
+}
 
 async function logWebhook(row) {
-  if (!supabase) {
-    console.warn('Supabase not configured, skip log', row?.event);
-    return;
-  }
+  const supabase = getSupabase();
+  if (!supabase) return;
 
   try {
     const { error } = await supabase.rpc('log_notify', {
@@ -82,7 +94,7 @@ export default async function handler(req, res) {
       request_id: requestId,
     });
 
-    // LINE ขอแค่ 200 ก็รอด แต่เราบอกว่า error ใน body
+    // เพื่อความชัวร์กับ LINE: ตอบ 200 แต่อยู่ในสถานะ error ภายใน
     return res.status(200).json({
       ok: false,
       error: 'internal_error_logged',
