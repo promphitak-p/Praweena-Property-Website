@@ -702,7 +702,6 @@ async function loadProperties() {
         <td>${p.published ? '✅' : '❌'}</td>
         <td>${p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-'}</td>
         <td>
-          <a href="${rbUrl}" class="btn btn-sm btn-outline" target="_blank">สมุดรีโนเวท</a>
           <button class="btn btn-secondary btn-sm edit-btn">แก้ไข</button>
           <button class="btn btn-danger btn-sm delete-btn">ลบ</button>
         </td>
