@@ -256,12 +256,61 @@
               </div>
             </div>
 
-
             <div id="tab-contractors" class="tab-panel">
               <div id="property-contractors-list"></div>
-              <button id="btn-add-property-contractor" class="btn btn-sm btn-primary">
+
+              <button
+                id="btn-add-property-contractor"
+                type="button"
+                class="btn btn-sm btn-primary"
+                style="margin-top:.75rem;"
+              >
                 + เพิ่มทีมช่างให้หลังนี้
               </button>
+
+              <div
+                id="contractor-form-wrapper"
+                style="display:none;margin-top:1rem;padding:0.75rem;border-radius:0.5rem;
+                      border:1px solid #e5e7eb;background:#f9fafb;"
+              >
+                <h4 style="margin-top:0;margin-bottom:.75rem;font-size:0.95rem;">
+                  เพิ่มทีมช่างสำหรับบ้านหลังนี้
+                </h4>
+
+                <div class="grid grid-cols-2" style="gap:0.75rem;">
+                  <div class="form-group">
+                    <label>ชื่อช่าง *</label>
+                    <input type="text" id="contractor-name" class="form-control" placeholder="เช่น ช่างหนุ่ม, ช่างชาติ">
+                  </div>
+
+                  <div class="form-group">
+                    <label>สายงาน *</label>
+                    <input type="text" id="contractor-trade" class="form-control"
+                          placeholder="ปูกระเบื้อง, ทาสี, ระบบน้ำ ฯลฯ">
+                  </div>
+
+                  <div class="form-group">
+                    <label>เบอร์ติดต่อ</label>
+                    <input type="text" id="contractor-phone" class="form-control" placeholder="เบอร์มือถือช่าง">
+                  </div>
+
+                  <div class="form-group">
+                    <label>ระยะเวลารับประกัน (เดือน)</label>
+                    <input type="number" id="contractor-warranty" class="form-control" placeholder="เช่น 12">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top:0.75rem;">
+                  <label>ขอบเขตงานในบ้านหลังนี้ *</label>
+                  <textarea id="contractor-scope" class="form-control" rows="2"
+                    placeholder="เช่น ปูกระเบื้องชั้นล่างทั้งหมด, เดินท่อใหม่ทั้งหลัง ฯลฯ"></textarea>
+                </div>
+
+                <div style="text-align:right;margin-top:0.75rem;">
+                  <button type="button" id="contractor-cancel" class="btn btn-secondary btn-sm">ยกเลิก</button>
+                  <button type="button" id="contractor-save" class="btn btn-sm btn-primary">บันทึกทีมช่าง</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

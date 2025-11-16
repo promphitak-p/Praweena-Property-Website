@@ -605,6 +605,10 @@ if (contractorsList) contractorsList.innerHTML = '';
 const specFormWrapper = document.getElementById('spec-form-wrapper');
 if (specFormWrapper) specFormWrapper.style.display = 'none';
 
+// ซ่อนฟอร์มเพิ่มทีมช่าง ถ้าเปิดค้างอยู่
+const contractorFormWrapper = document.getElementById('contractor-form-wrapper');
+if (contractorFormWrapper) contractorFormWrapper.style.display = 'none';
+
 // reset รูป / youtube ทุกครั้งที่ปิด
 currentGallery = [];
 renderGalleryPreview();
@@ -824,13 +828,27 @@ async function loadSpecsForProperty(propertyId) {
   const container = document.getElementById('specs-list');
   if (!container) return;
 
-  container.innerHTML = 'กำลังโหลด...';
+  // แสดงสถานะกำลังโหลด
+  container.innerHTML = `
+    <p style="color:#6b7280;margin:0.25rem 0;">
+      กำลังโหลดข้อมูลสเปกรีโนเวท...
+    </p>
+  `;
+
+  if (!propertyId) {
+    container.innerHTML = `
+      <p style="color:#9ca3af;">กรุณาบันทึกประกาศก่อน จึงจะเพิ่มสเปกได้</p>
+    `;
+    return;
+  }
 
   try {
     const specs = await listSpecsByProperty(propertyId);
 
     if (!specs.length) {
-      container.innerHTML = '<p style="color:#6b7280;">ยังไม่มีสเปกรีโนเวทสำหรับหลังนี้</p>';
+      container.innerHTML = `
+        <p style="color:#9ca3af;">ยังไม่มีสเปกรีโนเวทสำหรับบ้านหลังนี้</p>
+      `;
       return;
     }
 
@@ -884,7 +902,11 @@ async function loadSpecsForProperty(propertyId) {
     });
   } catch (err) {
     console.error(err);
-    container.innerHTML = `<p style="color:#b91c1c;">โหลดสเปกไม่สำเร็จ: ${err.message || err}</p>`;
+    container.innerHTML = `
+      <p style="color:#b91c1c;">
+        โหลดสเปกไม่สำเร็จ: ${err.message || err}
+      </p>
+    `;
   }
 }
 
@@ -1009,13 +1031,26 @@ async function loadContractorsForProperty(propertyId) {
   const container = document.getElementById('property-contractors-list');
   if (!container) return;
 
-  container.innerHTML = 'กำลังโหลด...';
+  container.innerHTML = `
+    <p style="color:#6b7280;margin:0.25rem 0;">
+      กำลังโหลดข้อมูลทีมช่าง...
+    </p>
+  `;
+
+  if (!propertyId) {
+    container.innerHTML = `
+      <p style="color:#9ca3af;">กรุณาบันทึกประกาศก่อน จึงจะเพิ่มทีมช่างได้</p>
+    `;
+    return;
+  }
 
   try {
     const links = await listContractorsForProperty(propertyId);
 
     if (!links.length) {
-      container.innerHTML = '<p style="color:#6b7280;">ยังไม่ได้ผูกทีมช่างกับบ้านหลังนี้</p>';
+      container.innerHTML = `
+        <p style="color:#9ca3af;">ยังไม่ได้ผูกทีมช่างกับบ้านหลังนี้</p>
+      `;
       return;
     }
 
@@ -1068,43 +1103,101 @@ async function loadContractorsForProperty(propertyId) {
     });
   } catch (err) {
     console.error(err);
-    container.innerHTML = `<p style="color:#b91c1c;">โหลดทีมช่างไม่สำเร็จ: ${err.message || err}</p>`;
+    container.innerHTML = `
+      <p style="color:#b91c1c;">
+        โหลดทีมช่างไม่สำเร็จ: ${err.message || err}
+      </p>
+    `;
   }
 }
 
 function setupAddPropertyContractorButton() {
   const btn = document.getElementById('btn-add-property-contractor');
-  if (!btn) return;
+  const wrapper = document.getElementById('contractor-form-wrapper');
+  if (!btn || !wrapper) return;
 
-  btn.addEventListener('click', async () => {
+  const nameInput = document.getElementById('contractor-name');
+  const tradeInput = document.getElementById('contractor-trade');
+  const phoneInput = document.getElementById('contractor-phone');
+  const scopeInput = document.getElementById('contractor-scope');
+  const warrantyInput = document.getElementById('contractor-warranty');
+  const saveBtn = document.getElementById('contractor-save');
+  const cancelBtn = document.getElementById('contractor-cancel');
+
+  // เปิดฟอร์มเมื่อกด "+ เพิ่มทีมช่าง"
+  btn.addEventListener('click', () => {
     const propertyId = getCurrentPropertyId();
     if (!propertyId) {
       alert('กรุณาบันทึกประกาศก่อน แล้วจึงเพิ่มทีมช่างได้');
       return;
     }
 
-    const name = prompt('ชื่อช่าง:');
-    if (!name) return;
+    nameInput.value = '';
+    tradeInput.value = '';
+    phoneInput.value = '';
+    scopeInput.value = '';
+    warrantyInput.value = '';
 
-    const trade = prompt('สายงาน (เช่น ปูกระเบื้อง, ทาสี, ระบบน้ำ):') || '';
-    const phone = prompt('เบอร์ติดต่อช่าง (ถ้ามี):') || '';
-    const scope = prompt('ขอบเขตงานในบ้านหลังนี้ (เช่น ปูกระเบื้องชั้นล่าง):') || '';
-    const warrantyStr = prompt('ระยะเวลารับประกันงาน (เดือน, ถ้าไม่มีกด Enter ข้าม):') || '';
+    wrapper.style.display = 'block';
+    nameInput.focus();
+  });
+
+  // ยกเลิก
+  cancelBtn?.addEventListener('click', () => {
+    wrapper.style.display = 'none';
+  });
+
+  // บันทึกทีมช่าง
+  saveBtn?.addEventListener('click', async () => {
+    const propertyId = getCurrentPropertyId();
+    if (!propertyId) {
+      alert('กรุณาบันทึกประกาศก่อน แล้วจึงเพิ่มทีมช่างได้');
+      return;
+    }
+
+    const name = nameInput.value.trim();
+    const trade = tradeInput.value.trim();
+    const scope = scopeInput.value.trim();
+    const phone = phoneInput.value.trim();
+    const warrantyStr = warrantyInput.value.trim();
+
+    if (!name) {
+      alert('กรุณากรอกชื่อช่าง');
+      nameInput.focus();
+      return;
+    }
+    if (!trade) {
+      alert('กรุณากรอกสายงานของช่าง');
+      tradeInput.focus();
+      return;
+    }
+    if (!scope) {
+      alert('กรุณากรอกขอบเขตงานของช่างในบ้านหลังนี้');
+      scopeInput.focus();
+      return;
+    }
+
     const warranty = warrantyStr ? Number(warrantyStr) : null;
 
-    const contractor = await upsertContractor({
-      name,
-      phone,
-      trade,
-    });
+    try {
+      const contractor = await upsertContractor({
+        name,
+        phone,
+        trade,
+      });
 
-    await upsertPropertyContractor({
-      property_id: propertyId,
-      contractor_id: contractor.id,
-      scope,
-      warranty_months: warranty,
-    });
+      await upsertPropertyContractor({
+        property_id: propertyId,
+        contractor_id: contractor.id,
+        scope,
+        warranty_months: warranty,
+      });
 
-    await loadContractorsForProperty(propertyId);
+      wrapper.style.display = 'none';
+      await loadContractorsForProperty(propertyId);
+    } catch (err) {
+      console.error(err);
+      alert('บันทึกทีมช่างไม่สำเร็จ: ' + (err.message || err));
+    }
   });
 }

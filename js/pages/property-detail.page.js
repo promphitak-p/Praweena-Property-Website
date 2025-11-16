@@ -21,6 +21,8 @@ import { supabase } from '../utils/supabaseClient.js';
 import { renderShareBar } from '../widgets/share.widget.js';
 import { mountPayCalc } from '../widgets/payCalc.widget.js';
 import { notifyLeadNew } from '../services/notifyService.js';
+import { listSpecsByProperty } from '../services/propertySpecsService.js';
+import { listContractorsForProperty } from '../services/propertyContractorsService.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
@@ -562,13 +564,19 @@ async function loadProperty() {
     return;
   }
   container.innerHTML = `<div class="skeleton" style="height:400px;border-radius:16px;"></div>`;
+  
   const { data, error } = await getBySlug(slug);
   if (error || !data) {
     clear(container);
     container.textContent = 'ไม่พบข้อมูลประกาศนี้';
     return;
   }
+
+  // data = ทรัพย์ของบ้านหลังนี้
   await renderPropertyDetails(data);
+
+  // ส่ง id ของบ้านเข้าไปให้สมุดรีโนเวทโหลดข้อมูล
+  await loadRenovationBook(data.id);
 }
 
 // ============================ main =============================
@@ -578,3 +586,138 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMobileNav();
   loadProperty();
 });
+
+async function loadRenovationBook(propertyId) {
+  const specsContainer = document.getElementById('detail-specs');
+  const contractorsContainer = document.getElementById('detail-contractors');
+
+  if (!propertyId) {
+    if (specsContainer) {
+      specsContainer.innerHTML = `
+        <p style="color:#9ca3af;">ยังไม่มีข้อมูลรีโนเวทสำหรับบ้านหลังนี้</p>
+      `;
+    }
+    if (contractorsContainer) {
+      contractorsContainer.innerHTML = `
+        <p style="color:#9ca3af;">ยังไม่มีข้อมูลทีมช่างสำหรับบ้านหลังนี้</p>
+      `;
+    }
+    return;
+  }
+
+  // ------- สเปกรีโนเวท -------
+  if (specsContainer) {
+    specsContainer.innerHTML = `
+      <p style="color:#6b7280;">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>
+    `;
+
+    try {
+      const specs = await listSpecsByProperty(propertyId);
+
+      if (!specs.length) {
+        specsContainer.innerHTML = `
+          <p style="color:#9ca3af;">ยังไม่ได้บันทึกสเปกรีโนเวทสำหรับบ้านหลังนี้</p>
+        `;
+      } else {
+        const table = document.createElement('table');
+        table.className = 'table-compact';
+
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+          <tr>
+            <th>โซน</th>
+            <th>ประเภท</th>
+            <th>วัสดุ / ยี่ห้อ / รุ่น</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        `;
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        specs.forEach((s) => {
+          const tr = document.createElement('tr');
+          const material = [
+            s.brand,
+            s.model_or_series,
+            s.color_code && `(${s.color_code})`,
+          ]
+            .filter(Boolean)
+            .join(' / ');
+
+          tr.innerHTML = `
+            <td>${s.zone || ''}</td>
+            <td>${s.item_type || ''}</td>
+            <td>${material || '-'}</td>
+            <td>${s.note || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        specsContainer.innerHTML = '';
+        specsContainer.appendChild(table);
+      }
+    } catch (err) {
+      console.error(err);
+      specsContainer.innerHTML = `
+        <p style="color:#b91c1c;">โหลดข้อมูลสเปกไม่สำเร็จ</p>
+      `;
+    }
+  }
+
+  // ------- ทีมช่าง -------
+  if (contractorsContainer) {
+    contractorsContainer.innerHTML = `
+      <p style="color:#6b7280;">กำลังโหลดข้อมูลทีมช่าง...</p>
+    `;
+
+    try {
+      const links = await listContractorsForProperty(propertyId);
+
+      if (!links.length) {
+        contractorsContainer.innerHTML = `
+          <p style="color:#9ca3af;">ยังไม่ได้บันทึกทีมช่างสำหรับบ้านหลังนี้</p>
+        `;
+      } else {
+        const table = document.createElement('table');
+        table.className = 'table-compact';
+
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+          <tr>
+            <th>ทีมงาน</th>
+            <th>สายงาน</th>
+            <th>ขอบเขตงาน</th>
+          </tr>
+        `;
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        links.forEach((link) => {
+          const c = link.contractor || {};
+          const name = c.name || 'ทีมช่าง';
+          const trade = c.trade || '';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${name}</td>
+            <td>${trade}</td>
+            <td>${link.scope || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        contractorsContainer.innerHTML = '';
+        contractorsContainer.appendChild(table);
+      }
+    } catch (err) {
+      console.error(err);
+      contractorsContainer.innerHTML = `
+        <p style="color:#b91c1c;">โหลดข้อมูลทีมช่างไม่สำเร็จ</p>
+      `;
+    }
+  }
+}
