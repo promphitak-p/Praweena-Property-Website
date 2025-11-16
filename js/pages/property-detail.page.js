@@ -561,22 +561,20 @@ async function loadProperty() {
   if (!slug) {
     clear(container);
     container.textContent = 'ไม่พบประกาศ';
-    return;
+    return null;
   }
+
   container.innerHTML = `<div class="skeleton" style="height:400px;border-radius:16px;"></div>`;
-  
+
   const { data, error } = await getBySlug(slug);
   if (error || !data) {
     clear(container);
     container.textContent = 'ไม่พบข้อมูลประกาศนี้';
-    return;
+    return null;
   }
 
-  // data = ทรัพย์ของบ้านหลังนี้
   await renderPropertyDetails(data);
-
-  // ส่ง id ของบ้านเข้าไปให้สมุดรีโนเวทโหลดข้อมูล
-  await loadRenovationBook(data.id);
+  return data;   // ✅ แค่คืนข้อมูลทรัพย์
 }
 
 // ============================ main =============================
@@ -584,7 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   signOutIfAny();
   setupMobileNav();
-  loadProperty();
+  loadProperty();   // ✅ แค่โหลดประกาศอย่างเดียว
 });
 
 async function loadRenovationBook(propertyId) {
