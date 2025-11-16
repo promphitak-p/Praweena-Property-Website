@@ -703,31 +703,30 @@ async function loadProperties() {
         <td>${p.published ? '✅' : '❌'}</td>
         <td>${p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-'}</td>
         <td>
+          <button class="btn btn-secondary btn-sm rb-btn">สมุดรีโนเวท</button>
           <button class="btn btn-secondary edit-btn">แก้ไข</button>
           <button class="btn btn-danger delete-btn">ลบ</button>
         </td>
       `;
 
+      // ปุ่มสมุดรีโนเวท → เปิดหน้าใหม่
+      tr.querySelector('.rb-btn').addEventListener('click', () => {
+        const url = `/renovation-book.html?property_id=${encodeURIComponent(p.id)}`;
+        window.location.href = url;
+      });
+
       tr.querySelector('.edit-btn').addEventListener('click', async () => {
         openModal();
         fillFormFromProperty(p);
         setTimeout(() => setupModalMap(p.latitude, p.longitude), 80);
-
-        // โหลด POI ที่บันทึกไว้
         await loadPoisForProperty(p.id, p.latitude, p.longitude);
-
-        // โหลดสเปกรีโนเวทของบ้านหลังนี้
-        await loadSpecsForProperty(p.id);
-
-        // โหลดทีมช่างของบ้านหลังนี้
-        await loadContractorsForProperty(p.id);
       });
-
 
       tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(p.id, p.title));
 
       tbody.appendChild(tr);
     });
+
   } catch (err) {
     console.error(err);
     tbody.innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">โหลดไม่สำเร็จ</td></tr>';

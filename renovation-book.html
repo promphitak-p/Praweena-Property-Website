@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>สมุดรีโนเวท - Praweena Property</title>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/assets/css/base.css"/>
+  <link rel="stylesheet" href="/assets/css/layout.css"/>
+  <link rel="stylesheet" href="/assets/css/components.css"/>
+
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/assets/favicon/site.webmanifest">
+</head>
+
+<body>
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
+          <span class="logo-text">Praweena Property</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html" aria-current="page">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
+        </ul>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Header สมุดรีโนเวท -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin:1.5rem 0 2rem 0;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <h1 id="rb-page-title">สมุดรีโนเวทบ้าน</h1>
+        <p id="rb-property-subtitle" style="color:#6b7280;margin-top:.25rem;">
+          กำลังโหลดข้อมูลบ้าน...
+        </p>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <a href="/dashboard.html" class="btn btn-secondary btn-sm">← กลับแดชบอร์ด</a>
+        <a id="rb-view-detail" class="btn btn-outline btn-sm" target="_blank" style="display:none;">
+          ดูหน้าประกาศลูกค้า
+        </a>
+      </div>
+    </div>
+
+    <!-- Alert ถ้าไม่พบ property_id -->
+    <div id="rb-alert" class="card" style="display:none;margin-bottom:1.5rem;">
+      <p style="color:#b91c1c;margin:0;">
+        ไม่พบรหัสบ้าน (property_id) ในลิงก์ กรุณาเข้ามาจากหน้าแดชบอร์ด
+      </p>
+    </div>
+
+    <!-- การ์ดสรุปบ้าน -->
+    <section id="rb-property-summary" class="card" style="margin-bottom:2rem;display:none;">
+      <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+        <div id="rb-cover-box" style="width:160px;height:120px;border-radius:12px;overflow:hidden;background:#f3f4f6;flex-shrink:0;">
+          <!-- รูป cover จะถูกเติมด้วย JS -->
+        </div>
+        <div>
+          <h2 id="rb-property-title" style="margin:0 0 .25rem 0;font-size:1.1rem;"></h2>
+          <p id="rb-property-meta" style="margin:0 0 .25rem 0;color:#6b7280;font-size:.9rem;"></p>
+          <p id="rb-property-extra" style="margin:0;color:#6b7280;font-size:.9rem;"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- สเปกรีโนเวท -->
+    <section class="card" style="margin-bottom:2rem;">
+      <h2 style="margin-top:0;">สเปกรีโนเวท</h2>
+      <p style="color:#6b7280;font-size:.9rem;margin-bottom:1rem;">
+        บันทึกวัสดุ สี กระเบื้อง สุขภัณฑ์ และรายละเอียดรีโนเวทของแต่ละโซน
+      </p>
+
+      <div id="rb-specs-list" class="table-wrapper" style="margin-bottom:1rem;">
+        <!-- JS จะเติม "กำลังโหลดข้อมูล..." / ตาราง -->
+      </div>
+
+      <hr style="margin:1.5rem 0;">
+
+      <h3 style="margin-top:0;">เพิ่ม / แก้ไขสเปกรีโนเวท</h3>
+      <form id="rb-spec-form" class="grid grid-cols-2" style="gap:1rem;">
+        <input type="hidden" name="id" />
+
+        <div class="form-group">
+          <label>โซน *</label>
+          <input type="text" name="zone" class="form-control" placeholder="เช่น ห้องนั่งเล่น, ครัว, ห้องน้ำบน" required>
+        </div>
+
+        <div class="form-group">
+          <label>ประเภท *</label>
+          <input type="text" name="item_type" class="form-control" placeholder="เช่น สี, กระเบื้อง, สุขภัณฑ์, ไฟ" required>
+        </div>
+
+        <div class="form-group">
+          <label>ยี่ห้อ</label>
+          <input type="text" name="brand" class="form-control" placeholder="เช่น TOA, Beger, COTTO">
+        </div>
+
+        <div class="form-group">
+          <label>รุ่น / ซีรีส์</label>
+          <input type="text" name="model_or_series" class="form-control" placeholder="เช่น Supershield, Duraclean ฯลฯ">
+        </div>
+
+        <div class="form-group">
+          <label>เบอร์สี / โค้ด</label>
+          <input type="text" name="color_code" class="form-control" placeholder="เช่น 1036, 1D1-2, Ivory White">
+        </div>
+
+        <div class="form-group">
+          <label>ร้าน / ผู้ขาย</label>
+          <input type="text" name="supplier" class="form-control" placeholder="เช่น ปรีชาฮาร์ดแวร์, โฮมโปร">
+        </div>
+
+        <div class="form-group col-span-2">
+          <label>หมายเหตุ</label>
+          <textarea name="note" rows="2" class="form-control" placeholder="เช่น ผสม A:B 50:50, ใช้กับผนังทิศตะวันตกเท่านั้น ฯลฯ"></textarea>
+        </div>
+
+        <div class="form-group col-span-2" style="text-align:right;">
+          <button type="button" id="rb-spec-reset-btn" class="btn btn-secondary btn-sm">
+            ล้างฟอร์ม
+          </button>
+          <button type="submit" class="btn btn-sm">
+            บันทึกสเปก
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ทีมช่าง -->
+    <section class="card" style="margin-bottom:3rem;">
+      <h2 style="margin-top:0;">ทีมช่าง</h2>
+      <p style="color:#6b7280;font-size:.9rem;margin-bottom:1rem;">
+        บันทึกทีมช่างที่ทำงานในบ้านหลังนี้ เพื่ออ้างอิงในอนาคต
+      </p>
+
+      <div id="rb-contractors-list" class="table-wrapper" style="margin-bottom:1rem;">
+        <!-- JS จะเติม "กำลังโหลดข้อมูล..." / ตาราง -->
+      </div>
+
+      <hr style="margin:1.5rem 0;">
+
+      <h3 style="margin-top:0;">เพิ่ม / แก้ไขทีมช่าง</h3>
+      <form id="rb-contractor-form" class="grid grid-cols-2" style="gap:1rem;">
+        <input type="hidden" name="link_id" />
+
+        <div class="form-group">
+          <label>ชื่อช่าง / ทีม *</label>
+          <input type="text" name="contractor_name" class="form-control" placeholder="เช่น ช่างสมชาย, ทีมปูกระเบื้อง A" required>
+        </div>
+
+        <div class="form-group">
+          <label>สายงาน *</label>
+          <input type="text" name="contractor_trade" class="form-control" placeholder="เช่น ปูกระเบื้อง, ทาสี, ระบบน้ำ" required>
+        </div>
+
+        <div class="form-group">
+          <label>เบอร์ติดต่อ</label>
+          <input type="text" name="contractor_phone" class="form-control" placeholder="เช่น 08x-xxx-xxxx">
+        </div>
+
+        <div class="form-group">
+          <label>ระยะรับประกันงาน (เดือน)</label>
+          <input type="number" name="warranty_months" class="form-control" placeholder="เช่น 12">
+        </div>
+
+        <div class="form-group col-span-2">
+          <label>ขอบเขตงานในบ้านหลังนี้</label>
+          <textarea name="scope" rows="2" class="form-control" placeholder="เช่น ปูกระเบื้องชั้นล่างทั้งหมด, ทำฝ้าชั้นบนฯลฯ"></textarea>
+        </div>
+
+        <div class="form-group col-span-2" style="text-align:right;">
+          <button type="button" id="rb-contractor-reset-btn" class="btn btn-secondary btn-sm">
+            ล้างฟอร์ม
+          </button>
+          <button type="submit" class="btn btn-sm">
+            บันทึกทีมช่าง
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <!-- Page JS -->
+  <script type="module" src="/js/pages/renovation-book.page.js"></script>
+</body>
+</html>
