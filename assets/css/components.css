@@ -563,3 +563,53 @@ tbody tr:last-child td{ border-bottom:none; }
 .tab-panel.active {
   display: block;
 }
+
+/* ===== Renovation Book – Property List ===== */
+
+.rb-list-header {
+  margin-bottom: 1.5rem;
+}
+
+.rb-property-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+/* การ์ดแต่ละหลัง */
+.rb-property-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 150px;
+}
+
+/* หัวการ์ด: ชื่อบ้าน + ราคา */
+.rb-property-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ปุ่มด้านล่างการ์ด */
+.rb-property-card-footer {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ปรับบนมือถือ ให้การ์ดเต็มความกว้าง */
+@media (max-width: 768px) {
+  .rb-property-grid {
+    grid-template-columns: 1fr;
+  }
+}
