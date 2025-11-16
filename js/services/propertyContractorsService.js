@@ -6,11 +6,13 @@ export async function listContractorsForProperty(propertyId) {
     .from('property_contractors')
     .select(`
       id,
+      property_id,
+      contractor_id,
       scope,
       start_date,
       end_date,
       warranty_months,
-      contractors:contractor_id (
+      contractor:contractors (
         id,
         name,
         phone,
@@ -23,6 +25,7 @@ export async function listContractorsForProperty(propertyId) {
   if (error) throw error;
   return data;
 }
+
 
 export async function upsertPropertyContractor(row) {
   const payload = {
