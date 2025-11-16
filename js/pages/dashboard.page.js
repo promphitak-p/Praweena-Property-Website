@@ -592,21 +592,25 @@ function closeModal() {
     if (propertyForm.elements.id) propertyForm.elements.id.value = '';
   }
 
-  const poiList = document.getElementById('poi-candidate-list');
-  if (poiList) poiList.innerHTML = '';
+const poiList = document.getElementById('poi-candidate-list');
+if (poiList) poiList.innerHTML = '';
 
-  // เคลียร์สเปก / ทีมช่างในโมดัล
-  const specsList = document.getElementById('specs-list');
-  if (specsList) specsList.innerHTML = '';
-  const contractorsList = document.getElementById('property-contractors-list');
-  if (contractorsList) contractorsList.innerHTML = '';
+// เคลียร์สเปก / ทีมช่างในโมดัล
+const specsList = document.getElementById('specs-list');
+if (specsList) specsList.innerHTML = '';
+const contractorsList = document.getElementById('property-contractors-list');
+if (contractorsList) contractorsList.innerHTML = '';
 
-  // reset รูป / youtube ทุกครั้งที่ปิด
-  currentGallery = [];
-  renderGalleryPreview();
-  currentYoutube = [];
-  renderYoutubeList();
-  }
+// ซ่อนฟอร์มเพิ่มสเปก ถ้าเปิดค้างอยู่
+const specFormWrapper = document.getElementById('spec-form-wrapper');
+if (specFormWrapper) specFormWrapper.style.display = 'none';
+
+// reset รูป / youtube ทุกครั้งที่ปิด
+currentGallery = [];
+renderGalleryPreview();
+currentYoutube = [];
+renderYoutubeList();
+}
 
 
 function installModalCloseHandlers() {
@@ -926,37 +930,78 @@ function setupRenovationTabs() {
 
 function setupAddSpecButton() {
   const btn = document.getElementById('btn-add-spec');
-  if (!btn) return;
+  const wrapper = document.getElementById('spec-form-wrapper');
+  if (!btn || !wrapper) return;
 
-  btn.addEventListener('click', async () => {
+  const zoneInput = document.getElementById('spec-zone');
+  const itemTypeInput = document.getElementById('spec-item-type');
+  const brandInput = document.getElementById('spec-brand');
+  const modelInput = document.getElementById('spec-model');
+  const colorInput = document.getElementById('spec-color');
+  const supplierInput = document.getElementById('spec-supplier');
+  const noteInput = document.getElementById('spec-note');
+  const saveBtn = document.getElementById('spec-save');
+  const cancelBtn = document.getElementById('spec-cancel');
+
+  // เปิดฟอร์มเมื่อกดปุ่ม "+ เพิ่มสเปก"
+  btn.addEventListener('click', () => {
     const propertyId = getCurrentPropertyId();
     if (!propertyId) {
       alert('กรุณาบันทึกประกาศก่อน แล้วจึงเพิ่มสเปกได้');
       return;
     }
 
-    const zone = prompt('โซน (เช่น ห้องนั่งเล่น, ครัว, ห้องน้ำบน):');
-    if (!zone) return;
+    // เคลียร์ค่าเก่า
+    zoneInput.value = '';
+    itemTypeInput.value = '';
+    brandInput.value = '';
+    modelInput.value = '';
+    colorInput.value = '';
+    supplierInput.value = '';
+    noteInput.value = '';
 
-    const itemType = prompt('ประเภท (เช่น สี, กระเบื้อง, สุขภัณฑ์, ไฟ):') || '';
-    const brand = prompt('ยี่ห้อ (เช่น TOA, Beger, COTTO):') || '';
-    const model = prompt('รุ่น / ซีรีส์ (ถ้ามี):') || '';
-    const color = prompt('เบอร์สี / โค้ด (ถ้ามี):') || '';
-    const supplier = prompt('ซื้อจากร้านไหน (ถ้ามี):') || '';
-    const note = prompt('หมายเหตุ (เช่น ผสม A:B 50:50 ฯลฯ):') || '';
+    wrapper.style.display = 'block';
+    zoneInput.focus();
+  });
 
-    await upsertSpec({
-      property_id: propertyId,
-      zone,
-      item_type: itemType,
-      brand,
-      model_or_series: model,
-      color_code: color,
-      supplier,
-      note,
-    });
+  // ปุ่มยกเลิก
+  cancelBtn?.addEventListener('click', () => {
+    wrapper.style.display = 'none';
+  });
 
-    await loadSpecsForProperty(propertyId);
+  // ปุ่มบันทึกสเปก
+  saveBtn?.addEventListener('click', async () => {
+    const propertyId = getCurrentPropertyId();
+    if (!propertyId) {
+      alert('กรุณาบันทึกประกาศก่อน แล้วจึงเพิ่มสเปกได้');
+      return;
+    }
+
+    const zone = zoneInput.value.trim();
+    if (!zone) {
+      alert('กรุณาระบุโซน');
+      zoneInput.focus();
+      return;
+    }
+
+    try {
+      await upsertSpec({
+        property_id: propertyId,
+        zone,
+        item_type: itemTypeInput.value.trim(),
+        brand: brandInput.value.trim(),
+        model_or_series: modelInput.value.trim(),
+        color_code: colorInput.value.trim(),
+        supplier: supplierInput.value.trim(),
+        note: noteInput.value.trim(),
+      });
+
+      wrapper.style.display = 'none';
+      await loadSpecsForProperty(propertyId);
+    } catch (err) {
+      console.error(err);
+      alert('บันทึกสเปกไม่สำเร็จ: ' + (err.message || err));
+    }
   });
 }
 
