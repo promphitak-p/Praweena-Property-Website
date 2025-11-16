@@ -2,6 +2,7 @@
 // หน้า "สมุดรีโนเวท" (หลังบ้าน)
 // - โหมด 1: แสดงรายการบ้านทั้งหมด
 // - โหมด 2: แสดงสมุดรีโนเวทของบ้าน 1 หลัง (สเปก + ทีมช่าง)
+// - เพิ่ม / ลบ สเปก + ทีมช่าง ผ่าน Modal ฟอร์มสวย ๆ
 //------------------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
@@ -18,6 +19,14 @@ import { toast } from '../ui/toast.js';
 let currentProperty = null;
 let currentPropertyId = null;
 
+// --- modal state ---
+let rbModal = null;
+let rbModalForm = null;
+let rbModalTitle = null;
+let rbSpecFields = null;
+let rbContractorFields = null;
+let rbModalMode = null; // 'spec' | 'contractor'
+
 // -------------------- helper DOM --------------------
 function showListMode() {
   const listSec = $('#rb-list-section');
@@ -31,6 +40,142 @@ function showDetailMode() {
   const detailSec = $('#rb-detail-section');
   if (listSec) listSec.style.display = 'none';
   if (detailSec) detailSec.style.display = 'block';
+}
+
+// -------------------- Modal helpers --------------------
+function openRbModal(mode) {
+  if (!rbModal || !rbModalForm || !rbSpecFields || !rbContractorFields || !rbModalTitle) return;
+  rbModalMode = mode;
+  rbModalForm.reset();
+
+  if (mode === 'spec') {
+    rbModalTitle.textContent = 'เพิ่มสเปกรีโนเวท';
+    rbSpecFields.style.display = 'block';
+    rbContractorFields.style.display = 'none';
+  } else if (mode === 'contractor') {
+    rbModalTitle.textContent = 'เพิ่มทีมช่าง';
+    rbSpecFields.style.display = 'none';
+    rbContractorFields.style.display = 'block';
+  }
+
+  rbModal.classList.add('open');
+}
+
+function closeRbModal() {
+  if (!rbModal) return;
+  rbModal.classList.remove('open');
+  rbModalMode = null;
+}
+
+function setupRbModal() {
+  rbModal = $('#rb-modal');
+  rbModalForm = $('#rb-modal-form');
+  rbModalTitle = $('#rb-modal-title');
+  rbSpecFields = $('#rb-modal-spec-fields');
+  rbContractorFields = $('#rb-modal-contractor-fields');
+
+  if (!rbModal || !rbModalForm) return;
+
+  const closeBtn = $('#rb-modal-close');
+  const cancelBtn = $('#rb-modal-cancel');
+
+  closeBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeRbModal();
+  });
+
+  cancelBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeRbModal();
+  });
+
+  window.addEventListener('click', (e) => {
+    if (e.target === rbModal) {
+      closeRbModal();
+    }
+  });
+
+  rbModalForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!rbModalMode) return;
+    if (!currentPropertyId) {
+      toast('กรุณาเลือกบ้านจากรายการก่อน', 2500, 'error');
+      return;
+    }
+
+    const submitBtn = rbModalForm.querySelector('button[type=submit]');
+    const oldLabel = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'กำลังบันทึก...';
+    }
+
+    try {
+      if (rbModalMode === 'spec') {
+        const fd = new FormData(rbModalForm);
+        const zone = (fd.get('zone') || '').toString().trim();
+        if (!zone) {
+          toast('กรุณากรอกโซนก่อน', 2500, 'error');
+          return;
+        }
+
+        const payload = {
+          property_id: currentPropertyId,
+          zone,
+          item_type: (fd.get('item_type') || '').toString().trim(),
+          brand: (fd.get('brand') || '').toString().trim(),
+          model_or_series: (fd.get('model_or_series') || '').toString().trim(),
+          color_code: (fd.get('color_code') || '').toString().trim(),
+          supplier: (fd.get('supplier') || '').toString().trim(),
+          note: (fd.get('note') || '').toString().trim(),
+        };
+
+        await upsertSpec(payload);
+        toast('บันทึกสเปกเรียบร้อย', 2000, 'success');
+        await loadSpecsForProperty(currentPropertyId);
+      } else if (rbModalMode === 'contractor') {
+        const fd = new FormData(rbModalForm);
+        const name = (fd.get('contractor_name') || '').toString().trim();
+        if (!name) {
+          toast('กรุณากรอกชื่อช่างก่อน', 2500, 'error');
+          return;
+        }
+
+        const contractor = await upsertContractor({
+          name,
+          trade: (fd.get('contractor_trade') || '').toString().trim(),
+          phone: (fd.get('contractor_phone') || '').toString().trim(),
+        });
+
+        let warranty = null;
+        const wRaw = (fd.get('warranty_months') || '').toString().trim();
+        if (wRaw) {
+          const n = Number(wRaw);
+          if (!Number.isNaN(n)) warranty = n;
+        }
+
+        await upsertPropertyContractor({
+          property_id: currentPropertyId,
+          contractor_id: contractor.id,
+          scope: (fd.get('scope') || '').toString().trim(),
+          warranty_months: warranty,
+        });
+
+        toast('บันทึกทีมช่างเรียบร้อย', 2000, 'success');
+        await loadContractorsForProperty(currentPropertyId);
+      }
+
+      closeRbModal();
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกไม่สำเร็จ: ' + (err.message || err), 3000, 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldLabel;
+      }
+    }
+  });
 }
 
 // -------------------- รายการบ้าน --------------------
@@ -117,7 +262,6 @@ async function loadPropertyList() {
 
 // -------------------- ดึงข้อมูลบ้าน --------------------
 async function fetchPropertyById(id) {
-  // ใช้วิธีง่าย: listAll แล้วหาเอา
   const { data, error } = await listAll();
   if (error) throw error;
   if (!data) return null;
@@ -236,41 +380,6 @@ async function loadSpecsForProperty(propertyId) {
   }
 }
 
-function setupAddSpecButton() {
-  const btn = $('#rb-add-spec');
-  if (!btn) return;
-
-  btn.addEventListener('click', async () => {
-    if (!currentPropertyId) {
-      alert('กรุณาเลือกบ้านจากรายการก่อน');
-      return;
-    }
-
-    const zone = prompt('โซน (เช่น ห้องนั่งเล่น, ห้องครัว, ห้องน้ำบน):');
-    if (!zone) return;
-
-    const itemType = prompt('ประเภท (เช่น สี, กระเบื้อง, สุขภัณฑ์, ไฟ):') || '';
-    const brand = prompt('ยี่ห้อ (เช่น TOA, Beger, COTTO):') || '';
-    const model = prompt('รุ่น / ซีรีส์ (ถ้ามี):') || '';
-    const color = prompt('เบอร์สี / โค้ด (ถ้ามี):') || '';
-    const supplier = prompt('ซื้อจากร้านไหน (ถ้ามี):') || '';
-    const note = prompt('หมายเหตุ (เช่น ผสม A:B 50:50 ฯลฯ):') || '';
-
-    await upsertSpec({
-      property_id: currentPropertyId,
-      zone,
-      item_type: itemType,
-      brand,
-      model_or_series: model,
-      color_code: color,
-      supplier,
-      note,
-    });
-
-    await loadSpecsForProperty(currentPropertyId);
-  });
-}
-
 // -------------------- ทีมช่าง --------------------
 async function loadContractorsForProperty(propertyId) {
   const container = $('#rb-contractors');
@@ -346,39 +455,25 @@ async function loadContractorsForProperty(propertyId) {
   }
 }
 
-function setupAddContractorButton() {
-  const btn = $('#rb-add-contractor');
-  if (!btn) return;
+// -------------------- ปุ่ม Add (เรียก modal) --------------------
+function setupAddButtons() {
+  const specBtn = $('#rb-add-spec');
+  const contractorBtn = $('#rb-add-contractor');
 
-  btn.addEventListener('click', async () => {
+  specBtn?.addEventListener('click', () => {
     if (!currentPropertyId) {
       alert('กรุณาเลือกบ้านจากรายการก่อน');
       return;
     }
+    openRbModal('spec');
+  });
 
-    const name = prompt('ชื่อช่าง:');
-    if (!name) return;
-
-    const trade = prompt('สายงาน (เช่น ปูกระเบื้อง, ทาสี, ระบบน้ำ):') || '';
-    const phone = prompt('เบอร์ติดต่อช่าง (ถ้ามี):') || '';
-    const scope = prompt('ขอบเขตงานในบ้านหลังนี้ (เช่น ปูกระเบื้องชั้นล่าง):') || '';
-    const warrantyStr = prompt('ระยะเวลารับประกันงาน (เดือน, ถ้าไม่มีกด Enter ข้าม):') || '';
-    const warranty = warrantyStr ? Number(warrantyStr) : null;
-
-    const contractor = await upsertContractor({
-      name,
-      phone,
-      trade,
-    });
-
-    await upsertPropertyContractor({
-      property_id: currentPropertyId,
-      contractor_id: contractor.id,
-      scope,
-      warranty_months: warranty,
-    });
-
-    await loadContractorsForProperty(currentPropertyId);
+  contractorBtn?.addEventListener('click', () => {
+    if (!currentPropertyId) {
+      alert('กรุณาเลือกบ้านจากรายการก่อน');
+      return;
+    }
+    openRbModal('contractor');
   });
 }
 
@@ -394,10 +489,14 @@ function setupPrintButton() {
 
 // -------------------- init --------------------
 document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage();      // ให้เฉพาะ admin / user ที่ล็อกอินเห็น
+  await protectPage();      // ให้เฉพาะคนล็อกอินเห็น
   setupNav();
   setupMobileNav();
   await signOutIfAny();
+
+  setupRbModal();
+  setupAddButtons();
+  setupPrintButton();
 
   const params = new URLSearchParams(window.location.search);
   const propertyIdParam = params.get('property_id');
@@ -406,16 +505,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (backBtn) {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      // กลับไปโหมดรายการบ้าน
       const url = new URL(window.location.href);
       url.searchParams.delete('property_id');
       window.location.href = url.toString();
     });
   }
-
-  setupAddSpecButton();
-  setupAddContractorButton();
-  setupPrintButton();
 
   if (propertyIdParam) {
     // โหมดดูสมุดรีโนเวทของบ้าน 1 หลัง

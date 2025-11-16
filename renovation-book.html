@@ -144,6 +144,79 @@
     </section>
   </main>
 
+      <!-- Modal สำหรับเพิ่มสเปก / ทีมช่าง -->
+    <div id="rb-modal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" id="rb-modal-close">&times;</span>
+        <h3 id="rb-modal-title">เพิ่มข้อมูล</h3>
+
+        <form id="rb-modal-form">
+          <!-- ฟิลด์: สเปกรีโนเวท -->
+          <div id="rb-modal-spec-fields">
+            <div class="form-group">
+              <label>โซน</label>
+              <input type="text" name="zone" class="form-control" placeholder="เช่น ห้องนั่งเล่น, ครัว, ห้องน้ำบน" required>
+            </div>
+            <div class="form-group">
+              <label>ประเภท</label>
+              <input type="text" name="item_type" class="form-control" placeholder="เช่น สี, กระเบื้อง, สุขภัณฑ์, ไฟ">
+            </div>
+            <div class="form-group">
+              <label>ยี่ห้อ</label>
+              <input type="text" name="brand" class="form-control" placeholder="เช่น TOA, Beger, COTTO">
+            </div>
+            <div class="form-group">
+              <label>รุ่น / ซีรีส์</label>
+              <input type="text" name="model_or_series" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>เบอร์สี / โค้ด</label>
+              <input type="text" name="color_code" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>ร้าน / ผู้ขาย</label>
+              <input type="text" name="supplier" class="form-control" placeholder="ชื่อร้าน / แหล่งซื้อ">
+            </div>
+            <div class="form-group">
+              <label>หมายเหตุ</label>
+              <textarea name="note" rows="3" class="form-control" placeholder="เช่น ผสม A:B 50:50 หรือรายละเอียดเพิ่มเติม"></textarea>
+            </div>
+          </div>
+
+          <!-- ฟิลด์: ทีมช่าง -->
+          <div id="rb-modal-contractor-fields" style="display:none;">
+            <div class="form-group">
+              <label>ชื่อช่าง / ทีมงาน</label>
+              <input type="text" name="contractor_name" class="form-control" placeholder="ชื่อช่าง / ชื่อทีม" required>
+            </div>
+            <div class="form-group">
+              <label>สายงาน</label>
+              <input type="text" name="contractor_trade" class="form-control" placeholder="เช่น ปูกระเบื้อง, ทาสี, ระบบน้ำ">
+            </div>
+            <div class="form-group">
+              <label>เบอร์ติดต่อ</label>
+              <input type="text" name="contractor_phone" class="form-control" placeholder="เบอร์ติดต่อ (ถ้ามี)">
+            </div>
+            <div class="form-group">
+              <label>ขอบเขตงานในบ้านหลังนี้</label>
+              <textarea name="scope" rows="3" class="form-control" placeholder="เช่น ปูกระเบื้องชั้นล่าง, ทำห้องน้ำบนใหม่ทั้งหมด"></textarea>
+            </div>
+            <div class="form-group">
+              <label>ระยะเวลารับประกันงาน (เดือน)</label>
+              <input type="number" name="warranty_months" class="form-control" min="0" placeholder="เช่น 12 (ถ้าไม่มีเว้นว่างได้)">
+            </div>
+          </div>
+
+          <div style="text-align:right;margin-top:1rem;">
+            <button type="button" class="btn btn-secondary" id="rb-modal-cancel">ยกเลิก</button>
+            <button type="submit" class="btn">บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="/js/pages/renovation-book.page.js"></script>
+
   <script type="module" src="/js/pages/renovation-book.page.js"></script>
 </body>
 </html>
