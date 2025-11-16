@@ -98,11 +98,11 @@ function renderRow(lead) {
 
   const tdNote = el('td', { textContent: lead.note || '-' });
 
-  const tdStatus = el('td');
-  
-  const select = buildStatusSelect(lead, async (newStatus, elSel) => {
+const tdStatus = el('td');
+
+const select = buildStatusSelect(lead, async (newStatus, elSel) => {
   const prev = lead.status || 'new';
-  if (newStatus === prev) return; // ไม่ต้องทำอะไรถ้าเหมือนเดิม
+  if (newStatus === prev) return;
 
   // optimistic UI
   lead.status = newStatus;
@@ -114,48 +114,30 @@ function renderRow(lead) {
     return;
   }
   toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
-  
-  // แจ้ง LINE (กันยิงซ้ำด้วย Set)
-  const key = `lead-${lead.id}-${prev}->${newStatus}`;
-  if (!notifyingSet.has(key)) {
-    notifyingSet.add(key);
-    try {
-      await notifyLeadStatusChange({
-        lead_id: lead.id,
-        name: lead.name,
-        phone: lead.phone,
-        old_status: prev,
-        new_status: newStatus,
-        ...propertyCellInfo(lead) // ให้ได้ title/slug ถ้ามี
-      });
-    } catch (e) {
-      console.warn('notifyLeadStatusChange failed', e);
-    } finally {
-      setTimeout(() => notifyingSet.delete(key), 1500);
-    }
-  }
-  });
 
-    // 🔔 แจ้งเตือนเปลี่ยนสถานะ (กันยิงซ้ำด้วย Set)
-    const key = `lead-${lead.id}-${prev}->${newStatus}`;
-    if (notifyingSet.has(key)) return;
-    notifyingSet.add(key);
-    try {
-      await notifyLeadStatusChange({
-        lead_id: lead.id,
-        name: lead.name,
-        phone: lead.phone,
-        old_status: prev,
-        new_status: newStatus,
-        property_title: p.title,
-        property_slug: p.slug
-      });
-    } finally {
-      // ปลดธงหลังดีเลย์เล็กน้อย กันดับเบิลคลิก
-      setTimeout(() => notifyingSet.delete(key), 1500);
-    }
-  });
-  tdStatus.append(select);
+  // 🔔 แจ้ง LINE (กันยิงซ้ำด้วย Set)
+  const key = `lead-${lead.id}-${prev}->${newStatus}`;
+  if (notifyingSet.has(key)) return;
+  notifyingSet.add(key);
+
+  try {
+    await notifyLeadStatusChange({
+      lead_id: lead.id,
+      name: lead.name,
+      phone: lead.phone,
+      old_status: prev,
+      new_status: newStatus,
+      ...propertyCellInfo(lead) // เอา title/slug ไปด้วย
+    });
+  } catch (e) {
+    console.warn('notifyLeadStatusChange failed', e);
+  } finally {
+    setTimeout(() => notifyingSet.delete(key), 1500);
+  }
+});
+
+tdStatus.append(select);
+
 
   tr.append(tdDate, tdName, tdPhone, tdProp, tdNote, tdStatus);
   tableBody.append(tr);
