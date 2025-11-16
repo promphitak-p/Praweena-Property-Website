@@ -592,7 +592,7 @@ function closeModal() {
     if (propertyForm.elements.id) propertyForm.elements.id.value = '';
   }
 
-    const poiList = document.getElementById('poi-candidate-list');
+  const poiList = document.getElementById('poi-candidate-list');
   if (poiList) poiList.innerHTML = '';
 
   // เคลียร์สเปก / ทีมช่างในโมดัล
@@ -606,7 +606,7 @@ function closeModal() {
   renderGalleryPreview();
   currentYoutube = [];
   renderYoutubeList();
-}
+  }
 
 
 function installModalCloseHandlers() {
@@ -708,8 +708,10 @@ async function loadProperties() {
         // โหลด POI ที่บันทึกไว้
         await loadPoisForProperty(p.id, p.latitude, p.longitude);
 
-        // โหลดสเปก + ทีมช่าง ให้พร้อมใช้เลย
+        // โหลดสเปกรีโนเวทของบ้านหลังนี้
         await loadSpecsForProperty(p.id);
+
+        // โหลดทีมช่างของบ้านหลังนี้
         await loadContractorsForProperty(p.id);
       });
 
