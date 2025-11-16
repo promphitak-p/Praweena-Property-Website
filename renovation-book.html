@@ -10,6 +10,33 @@
   <link rel="stylesheet" href="/assets/css/layout.css"/>
   <link rel="stylesheet" href="/assets/css/components.css"/>
 
+    <style>
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      /* ซ่อน header / เมนู / ปุ่มต่าง ๆ ตอนพิมพ์ */
+      .header,
+      #mobile-nav-toggle,
+      #sign-out-btn,
+      .btn,
+      #rb-print-btn {
+        display: none !important;
+      }
+
+      main.container {
+        max-width: 100%;
+        padding: 0 1.5rem;
+      }
+
+      .card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb;
+      }
+    }
+  </style>
+
   <!-- Favicon -->
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
@@ -45,7 +72,10 @@
           กำลังโหลดข้อมูลบ้าน...
         </p>
       </div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
+        <button id="rb-print-btn" class="btn btn-sm" type="button">
+          🖨️ พิมพ์ / บันทึก PDF
+        </button>
         <a href="/dashboard.html" class="btn btn-secondary btn-sm">← กลับแดชบอร์ด</a>
         <a id="rb-view-detail" class="btn btn-outline btn-sm" target="_blank" style="display:none;">
           ดูหน้าประกาศลูกค้า

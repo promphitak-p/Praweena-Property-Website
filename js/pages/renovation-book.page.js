@@ -327,6 +327,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMobileNav();
   await signOutIfAny();
 
+    // === ปุ่มพิมพ์ / บันทึก PDF ===
+  const printBtn = $('#rb-print-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      // ใช้ระบบ Print ของเบราว์เซอร์ -> เลือก "Save as PDF" ได้
+      window.print();
+    });
+  }
+
   const propertyId = getPropertyIdFromUrl();
   const alertBox = $('#rb-alert');
 
