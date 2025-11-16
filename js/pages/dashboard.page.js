@@ -16,6 +16,9 @@ import { getFormData } from '../ui/forms.js';
 import { $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js';
+import { listSpecsByProperty, upsertSpec, deleteSpec } from '../services/propertySpecsService.js';
+import { listContractorsForProperty, upsertPropertyContractor, deletePropertyContractor } from '../services/propertyContractorsService.js';
+import { upsertContractor } from '../services/contractorsService.js';
 
 // =========== 👇👇 ตั้งค่าตรงนี้ให้ตรงกับ Cloudinary ของกุ้งก่อนนะ 👇👇 ===========
 const CLOUDINARY_CLOUD_NAME = 'dupwjm8q2';        // <- ใส่ชื่อ cloud
@@ -789,5 +792,257 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  setupRenovationTabs();
+  setupAddSpecButton();
+  setupAddPropertyContractorButton();
+
   await loadProperties();
 });
+
+async function loadSpecsForProperty(propertyId) {
+  const container = document.getElementById('specs-list');
+  if (!container) return;
+
+  container.innerHTML = 'กำลังโหลด...';
+
+  try {
+    const specs = await listSpecsByProperty(propertyId);
+
+    if (!specs.length) {
+      container.innerHTML = '<p style="color:#6b7280;">ยังไม่มีสเปกรีโนเวทสำหรับหลังนี้</p>';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'table-compact';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th>โซน</th>
+        <th>ประเภท</th>
+        <th>ยี่ห้อ / รุ่น</th>
+        <th>เบอร์สี / โค้ด</th>
+        <th>ร้าน / ผู้ขาย</th>
+        <th>หมายเหตุ</th>
+        <th></th>
+      </tr>
+    `;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    specs.forEach((s) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${s.zone || ''}</td>
+        <td>${s.item_type || ''}</td>
+        <td>${[s.brand, s.model_or_series].filter(Boolean).join(' / ')}</td>
+        <td>${s.color_code || ''}</td>
+        <td>${s.supplier || ''}</td>
+        <td>${s.note || ''}</td>
+        <td style="text-align:right;">
+          <button data-id="${s.id}" class="btn btn-xs btn-danger spec-delete-btn">ลบ</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    container.innerHTML = '';
+    container.appendChild(table);
+
+    container.querySelectorAll('.spec-delete-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        if (!id) return;
+        if (!confirm('ต้องการลบสเปกนี้หรือไม่?')) return;
+        await deleteSpec(id);
+        await loadSpecsForProperty(propertyId);
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<p style="color:#b91c1c;">โหลดสเปกไม่สำเร็จ: ${err.message || err}</p>`;
+  }
+}
+
+function getCurrentPropertyId() {
+  const form = document.getElementById('property-form');
+  if (!form) return null;
+
+  const raw = form.elements.id?.value;
+  if (!raw) return null;
+
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function setupRenovationTabs() {
+  const modal = document.getElementById('property-modal');
+  if (!modal) return;
+
+  const buttons = modal.querySelectorAll('.card-header .tab-button');
+  const panels = modal.querySelectorAll('.tab-panel');
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const tab = btn.dataset.tab;
+
+      buttons.forEach(b => b.classList.toggle('active', b === btn));
+      panels.forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
+
+      const propertyId = getCurrentPropertyId();
+      if (!propertyId) {
+        // ยังไม่ได้บันทึกประกาศ
+        return;
+      }
+
+      if (tab === 'specs') {
+        await loadSpecsForProperty(propertyId);
+      } else if (tab === 'contractors') {
+        await loadContractorsForProperty(propertyId);
+      }
+    });
+  });
+}
+
+function setupAddSpecButton() {
+  const btn = document.getElementById('btn-add-spec');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const propertyId = getCurrentPropertyId();
+    if (!propertyId) {
+      alert('กรุณาบันทึกประกาศก่อน แล้วจึงเพิ่มสเปกได้');
+      return;
+    }
+
+    const zone = prompt('โซน (เช่น ห้องนั่งเล่น, ครัว, ห้องน้ำบน):');
+    if (!zone) return;
+
+    const itemType = prompt('ประเภท (เช่น สี, กระเบื้อง, สุขภัณฑ์, ไฟ):') || '';
+    const brand = prompt('ยี่ห้อ (เช่น TOA, Beger, COTTO):') || '';
+    const model = prompt('รุ่น / ซีรีส์ (ถ้ามี):') || '';
+    const color = prompt('เบอร์สี / โค้ด (ถ้ามี):') || '';
+    const supplier = prompt('ซื้อจากร้านไหน (ถ้ามี):') || '';
+    const note = prompt('หมายเหตุ (เช่น ผสม A:B 50:50 ฯลฯ):') || '';
+
+    await upsertSpec({
+      property_id: propertyId,
+      zone,
+      item_type: itemType,
+      brand,
+      model_or_series: model,
+      color_code: color,
+      supplier,
+      note,
+    });
+
+    await loadSpecsForProperty(propertyId);
+  });
+}
+
+async function loadContractorsForProperty(propertyId) {
+  const container = document.getElementById('property-contractors-list');
+  if (!container) return;
+
+  container.innerHTML = 'กำลังโหลด...';
+
+  try {
+    const links = await listContractorsForProperty(propertyId);
+
+    if (!links.length) {
+      container.innerHTML = '<p style="color:#6b7280;">ยังไม่ได้ผูกทีมช่างกับบ้านหลังนี้</p>';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'table-compact';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th>ชื่อช่าง</th>
+        <th>สายงาน</th>
+        <th>เบอร์ติดต่อ</th>
+        <th>ขอบเขตงาน</th>
+        <th>รับประกัน (เดือน)</th>
+        <th></th>
+      </tr>
+    `;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    links.forEach((link) => {
+      const c = link.contractor || {};
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${c.name || ''}</td>
+        <td>${c.trade || ''}</td>
+        <td>${c.phone || ''}</td>
+        <td>${link.scope || ''}</td>
+        <td>${link.warranty_months ?? ''}</td>
+        <td style="text-align:right;">
+          <button data-id="${link.id}" class="btn btn-xs btn-danger contractor-delete-btn">ลบ</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    container.innerHTML = '';
+    container.appendChild(table);
+
+    container.querySelectorAll('.contractor-delete-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        if (!id) return;
+        if (!confirm('ต้องการลบทีมช่างนี้ออกจากบ้านหลังนี้หรือไม่?')) return;
+        await deletePropertyContractor(id);
+        await loadContractorsForProperty(propertyId);
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<p style="color:#b91c1c;">โหลดทีมช่างไม่สำเร็จ: ${err.message || err}</p>`;
+  }
+}
+
+function setupAddPropertyContractorButton() {
+  const btn = document.getElementById('btn-add-property-contractor');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const propertyId = getCurrentPropertyId();
+    if (!propertyId) {
+      alert('กรุณาบันทึกประกาศก่อน แล้วจึงเพิ่มทีมช่างได้');
+      return;
+    }
+
+    const name = prompt('ชื่อช่าง:');
+    if (!name) return;
+
+    const trade = prompt('สายงาน (เช่น ปูกระเบื้อง, ทาสี, ระบบน้ำ):') || '';
+    const phone = prompt('เบอร์ติดต่อช่าง (ถ้ามี):') || '';
+    const scope = prompt('ขอบเขตงานในบ้านหลังนี้ (เช่น ปูกระเบื้องชั้นล่าง):') || '';
+    const warrantyStr = prompt('ระยะเวลารับประกันงาน (เดือน, ถ้าไม่มีกด Enter ข้าม):') || '';
+    const warranty = warrantyStr ? Number(warrantyStr) : null;
+
+    const contractor = await upsertContractor({
+      name,
+      phone,
+      trade,
+    });
+
+    await upsertPropertyContractor({
+      property_id: propertyId,
+      contractor_id: contractor.id,
+      scope,
+      warranty_months: warranty,
+    });
+
+    await loadContractorsForProperty(propertyId);
+  });
+}
