@@ -177,6 +177,30 @@
           <label><input type="checkbox" name="published" style="margin-right:8px;">เผยแพร่ทันที</label>
         </div>
 
+
+        <!-- Renovation Details Tabs -->
+        <div class="card" style="margin-top:2rem;">
+          <div class="card-header">
+            <button class="tab-button active" data-tab="specs">สเปกรีโนเวท</button>
+            <button class="tab-button" data-tab="contractors">ทีมช่าง</button>
+          </div>
+
+          <div class="card-body">
+            <div id="tab-specs" class="tab-panel active">
+              <div id="specs-list"></div>
+              <button id="btn-add-spec" class="btn btn-sm btn-primary">+ เพิ่มสเปก</button>
+            </div>
+
+            <div id="tab-contractors" class="tab-panel">
+              <div id="property-contractors-list"></div>
+              <button id="btn-add-property-contractor" class="btn btn-sm btn-primary">
+                + เพิ่มทีมช่างให้หลังนี้
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- /Renovation Details Tabs -->
+
         <div style="text-align:right;">
           <button type="button" class="btn btn-secondary modal-cancel">ยกเลิก</button>
           <button type="submit" class="btn">บันทึก</button>
