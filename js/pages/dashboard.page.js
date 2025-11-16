@@ -591,8 +591,15 @@ function closeModal() {
     propertyForm.reset();
     if (propertyForm.elements.id) propertyForm.elements.id.value = '';
   }
-  const poiList = document.getElementById('poi-candidate-list');
+
+    const poiList = document.getElementById('poi-candidate-list');
   if (poiList) poiList.innerHTML = '';
+
+  // เคลียร์สเปก / ทีมช่างในโมดัล
+  const specsList = document.getElementById('specs-list');
+  if (specsList) specsList.innerHTML = '';
+  const contractorsList = document.getElementById('property-contractors-list');
+  if (contractorsList) contractorsList.innerHTML = '';
 
   // reset รูป / youtube ทุกครั้งที่ปิด
   currentGallery = [];
@@ -600,6 +607,7 @@ function closeModal() {
   currentYoutube = [];
   renderYoutubeList();
 }
+
 
 function installModalCloseHandlers() {
   document.querySelectorAll('#property-modal .modal-close').forEach(btn => {
@@ -696,8 +704,15 @@ async function loadProperties() {
         openModal();
         fillFormFromProperty(p);
         setTimeout(() => setupModalMap(p.latitude, p.longitude), 80);
+
+        // โหลด POI ที่บันทึกไว้
         await loadPoisForProperty(p.id, p.latitude, p.longitude);
+
+        // โหลดสเปก + ทีมช่าง ให้พร้อมใช้เลย
+        await loadSpecsForProperty(p.id);
+        await loadContractorsForProperty(p.id);
       });
+
 
       tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(p.id, p.title));
 

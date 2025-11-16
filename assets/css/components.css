@@ -526,3 +526,40 @@ tbody tr:last-child td{ border-bottom:none; }
 @media (hover:none) and (pointer:coarse) {
   /* mobile เห็น messenger ได้ */
 }
+
+.card {
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  margin-top: 1rem;
+}
+
+.card-header {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  background: #fff;
+  border-bottom: 2px solid #f59e0b;
+  font-weight: 600;
+}
+
+.tab-panel {
+  display: none;
+  padding: 1rem;
+}
+
+.tab-panel.active {
+  display: block;
+}
