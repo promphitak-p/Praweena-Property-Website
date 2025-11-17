@@ -528,7 +528,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupRbModal();
   setupAddButtons();
   setupPrintButton();
-  setupReportButton();
+  setupReportOverlay();
 
   const params = new URLSearchParams(window.location.search);
   const propertyIdParam = params.get('property_id');
