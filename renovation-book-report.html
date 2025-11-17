@@ -2,140 +2,219 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>รายงานสมุดรีโนเวทบ้าน - Praweena Property</title>
+  <title>สมุดรีโนเวทบ้าน | Praweena Property</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- ใช้สไตล์หลักชุดเดิมของเว็บ (ถ้าชื่อไฟล์ไม่ตรง ปรับตามโปรเจ็กต์ได้เลย) -->
-  <link rel="stylesheet" href="/assets/css/app.css" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
 
   <style>
-    /* layout หลักของหน้ารายงาน */
     body {
-      background: #f3f4f6;
-    }
-    main.report-container {
-      max-width: 900px;
-      margin: 2rem auto;
-      background: #fff;
-      padding: 2rem 2.5rem;
-      border-radius: 16px;
-      box-shadow: 0 15px 40px rgba(15, 23, 42, 0.12);
-    }
-    .report-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-    .report-title-block h1 {
-      margin: 0 0 .25rem 0;
-      font-size: 1.4rem;
-    }
-    .report-title-block p {
-      margin: 0;
-      color: #4b5563;
-      font-size: .9rem;
-    }
-    .report-meta {
-      text-align: right;
-      font-size: .85rem;
-      color: #6b7280;
-    }
-    .report-section {
-      margin-top: 1.75rem;
-    }
-    .report-section h2 {
-      font-size: 1.05rem;
-      margin: 0 0 .75rem 0;
-      border-bottom: 1px solid #e5e7eb;
-      padding-bottom: .4rem;
-    }
-    .report-note {
-      font-size: .85rem;
-      color: #6b7280;
-      margin-top: .5rem;
-    }
-    .table-report {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: .9rem;
-    }
-    .table-report thead {
-      background: #f9fafb;
-    }
-    .table-report th,
-    .table-report td {
-      border: 1px solid #e5e7eb;
-      padding: .4rem .5rem;
-      vertical-align: top;
-    }
-    .table-report th {
-      text-align: left;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .zone-label {
-      font-weight: 600;
-      color: #374151;
-    }
-    .brand-text {
-      font-weight: 500;
-    }
-    .print-toolbar {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 1rem;
-      gap: .5rem;
-    }
-    .print-toolbar .btn {
-      font-size: .85rem;
-      padding: .35rem .9rem;
-    }
-    .report-footer {
-      margin-top: 2rem;
-      font-size: .8rem;
-      color: #9ca3af;
-      text-align: right;
+      background:#f3f4f6;
     }
 
-    /* ซ่อน toolbar / header ตอนสั่งพิมพ์ */
+    .report-shell {
+      max-width: 960px;
+      margin: 2.5rem auto;
+      padding: 2.25rem 2.5rem;
+      background:#ffffff;
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(15,23,42,0.10);
+      font-size: 14px;
+      color:#111827;
+    }
+
+    .report-header-top {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      margin-bottom:1.5rem;
+    }
+
+    .report-brand {
+      display:flex;
+      align-items:center;
+      gap:.75rem;
+    }
+
+    .report-brand-logo {
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      overflow:hidden;
+      background:#fef3c7;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .report-brand-logo img {
+      max-width:100%;
+      max-height:100%;
+      object-fit:contain;
+    }
+
+    .report-brand-text-small {
+      font-size:.8rem;
+      color:#6b7280;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+
+    .report-title-main {
+      font-size:1.45rem;
+      font-weight:700;
+      margin:0;
+    }
+
+    .report-actions {
+      display:flex;
+      gap:.5rem;
+    }
+
+    .report-actions .btn {
+      font-size:.8rem;
+    }
+
+    .report-section {
+      margin-top:1.75rem;
+    }
+
+    .report-section-title {
+      font-size:1rem;
+      font-weight:600;
+      margin:0 0 .5rem 0;
+    }
+
+    .report-section-sub {
+      font-size:.8rem;
+      color:#6b7280;
+      margin:0 0 1rem 0;
+    }
+
+    .report-property-summary {
+      border-radius:14px;
+      border:1px solid #e5e7eb;
+      padding:1.25rem 1.5rem;
+      background:#f9fafb;
+      margin-bottom:1.25rem;
+    }
+
+    .report-property-summary-title {
+      font-size:1.05rem;
+      font-weight:600;
+      margin:0 0 .35rem 0;
+    }
+
+    .report-summary-grid {
+      display:grid;
+      grid-template-columns: minmax(0,2fr) minmax(0,1.3fr);
+      gap:.75rem 1.25rem;
+      font-size:.85rem;
+      color:#374151;
+    }
+
+    .report-label {
+      font-size:.8rem;
+      color:#6b7280;
+    }
+
+    .report-value-strong {
+      font-weight:600;
+      color:#111827;
+    }
+
+    .report-pill {
+      display:inline-block;
+      padding:.15rem .55rem;
+      border-radius:999px;
+      font-size:.75rem;
+      border:1px solid #d1d5db;
+      background:#f9fafb;
+      color:#4b5563;
+      margin-top:.2rem;
+    }
+
+    .report-table-wrapper {
+      border-radius:14px;
+      border:1px solid #e5e7eb;
+      overflow:hidden;
+    }
+
+    .report-table-wrapper + .report-footnote {
+      margin-top:.35rem;
+    }
+
+    .report-table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:.82rem;
+    }
+
+    .report-table thead {
+      background:#f3f4f6;
+    }
+
+    .report-table th,
+    .report-table td {
+      padding:.55rem .75rem;
+      border-bottom:1px solid #e5e7eb;
+      text-align:left;
+      vertical-align:top;
+    }
+
+    .report-table th {
+      font-weight:600;
+      color:#374151;
+      white-space:nowrap;
+    }
+
+    .report-table tbody tr:nth-child(even) {
+      background:#fafafa;
+    }
+
+    .report-footnote {
+      font-size:.75rem;
+      color:#9ca3af;
+    }
+
+    .report-footer {
+      margin-top:2.25rem;
+      padding-top:1rem;
+      border-top:1px dashed #e5e7eb;
+      font-size:.75rem;
+      color:#9ca3af;
+      text-align:right;
+    }
+
+    /* ปุ่มและ navbar ไม่ต้องพิมพ์ลง PDF */
     @media print {
       body {
-        background: #fff;
+        background:#ffffff;
       }
-      main.report-container {
-        margin: 0;
-        max-width: 100%;
-        box-shadow: none;
-        border-radius: 0;
-      }
-      .print-toolbar {
-        display: none !important;
-      }
-      /* ถ้ามี header/nav ของเว็บให้ซ่อนไว้ตอน print */
       header,
       nav,
-      .site-header,
-      .top-nav {
-        display: none !important;
+      .report-actions {
+        display:none !important;
+      }
+      .report-shell {
+        margin:0;
+        padding:0;
+        max-width:100%;
+        border-radius:0;
+        box-shadow:none;
       }
     }
   </style>
 </head>
+
 <body>
-  <!-- ถ้าอยากใช้ navbar เดิม ให้มี container แล้วเรียก setupNav() จาก JS -->
   <header id="site-header"></header>
 
-  <main class="report-container">
-    <div class="print-toolbar">
-      <button id="report-back-btn" class="btn btn-outline">← กลับสมุดรีโนเวท</button>
-      <button id="report-print-btn" class="btn btn-primary">พิมพ์ / Export PDF</button>
-    </div>
-
-    <div id="report-root">
-      <!-- JS จะมา render เนื้อหาในนี้ -->
-      <p style="color:#6b7280;">กำลังโหลดรายงานสมุดรีโนเวท...</p>
+  <main class="container">
+    <div class="report-shell" id="rb-report-root">
+      <!-- ส่วนนี้ JS จะเติมเนื้อหาให้ -->
+      <div style="color:#6b7280;">กำลังโหลดสมุดรีโนเวท...</div>
     </div>
   </main>
 
