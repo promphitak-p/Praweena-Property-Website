@@ -485,6 +485,26 @@ function setupAddButtons() {
   });
 }
 
+// -------------------- ปุ่มไปหน้ารายงาน --------------------
+function setupReportButton() {
+  const btn = $('#rb-report-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    if (!currentPropertyId) {
+      toast('กรุณาเลือกบ้านจากรายการก่อน', 2500, 'error');
+      return;
+    }
+
+    const url = `/renovation-book-report.html?property_id=${encodeURIComponent(
+      currentPropertyId
+    )}`;
+    // จะให้เปิดแท็บใหม่
+    window.open(url, '_blank');
+    // ถ้าอยากให้ไปแท็บเดิมใช้: window.location.href = url;
+  });
+}
+
 // -------------------- Print / PDF --------------------
 function setupPrintButton() {
   const btn = $('#rb-print-btn');
@@ -512,6 +532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupRbModal();
   setupAddButtons();
   setupPrintButton();
+  setupReportButton();
 
   const params = new URLSearchParams(window.location.search);
   const propertyIdParam = params.get('property_id');
