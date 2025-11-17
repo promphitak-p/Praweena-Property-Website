@@ -1,223 +1,253 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <title>สมุดรีโนเวทบ้าน | Praweena Property</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <head>
+    <meta charset="utf-8" />
+    <title>สมุดรีโนเวทบ้าน | Praweena Property</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --brand: #c49a5a;
+        --text-main: #111827;
+        --text-muted: #6b7280;
+        --border-subtle: #e5e7eb;
+        --bg-soft: #f9fafb;
+      }
 
-  <link rel="stylesheet" href="/assets/css/styles.css" />
+      * {
+        box-sizing: border-box;
+      }
 
-  <style>
-    body {
-      background:#f3f4f6;
-    }
-
-    .report-shell {
-      max-width: 960px;
-      margin: 2.5rem auto;
-      padding: 2.25rem 2.5rem;
-      background:#ffffff;
-      border-radius: 18px;
-      box-shadow: 0 20px 45px rgba(15,23,42,0.10);
-      font-size: 14px;
-      color:#111827;
-    }
-
-    .report-header-top {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:1rem;
-      margin-bottom:1.5rem;
-    }
-
-    .report-brand {
-      display:flex;
-      align-items:center;
-      gap:.75rem;
-    }
-
-    .report-brand-logo {
-      width:40px;
-      height:40px;
-      border-radius:12px;
-      overflow:hidden;
-      background:#fef3c7;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .report-brand-logo img {
-      max-width:100%;
-      max-height:100%;
-      object-fit:contain;
-    }
-
-    .report-brand-text-small {
-      font-size:.8rem;
-      color:#6b7280;
-      letter-spacing:.04em;
-      text-transform:uppercase;
-    }
-
-    .report-title-main {
-      font-size:1.45rem;
-      font-weight:700;
-      margin:0;
-    }
-
-    .report-actions {
-      display:flex;
-      gap:.5rem;
-    }
-
-    .report-actions .btn {
-      font-size:.8rem;
-    }
-
-    .report-section {
-      margin-top:1.75rem;
-    }
-
-    .report-section-title {
-      font-size:1rem;
-      font-weight:600;
-      margin:0 0 .5rem 0;
-    }
-
-    .report-section-sub {
-      font-size:.8rem;
-      color:#6b7280;
-      margin:0 0 1rem 0;
-    }
-
-    .report-property-summary {
-      border-radius:14px;
-      border:1px solid #e5e7eb;
-      padding:1.25rem 1.5rem;
-      background:#f9fafb;
-      margin-bottom:1.25rem;
-    }
-
-    .report-property-summary-title {
-      font-size:1.05rem;
-      font-weight:600;
-      margin:0 0 .35rem 0;
-    }
-
-    .report-summary-grid {
-      display:grid;
-      grid-template-columns: minmax(0,2fr) minmax(0,1.3fr);
-      gap:.75rem 1.25rem;
-      font-size:.85rem;
-      color:#374151;
-    }
-
-    .report-label {
-      font-size:.8rem;
-      color:#6b7280;
-    }
-
-    .report-value-strong {
-      font-weight:600;
-      color:#111827;
-    }
-
-    .report-pill {
-      display:inline-block;
-      padding:.15rem .55rem;
-      border-radius:999px;
-      font-size:.75rem;
-      border:1px solid #d1d5db;
-      background:#f9fafb;
-      color:#4b5563;
-      margin-top:.2rem;
-    }
-
-    .report-table-wrapper {
-      border-radius:14px;
-      border:1px solid #e5e7eb;
-      overflow:hidden;
-    }
-
-    .report-table-wrapper + .report-footnote {
-      margin-top:.35rem;
-    }
-
-    .report-table {
-      width:100%;
-      border-collapse:collapse;
-      font-size:.82rem;
-    }
-
-    .report-table thead {
-      background:#f3f4f6;
-    }
-
-    .report-table th,
-    .report-table td {
-      padding:.55rem .75rem;
-      border-bottom:1px solid #e5e7eb;
-      text-align:left;
-      vertical-align:top;
-    }
-
-    .report-table th {
-      font-weight:600;
-      color:#374151;
-      white-space:nowrap;
-    }
-
-    .report-table tbody tr:nth-child(even) {
-      background:#fafafa;
-    }
-
-    .report-footnote {
-      font-size:.75rem;
-      color:#9ca3af;
-    }
-
-    .report-footer {
-      margin-top:2.25rem;
-      padding-top:1rem;
-      border-top:1px dashed #e5e7eb;
-      font-size:.75rem;
-      color:#9ca3af;
-      text-align:right;
-    }
-
-    /* ปุ่มและ navbar ไม่ต้องพิมพ์ลง PDF */
-    @media print {
       body {
-        background:#ffffff;
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+        background: #f3f4f6;
+        color: var(--text-main);
       }
-      header,
-      nav,
-      .report-actions {
-        display:none !important;
-      }
-      .report-shell {
-        margin:0;
-        padding:0;
-        max-width:100%;
-        border-radius:0;
-        box-shadow:none;
-      }
-    }
-  </style>
-</head>
 
-<body>
-  <header id="site-header"></header>
+      .rbr-shell {
+        min-height: 100vh;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+      }
 
-  <main class="container">
-    <div class="report-shell" id="rb-report-root">
-      <!-- ส่วนนี้ JS จะเติมเนื้อหาให้ -->
-      <div style="color:#6b7280;">กำลังโหลดสมุดรีโนเวท...</div>
+      .rbr-page {
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+        max-width: 920px;
+        width: 100%;
+        padding: 1.75rem 2rem 1.75rem;
+      }
+
+      .rbr-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 1.25rem;
+      }
+
+      .rbr-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .rbr-logo-mark {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f9e7c3, #c49a5a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #7c4d10;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+
+      .rbr-title-main {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0 0 0.1rem;
+      }
+
+      .rbr-title-sub {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .rbr-meta {
+        text-align: right;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+
+      .rbr-section-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #4b5563;
+        margin: 1rem 0 0.5rem;
+      }
+
+      .rbr-summary-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1rem;
+      }
+
+      .rbr-summary-card {
+        background: var(--bg-soft);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+      }
+
+      .rbr-summary-title {
+        font-weight: 600;
+        margin: 0 0 0.4rem;
+      }
+
+      .rbr-summary-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.85rem;
+      }
+
+      .rbr-summary-list li + li {
+        margin-top: 0.15rem;
+      }
+
+      .rbr-summary-label {
+        color: var(--text-muted);
+      }
+
+      .rbr-price {
+        font-weight: 600;
+        color: #b45309;
+        font-size: 0.95rem;
+      }
+
+      table.rbr-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+        margin: 0.3rem 0 0.75rem;
+      }
+
+      .rbr-table thead {
+        background: #fdf7ec;
+      }
+
+      .rbr-table th,
+      .rbr-table td {
+        padding: 0.5rem 0.6rem;
+        border: 1px solid var(--border-subtle);
+        vertical-align: top;
+      }
+
+      .rbr-table th {
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .rbr-table td {
+        color: #374151;
+      }
+
+      .rbr-note {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin: 0.25rem 0 0.75rem;
+      }
+
+      .rbr-footer {
+        border-top: 1px dashed var(--border-subtle);
+        margin-top: 1rem;
+        padding-top: 0.6rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      @media print {
+        body {
+          background: #ffffff;
+        }
+        .rbr-shell {
+          padding: 0.5rem;
+        }
+        .rbr-page {
+          box-shadow: none;
+          border-radius: 0;
+          max-width: none;
+          padding: 1.2rem 1.5rem;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .rbr-page {
+          padding: 1.25rem 1rem;
+        }
+        .rbr-summary-grid {
+          grid-template-columns: 1fr;
+        }
+        .rbr-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .rbr-meta {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="rbr-shell">
+      <article class="rbr-page">
+        <header class="rbr-header">
+          <div class="rbr-logo">
+            <div class="rbr-logo-mark">P</div>
+            <div>
+              <p class="rbr-title-main">สมุดรีโนเวทบ้าน</p>
+              <p class="rbr-title-sub">Praweena Property – Renovation Specification</p>
+            </div>
+          </div>
+          <div class="rbr-meta" id="rbr-meta"></div>
+        </header>
+
+        <section>
+          <div class="rbr-summary-grid">
+            <div class="rbr-summary-card" id="rbr-summary-main"></div>
+            <div class="rbr-summary-card" id="rbr-summary-extra"></div>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="rbr-section-title">สเปกรีโนเวท (วัสดุ / สี / สุขภัณฑ์ ฯลฯ)</h3>
+          <div id="rbr-specs"></div>
+        </section>
+
+        <section>
+          <h3 class="rbr-section-title">ทีมช่างที่ทำงานในบ้านหลังนี้</h3>
+          <div id="rbr-contractors"></div>
+        </section>
+
+        <footer class="rbr-footer">
+          เอกสารนี้จัดทำโดย Praweena Property (สำหรับใช้ภายใน / ประกอบการซื้อขายและดูแลบ้านลูกค้า)
+        </footer>
+      </article>
     </div>
-  </main>
 
-  <script type="module" src="/js/pages/renovation-book-report.page.js"></script>
-</body>
+    <script type="module" src="/js/pages/renovation-book-report.page.js"></script>
+  </body>
 </html>

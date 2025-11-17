@@ -1,19 +1,18 @@
+// js/pages/renovation-book-report.page.js
 // --------------------------------------------------
-// หน้ารายงาน "สมุดรีโนเวทบ้าน" (สำหรับ Print / PDF)
-// - ใช้ดูอย่างเดียว ไม่มีปุ่มลบ/แก้ไข
-// - ดึงข้อมูลบ้าน + สเปกรีโนเวท + ทีมช่าง ตาม property_id
+// หน้า "รายงานสมุดรีโนเวท" (ใช้แสดงใน iframe + พิมพ์/Export PDF)
+// - ดึง property_id จาก query string
+// - โหลดข้อมูลบ้าน, สเปกรีโนเวท, ทีมช่าง
+// - เรนเดอร์ใส่ element: #rbr-meta, #rbr-summary-main,
+//   #rbr-summary-extra, #rbr-specs, #rbr-contractors
 // --------------------------------------------------
-import { setupMobileNav } from '../ui/mobileNav.js';
-import { protectPage } from '../auth/guard.js';
-import { signOutIfAny } from '../auth/auth.js';
-import { setupNav } from '../utils/config.js';
 import { formatPrice } from '../utils/format.js';
 import { listAll } from '../services/propertiesService.js';
 import { listSpecsByProperty } from '../services/propertySpecsService.js';
 import { listContractorsForProperty } from '../services/propertyContractorsService.js';
 import { $, clear } from '../ui/dom.js';
-import { toast } from '../ui/toast.js';
 
+// -------- helper: หา property ตาม id จาก listAll --------
 async function fetchPropertyById(id) {
   const { data, error } = await listAll();
   if (error) throw error;
@@ -21,310 +20,263 @@ async function fetchPropertyById(id) {
   return data.find((p) => String(p.id) === String(id)) || null;
 }
 
-function renderSkeleton() {
-  const root = $('#rb-report-root');
-  if (!root) return;
-  root.innerHTML = `<div style="color:#6b7280;">กำลังโหลดสมุดรีโนเวท...</div>`;
+// -------- helper: format วันที่/เวลา --------
+function formatDateTimeTH(d) {
+  try {
+    const dt = d instanceof Date ? d : new Date(d);
+    const date = dt.toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    const time = dt.toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${date} • ${time} น.`;
+  } catch {
+    return '';
+  }
 }
 
-// ----------------- ส่วนหัวรายงาน -----------------
-function renderHeaderShell() {
-  const root = $('#rb-report-root');
-  if (!root) return;
-
-  clear(root);
-
-  const wrapper = document.createElement('div');
-
-  wrapper.innerHTML = `
-    <div class="report-header-top">
-      <div class="report-brand">
-        <div class="report-brand-logo">
-          <img src="/assets/img/logo-square.png" alt="Praweena Property" onerror="this.style.display='none';">
-        </div>
-        <div>
-          <div class="report-brand-text-small">Praweena Property</div>
-          <h1 class="report-title-main">สมุดรีโนเวทบ้าน</h1>
-        </div>
-      </div>
-
-      <div class="report-actions">
-        <button id="rb-report-back-btn" class="btn btn-outline">
-          ← กลับสมุดรีโนเวท
-        </button>
-        <button id="rb-report-print-btn" class="btn btn-primary">
-          🖨️ พิมพ์ / Export PDF
-        </button>
-      </div>
-    </div>
-
-    <section class="report-section" id="rb-report-property"></section>
-
-    <section class="report-section">
-      <h2 class="report-section-title">สเปกรีโนเวท (วัสดุ / สี / สุขภัณฑ์ ฯลฯ)</h2>
-      <p class="report-section-sub">
-        สรุปรายการวัสดุหลักที่ใช้ในการรีโนเวทบ้านหลังนี้ เพื่อใช้สำหรับอ้างอิงในอนาคต
-      </p>
-      <div id="rb-report-specs"></div>
-    </section>
-
-    <section class="report-section">
-      <h2 class="report-section-title">ทีมช่างที่ทำงานในบ้านหลังนี้</h2>
-      <p class="report-section-sub">
-        รายชื่อทีมงานหลักของบ้านหลังนี้ เพื่อให้ติดต่อได้ง่ายหากต้องการดูผลงานหรือมีการรับประกันงาน
-      </p>
-      <div id="rb-report-contractors"></div>
-    </section>
-
-    <div class="report-footer">
-      เอกสารสร้างโดย Praweena Property (สำหรับใช้ภายใน / แนบให้ลูกค้าเพื่อการอ้างอิงในอนาคต)
-    </div>
-  `;
-
-  root.appendChild(wrapper);
-}
-
-// ----------------- แสดงข้อมูลบ้าน -----------------
-function renderPropertySummary(property) {
-  const box = $('#rb-report-property');
+// -------- 1) META ด้านขวาหัวกระดาษ --------
+function renderMeta(property) {
+  const box = $('#rbr-meta');
   if (!box) return;
 
+  const nowText = formatDateTimeTH(new Date());
+  const code = property.slug || `ID: ${property.id}`;
+
   box.innerHTML = `
-    <div class="report-property-summary">
-      <div class="report-property-summary-title">
-        ${property.title || '-'}
-      </div>
-
-      <div class="report-summary-grid">
-        <div>
-          <div class="report-label">ที่อยู่</div>
-          <div>
-            ${[
-              property.address,
-              property.subdistrict,
-              property.district,
-              property.province,
-            ].filter(Boolean).join(' ')}
-          </div>
-        </div>
-
-        <div>
-          <div class="report-label">ข้อมูลหลักของบ้าน</div>
-          <div class="report-value-strong">
-            ขนาด: ${property.size_text || '-'}
-          </div>
-          <div>
-            ${property.beds ?? '-'} ห้องนอน •
-            ${property.baths ?? '-'} ห้องน้ำ •
-            ที่จอดรถ ${property.parking ?? '-'}
-          </div>
-          <div style="margin-top:.35rem;">
-            <span class="report-label">ราคาขาย</span><br>
-            <span class="report-value-strong">
-              ${formatPrice(Number(property.price) || 0)}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div>${nowText}</div>
+    <div>รหัสทรัพย์: <strong>${code}</strong></div>
   `;
 }
 
+// -------- 2) SUMMARY กล่องซ้าย/ขวา ด้านบน --------
+function renderSummary(property) {
+  const main = $('#rbr-summary-main');
+  const extra = $('#rbr-summary-extra');
+  if (!main || !extra) return;
 
-// ----------------- สเปกรีโนเวท -----------------
+  // กล่องซ้าย: ข้อมูลบ้านหลัก
+  main.innerHTML = `
+    <h3 class="rbr-summary-title">ข้อมูลบ้าน</h3>
+    <ul class="rbr-summary-list">
+      <li><span class="rbr-summary-label">ชื่อบ้าน:</span> ${property.title || '-'}</li>
+      <li><span class="rbr-summary-label">ที่อยู่:</span> ${[
+        property.address,
+        property.district,
+        property.province,
+      ].filter(Boolean).join(' ') || '-'}</li>
+      <li><span class="rbr-summary-label">ขนาด:</span> ${property.size_text || '-'}</li>
+      <li>
+        <span class="rbr-summary-label">ฟังก์ชัน:</span>
+        ${property.beds ?? '-'} นอน • ${property.baths ?? '-'} น้ำ • ที่จอดรถ ${property.parking ?? '-'}
+      </li>
+    </ul>
+  `;
+
+  // กล่องขวา: ราคา + สรุปสั้น ๆ
+  extra.innerHTML = `
+    <h3 class="rbr-summary-title">ข้อมูลราคา</h3>
+    <ul class="rbr-summary-list">
+      <li>
+        <span class="rbr-summary-label">ราคาขาย:</span>
+        <span class="rbr-price">${formatPrice(Number(property.price) || 0)}</span>
+      </li>
+      <li><span class="rbr-summary-label">จังหวัด:</span> ${property.province || '-'}</li>
+      <li><span class="rbr-summary-label">รหัสทรัพย์:</span> ${property.slug || property.id}</li>
+    </ul>
+    <p class="rbr-note">
+      *ข้อมูลนี้ใช้สำหรับอ้างอิงวัสดุและทีมช่างที่ใช้ในการรีโนเวทบ้านหลังนี้
+    </p>
+  `;
+}
+
+// -------- 3) ตารางสเปกรีโนเวท --------
 async function renderSpecs(propertyId) {
-  const container = $('#rb-report-specs');
-  if (!container) return;
+  const box = $('#rbr-specs');
+  if (!box) return;
 
-  container.innerHTML = `<p style="color:#6b7280;">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>`;
+  box.innerHTML = `<p class="rbr-note">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>`;
 
   try {
     const specs = await listSpecsByProperty(propertyId);
 
-    if (!specs.length) {
-      container.innerHTML = `<p style="color:#9ca3af;">ยังไม่ได้บันทึกสเปกรีโนเวทสำหรับบ้านหลังนี้</p>`;
+    if (!specs || !specs.length) {
+      box.innerHTML = `<p class="rbr-note">ยังไม่ได้บันทึกสเปกรีโนเวทสำหรับบ้านหลังนี้</p>`;
       return;
     }
 
-    // เรียงตามโซนก่อน
-    specs.sort((a, b) => (a.zone || '').localeCompare(b.zone || '', 'th'));
-
-    const wrap = document.createElement('div');
-    wrap.className = 'report-table-wrapper';
+    // จัดเรียงให้ดูเป็นระเบียบ: zone > item_type
+    specs.sort((a, b) => {
+      const za = (a.zone || '').localeCompare(b.zone || '', 'th');
+      if (za !== 0) return za;
+      return (a.item_type || '').localeCompare(b.item_type || '', 'th');
+    });
 
     const table = document.createElement('table');
-    table.className = 'report-table';
+    table.className = 'rbr-table';
 
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th style="width:16%;">โซน</th>
-          <th style="width:14%;">ประเภทงาน</th>
-          <th>วัสดุ / ยี่ห้อ / รุ่น / เบอร์สี</th>
-          <th style="width:18%;">ร้าน / ผู้ขาย</th>
-          <th style="width:18%;">หมายเหตุ</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th style="width:18%;">โซน</th>
+        <th style="width:16%;">ประเภท</th>
+        <th>ยี่ห้อ / รุ่น / เบอร์สี</th>
+        <th style="width:18%;">ร้าน / ผู้ขาย</th>
+        <th style="width:18%;">หมายเหตุ</th>
+      </tr>
     `;
+    table.appendChild(thead);
 
-    const tbody = table.querySelector('tbody');
+    const tbody = document.createElement('tbody');
 
     specs.forEach((s) => {
-      const matParts = [s.brand, s.model_or_series, s.color_code && `เบอร์สี ${s.color_code}`]
-        .filter(Boolean);
-      const mat = matParts.length ? matParts.join(' / ') : '-';
+      const mat = [
+        s.brand,
+        s.model_or_series,
+        s.color_code && `(${s.color_code})`,
+      ].filter(Boolean).join(' / ');
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${s.zone || ''}</td>
         <td>${s.item_type || ''}</td>
-        <td>${mat}</td>
+        <td>${mat || '-'}</td>
         <td>${s.supplier || ''}</td>
         <td>${s.note || ''}</td>
       `;
       tbody.appendChild(tr);
     });
 
-    wrap.appendChild(table);
-
-    container.innerHTML = '';
-    container.appendChild(wrap);
-
-    const note = document.createElement('p');
-    note.className = 'report-footnote';
-    note.textContent =
-      '* ข้อมูลชุดนี้จัดเก็บเพื่อใช้เทียบเคียงงานรีโนเวทของบ้านหลังอื่น ๆ และใช้ตอบคำถามลูกค้าในอนาคต เช่น ยี่ห้อ / รุ่น / ร้านที่ซื้อวัสดุ';
-    container.appendChild(note);
+    table.appendChild(tbody);
+    clear(box);
+    box.appendChild(table);
   } catch (err) {
     console.error(err);
-    container.innerHTML = `<p style="color:#b91c1c;">โหลดข้อมูลสเปกไม่สำเร็จ: ${err.message || err}</p>`;
+    box.innerHTML = `
+      <p class="rbr-note" style="color:#b91c1c;">
+        โหลดข้อมูลสเปกไม่สำเร็จ: ${err.message || err}
+      </p>
+    `;
   }
 }
 
-// ----------------- ทีมช่าง -----------------
+// -------- 4) ตารางทีมช่าง --------
 async function renderContractors(propertyId) {
-  const container = $('#rb-report-contractors');
-  if (!container) return;
+  const box = $('#rbr-contractors');
+  if (!box) return;
 
-  container.innerHTML = `<p style="color:#6b7280;">กำลังโหลดข้อมูลทีมช่าง...</p>`;
+  box.innerHTML = `<p class="rbr-note">กำลังโหลดข้อมูลทีมช่าง...</p>`;
 
   try {
     const links = await listContractorsForProperty(propertyId);
 
-    if (!links.length) {
-      container.innerHTML = `<p style="color:#9ca3af;">ยังไม่ได้บันทึกทีมช่างสำหรับบ้านหลังนี้</p>`;
+    if (!links || !links.length) {
+      box.innerHTML = `<p class="rbr-note">ยังไม่ได้บันทึกทีมช่างสำหรับบ้านหลังนี้</p>`;
       return;
     }
 
-    const wrap = document.createElement('div');
-    wrap.className = 'report-table-wrapper';
-
     const table = document.createElement('table');
-    table.className = 'report-table';
+    table.className = 'rbr-table';
 
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th style="width:20%;">ชื่อช่าง / ทีมงาน</th>
-          <th style="width:15%;">สายงาน</th>
-          <th style="width:15%;">เบอร์ติดต่อ</th>
-          <th>ขอบเขตงานในบ้านหลังนี้</th>
-          <th style="width:13%;">รับประกัน (เดือน)</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th style="width:22%;">ชื่อช่าง</th>
+        <th style="width:16%;">สายงาน</th>
+        <th style="width:18%;">เบอร์ติดต่อ</th>
+        <th>ขอบเขตงาน</th>
+        <th style="width:14%;">รับประกัน (เดือน)</th>
+      </tr>
     `;
+    table.appendChild(thead);
 
-    const tbody = table.querySelector('tbody');
+    const tbody = document.createElement('tbody');
 
     links.forEach((link) => {
       const c = link.contractor || {};
+      const warranty = link.warranty_months ?? '';
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${c.name || ''}</td>
         <td>${c.trade || ''}</td>
         <td>${c.phone || ''}</td>
         <td>${link.scope || ''}</td>
-        <td>${link.warranty_months ?? ''}</td>
+        <td>${warranty}</td>
       `;
       tbody.appendChild(tr);
     });
 
-    wrap.appendChild(table);
-
-    container.innerHTML = '';
-    container.appendChild(wrap);
-
-    const note = document.createElement('p');
-    note.className = 'report-footnote';
-    note.textContent =
-      '* ข้อมูลทีมช่างเก็บเพื่อให้ง่ายต่อการติดต่อในกรณีมีงานเพิ่มเติม งานเคลม หรือใช้เป็น Reference สำหรับบ้านหลังถัดไป';
-    container.appendChild(note);
+    table.appendChild(tbody);
+    clear(box);
+    box.appendChild(table);
   } catch (err) {
     console.error(err);
-    container.innerHTML = `<p style="color:#b91c1c;">โหลดข้อมูลทีมช่างไม่สำเร็จ: ${err.message || err}</p>`;
+    box.innerHTML = `
+      <p class="rbr-note" style="color:#b91c1c;">
+        โหลดข้อมูลทีมช่างไม่สำเร็จ: ${err.message || err}
+      </p>
+    `;
   }
 }
 
-// ----------------- ปุ่มต่าง ๆ -----------------
-function bindHeaderButtons(propertyId) {
-  const backBtn = $('#rb-report-back-btn');
-  const printBtn = $('#rb-report-print-btn');
-
-  if (backBtn) {
-    backBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const url = `/renovation-book.html?property_id=${encodeURIComponent(propertyId)}`;
-      window.location.href = url;
-    });
-  }
-
-  if (printBtn) {
-    printBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.print();
-    });
-  }
-}
-
-// ----------------- main -----------------
+// -------- main init --------
 document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage();
-  setupNav();
-  setupMobileNav();
-  await signOutIfAny();
-
   const params = new URLSearchParams(window.location.search);
   const propertyId = params.get('property_id');
 
+  const metaBox = $('#rbr-meta');
+  const summaryMain = $('#rbr-summary-main');
+  const summaryExtra = $('#rbr-summary-extra');
+  const specsBox = $('#rbr-specs');
+  const contractorsBox = $('#rbr-contractors');
+
   if (!propertyId) {
-    const root = $('#rb-report-root');
-    if (root) {
-      root.innerHTML = `<div style="color:#b91c1c;">ไม่พบรหัสบ้าน (property_id)</div>`;
-    }
+    if (metaBox) metaBox.textContent = 'ไม่พบรหัสบ้าน (property_id)';
+    if (summaryMain) summaryMain.innerHTML = '<p class="rbr-note">ไม่พบข้อมูลบ้าน</p>';
     return;
   }
 
-  renderSkeleton();
+  // placeholder ขณะโหลด
+  if (summaryMain) {
+    summaryMain.innerHTML = '<p class="rbr-note">กำลังโหลดข้อมูลบ้าน...</p>';
+  }
+  if (summaryExtra) {
+    summaryExtra.innerHTML = '<p class="rbr-note">กำลังโหลดข้อมูลราคา...</p>';
+  }
+  if (specsBox) {
+    specsBox.innerHTML = '<p class="rbr-note">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>';
+  }
+  if (contractorsBox) {
+    contractorsBox.innerHTML = '<p class="rbr-note">กำลังโหลดข้อมูลทีมช่าง...</p>';
+  }
 
   try {
-    const prop = await fetchPropertyById(propertyId);
-    if (!prop) {
-      const root = $('#rb-report-root');
-      if (root) {
-        root.innerHTML = `<div style="color:#b91c1c;">ไม่พบบ้านหลังนี้ในระบบ</div>`;
-      }
+    const property = await fetchPropertyById(propertyId);
+    if (!property) {
+      if (summaryMain) summaryMain.innerHTML = '<p class="rbr-note">ไม่พบบ้านหลังนี้ในระบบ</p>';
       return;
     }
 
-    renderHeaderShell();
-    renderPropertySummary(prop);
-    bindHeaderButtons(propertyId);
-    await renderSpecs(propertyId);
-    await renderContractors(propertyId);
+    // render ส่วนหัวและสรุป
+    renderMeta(property);
+    renderSummary(property);
+
+    // render ตารางสเปก + ทีมช่าง
+    await renderSpecs(property.id);
+    await renderContractors(property.id);
   } catch (err) {
     console.error(err);
-    toast('โหลดข้อมูลสมุดรีโนเวทไม่สำเร็จ', 3000, 'error');
+    if (summaryMain) {
+      summaryMain.innerHTML = `
+        <p class="rbr-note" style="color:#b91c1c;">
+          โหลดข้อมูลไม่สำเร็จ: ${err.message || err}
+        </p>
+      `;
+    }
   }
 });
