@@ -506,12 +506,14 @@ function setupReportOverlay() {
     )}`;
     iframe.src = url;
     overlay.classList.add('open');
+    document.body.classList.add('rb-report-open');
   });
 
   // ปิด overlay ด้วยปุ่มกากบาท
   overlayClose?.addEventListener('click', () => {
     overlay.classList.remove('open');
     iframe.src = '';
+    document.body.classList.remove('rb-report-open');
   });
 
   // คลิกพื้นหลังด้านนอก เพื่อปิด overlay
@@ -519,6 +521,7 @@ function setupReportOverlay() {
     if (e.target === overlay) {
       overlay.classList.remove('open');
       iframe.src = '';
+      document.body.classList.remove('rb-report-open');
     }
   });
 }
