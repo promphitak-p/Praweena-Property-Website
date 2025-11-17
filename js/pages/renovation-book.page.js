@@ -491,7 +491,14 @@ function setupPrintButton() {
   if (!btn) return;
 
   btn.addEventListener('click', () => {
-    window.print();
+    if (!currentPropertyId) {
+      alert('กรุณาเลือกบ้านจากรายการก่อน');
+      return;
+    }
+    const url = `/renovation-book-report.html?property_id=${encodeURIComponent(
+      currentPropertyId
+    )}`;
+    window.open(url, '_blank'); // เปิดหน้ารายงาน แล้วค่อย Print to PDF จากหน้านั้น
   });
 }
 
