@@ -571,8 +571,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   setupRbModal();
   setupAddButtons();
-  setupPrintButton();
-  setupReportButton();   // ✅ อันนี้สำคัญ
+
+  // ใช้ overlay สองปุ่มนี้แทน ไม่ต้องมี setupPrintButton แล้ว
+  setupReportButton();    // ปุ่ม "เปิดหน้ารายงานสมุดรีโนเวท"
+  setupReportOverlay();   // ปุ่ม "พิมพ์ / Export PDF (ไว้สำหรับ Print)"
 
   const params = new URLSearchParams(window.location.search);
   const propertyIdParam = params.get('property_id');
