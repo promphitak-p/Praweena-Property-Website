@@ -486,22 +486,18 @@ function setupAddButtons() {
 }
 
 // -------------------- ปุ่มไปหน้ารายงาน --------------------
-function setupReportButton() {
-  const btn = $('#rb-report-btn');
-  if (!btn) return;
+function setupReportButtons() {
+  const btn = document.querySelectorAll('.rb-report-btn');
 
-  btn.addEventListener('click', () => {
-    if (!currentPropertyId) {
-      toast('กรุณาเลือกบ้านจากรายการก่อน', 2500, 'error');
-      return;
-    }
+  btn.forEach((b) => {
+    b.addEventListener('click', () => {
+      const url = `/renovation-book-report.html?property_id=${currentPropertyId}`;
+      const iframe = $('#report-iframe');
+      const overlay = $('#report-overlay');
 
-    const url = `/renovation-book-report.html?property_id=${encodeURIComponent(
-      currentPropertyId
-    )}`;
-    // จะให้เปิดแท็บใหม่
-    window.open(url, '_blank');
-    // ถ้าอยากให้ไปแท็บเดิมใช้: window.location.href = url;
+      if (iframe) iframe.src = url;
+      if (overlay) overlay.classList.add('open');
+    });
   });
 }
 
@@ -590,4 +586,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     showListMode();
     await loadPropertyList();
   }
+});
+
+const overlayClose = $('#report-overlay-close');
+const overlay = $('#report-overlay');
+
+overlayClose?.addEventListener('click', () => {
+  overlay.classList.remove('open');
+  $('#report-iframe').src = ''; // clear
 });

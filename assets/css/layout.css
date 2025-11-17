@@ -106,3 +106,4 @@ main {
   #filter-form.grid.grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
   }
+}
