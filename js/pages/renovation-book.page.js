@@ -203,57 +203,60 @@ async function loadPropertyList() {
       return;
     }
 
-    data.forEach((p) => {
-      const card = document.createElement('div');
-      card.className = 'rb-property-card';
+data.forEach((p) => {
+  const card = document.createElement('div');
+  card.className = 'rb-property-card';
 
-      const statusText = p.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
-      const statusColor = p.published ? '#16a34a' : '#6b7280';
+  const statusText = p.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
+  const statusColor = p.published ? '#16a34a' : '#6b7280';
 
-      const detailUrl = p.slug
-        ? `/property-detail.html?slug=${encodeURIComponent(p.slug)}`
-        : '#';
+  const detailUrl = p.slug
+    ? `/property-detail.html?slug=${encodeURIComponent(p.slug)}`
+    : '#';
 
-      card.innerHTML = `
-        <div class="rb-property-card-header">
-          <div>
-            <h3 style="margin:0;font-size:1.05rem;">${p.title || '-'}</h3>
-            <p style="margin:.15rem 0 0 0;color:#4b5563;">
-              ${p.address || ''} ${p.district || ''} ${p.province || ''}
-            </p>
-          </div>
-          <div style="text-align:right;min-width:110px;">
-            <div style="font-weight:600;color:#b45309;">${formatPrice(Number(p.price) || 0)}</div>
-            <div style="font-size:.8rem;color:${statusColor};">${statusText}</div>
-          </div>
-        </div>
-        <p style="margin:.35rem 0 0 0;font-size:.85rem;color:#6b7280;">
-          ขนาด: ${p.size_text || '-'} • ${p.beds ?? '-'} นอน • ${p.baths ?? '-'} น้ำ • ที่จอดรถ ${p.parking ?? '-'}
+  card.innerHTML = `
+    <div class="rb-property-card-header">
+      <div>
+        <h3 style="margin:0;font-size:1.05rem;">${p.title || '-'}</h3>
+        <p style="margin:.15rem 0 0 0;color:#4b5563;">
+          ${p.address || ''} ${p.district || ''} ${p.province || ''}
         </p>
+      </div>
+      <div style="text-align:right;min-width:110px;">
+        <div style="font-weight:600;color:#b45309;">${formatPrice(Number(p.price) || 0)}</div>
+        <div style="font-size:.8rem;color:${statusColor};">${statusText}</div>
+      </div>
+    </div>
+    <p style="margin:.35rem 0 0 0;font-size:.85rem;color:#6b7280;">
+      ขนาด: ${p.size_text || '-'} • ${p.beds ?? '-'} นอน • ${p.baths ?? '-'} น้ำ • ที่จอดรถ ${p.parking ?? '-'}
+    </p>
 
-        <div class="rb-property-card-footer">
-          <button class="btn btn-sm btn-primary rb-open-book-btn">เปิดสมุดรีโนเวท</button>
-          ${
-            detailUrl !== '#'
-              ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">ดูหน้าเว็บลูกค้า</a>`
-              : ''
-          }
-        </div>
+    <div class="rb-property-card-footer">
+      <button class="btn btn-sm btn-primary rb-open-book-btn">เปิดสมุดรีโนเวท</button>
+      ${
+        detailUrl !== '#'
+          ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">ดูหน้าเว็บลูกค้า</a>`
+          : ''
+      }
+    </div>
+  `;
 
-      `;
-
-      btnOpen.addEventListener('click', () => {
-        window.location.href = `/renovation-book-detail.html?property_id=${prop.id}`;
-        });
-
-      openBtn.addEventListener('click', () => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('property_id', p.id);
-        window.location.href = url.toString();
-      });
-
-      list.appendChild(card);
+  // 👉 ตรงนี้คือปุ่ม "เปิดสมุดรีโนเวท"
+  const openBtn = card.querySelector('.rb-open-book-btn');
+  if (openBtn) {
+    openBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = new URL(window.location.href);
+      url.searchParams.set('property_id', p.id);
+      window.location.href = url.toString();
     });
+  }
+
+  list.appendChild(card);
+});
+
+
+    
   } catch (err) {
     console.error(err);
     clear(list);
