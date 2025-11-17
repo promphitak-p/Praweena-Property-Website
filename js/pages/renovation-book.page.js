@@ -11,7 +11,11 @@ import { setupNav } from '../utils/config.js';
 import { formatPrice } from '../utils/format.js';
 import { listAll } from '../services/propertiesService.js';
 import { listSpecsByProperty, upsertSpec, deleteSpec } from '../services/propertySpecsService.js';
-import { listContractorsForProperty, upsertPropertyContractor, deletePropertyContractor } from '../services/propertyContractorsService.js';
+import {
+  listContractorsForProperty,
+  upsertPropertyContractor,
+  deletePropertyContractor
+} from '../services/propertyContractorsService.js';
 import { upsertContractor } from '../services/contractorsService.js';
 import { $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
@@ -127,7 +131,7 @@ function setupRbModal() {
           model_or_series: (fd.get('model_or_series') || '').toString().trim(),
           color_code: (fd.get('color_code') || '').toString().trim(),
           supplier: (fd.get('supplier') || '').toString().trim(),
-          note: (fd.get('note') || '').toString().trim(),
+          note: (fd.get('note') || '').toString().trim()
         };
 
         await upsertSpec(payload);
@@ -144,7 +148,7 @@ function setupRbModal() {
         const contractor = await upsertContractor({
           name,
           trade: (fd.get('contractor_trade') || '').toString().trim(),
-          phone: (fd.get('contractor_phone') || '').toString().trim(),
+          phone: (fd.get('contractor_phone') || '').toString().trim()
         });
 
         let warranty = null;
@@ -158,7 +162,7 @@ function setupRbModal() {
           property_id: currentPropertyId,
           contractor_id: contractor.id,
           scope: (fd.get('scope') || '').toString().trim(),
-          warranty_months: warranty,
+          warranty_months: warranty
         });
 
         toast('บันทึกทีมช่างเรียบร้อย', 2000, 'success');
@@ -203,60 +207,57 @@ async function loadPropertyList() {
       return;
     }
 
-data.forEach((p) => {
-  const card = document.createElement('div');
-  card.className = 'rb-property-card';
+    data.forEach((p) => {
+      const card = document.createElement('div');
+      card.className = 'rb-property-card';
 
-  const statusText = p.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
-  const statusColor = p.published ? '#16a34a' : '#6b7280';
+      const statusText = p.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
+      const statusColor = p.published ? '#16a34a' : '#6b7280';
 
-  const detailUrl = p.slug
-    ? `/property-detail.html?slug=${encodeURIComponent(p.slug)}`
-    : '#';
+      const detailUrl = p.slug
+        ? `/property-detail.html?slug=${encodeURIComponent(p.slug)}`
+        : '#';
 
-  card.innerHTML = `
-    <div class="rb-property-card-header">
-      <div>
-        <h3 style="margin:0;font-size:1.05rem;">${p.title || '-'}</h3>
-        <p style="margin:.15rem 0 0 0;color:#4b5563;">
-          ${p.address || ''} ${p.district || ''} ${p.province || ''}
+      card.innerHTML = `
+        <div class="rb-property-card-header">
+          <div>
+            <h3 style="margin:0;font-size:1.05rem;">${p.title || '-'}</h3>
+            <p style="margin:.15rem 0 0 0;color:#4b5563;">
+              ${p.address || ''} ${p.district || ''} ${p.province || ''}
+            </p>
+          </div>
+          <div style="text-align:right;min-width:110px;">
+            <div style="font-weight:600;color:#b45309;">${formatPrice(Number(p.price) || 0)}</div>
+            <div style="font-size:.8rem;color:${statusColor};">${statusText}</div>
+          </div>
+        </div>
+        <p style="margin:.35rem 0 0 0;font-size:.85rem;color:#6b7280;">
+          ขนาด: ${p.size_text || '-'} • ${p.beds ?? '-'} นอน • ${p.baths ?? '-'} น้ำ • ที่จอดรถ ${p.parking ?? '-'}
         </p>
-      </div>
-      <div style="text-align:right;min-width:110px;">
-        <div style="font-weight:600;color:#b45309;">${formatPrice(Number(p.price) || 0)}</div>
-        <div style="font-size:.8rem;color:${statusColor};">${statusText}</div>
-      </div>
-    </div>
-    <p style="margin:.35rem 0 0 0;font-size:.85rem;color:#6b7280;">
-      ขนาด: ${p.size_text || '-'} • ${p.beds ?? '-'} นอน • ${p.baths ?? '-'} น้ำ • ที่จอดรถ ${p.parking ?? '-'}
-    </p>
 
-    <div class="rb-property-card-footer">
-      <button class="btn btn-sm btn-primary rb-open-book-btn">เปิดสมุดรีโนเวท</button>
-      ${
-        detailUrl !== '#'
-          ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">ดูหน้าเว็บลูกค้า</a>`
-          : ''
+        <div class="rb-property-card-footer">
+          <button class="btn btn-sm btn-primary rb-open-book-btn">เปิดสมุดรีโนเวท</button>
+          ${
+            detailUrl !== '#'
+              ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">ดูหน้าเว็บลูกค้า</a>`
+              : ''
+          }
+        </div>
+      `;
+
+      // ปุ่ม "เปิดสมุดรีโนเวท"
+      const openBtn = card.querySelector('.rb-open-book-btn');
+      if (openBtn) {
+        openBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const url = new URL(window.location.href);
+          url.searchParams.set('property_id', p.id);
+          window.location.href = url.toString();
+        });
       }
-    </div>
-  `;
 
-  // 👉 ตรงนี้คือปุ่ม "เปิดสมุดรีโนเวท"
-  const openBtn = card.querySelector('.rb-open-book-btn');
-  if (openBtn) {
-    openBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const url = new URL(window.location.href);
-      url.searchParams.set('property_id', p.id);
-      window.location.href = url.toString();
+      list.appendChild(card);
     });
-  }
-
-  list.appendChild(card);
-});
-
-
-    
   } catch (err) {
     console.error(err);
     clear(list);
@@ -346,11 +347,9 @@ async function loadSpecsForProperty(propertyId) {
     const tbody = document.createElement('tbody');
 
     specs.forEach((s) => {
-      const mat = [
-        s.brand,
-        s.model_or_series,
-        s.color_code && `(${s.color_code})`,
-      ].filter(Boolean).join(' / ');
+      const mat = [s.brand, s.model_or_series, s.color_code && `(${s.color_code})`]
+        .filter(Boolean)
+        .join(' / ');
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -379,7 +378,6 @@ async function loadSpecsForProperty(propertyId) {
         await loadSpecsForProperty(currentPropertyId);
       });
     });
-
   } catch (err) {
     console.error(err);
     container.innerHTML = `
@@ -454,7 +452,6 @@ async function loadContractorsForProperty(propertyId) {
         await loadContractorsForProperty(currentPropertyId);
       });
     });
-
   } catch (err) {
     console.error(err);
     container.innerHTML = `
@@ -485,49 +482,56 @@ function setupAddButtons() {
   });
 }
 
-// -------------------- ปุ่มไปหน้ารายงาน --------------------
-function setupReportButtons() {
-  const btn = document.querySelectorAll('.rb-report-btn');
+// -------------------- Overlay รายงาน + ปุ่ม Print --------------------
+function setupReportOverlay() {
+  const overlay = $('#report-overlay');
+  const iframe = $('#report-iframe');
+  const overlayClose = $('#report-overlay-close');
+  const triggerBtn = $('#rb-print-btn'); // ปุ่ม "พิมพ์ / Export PDF" ใต้สมุดรีโนเวท
 
-  btn.forEach((b) => {
-    b.addEventListener('click', () => {
-      const url = `/renovation-book-report.html?property_id=${currentPropertyId}`;
-      const iframe = $('#report-iframe');
-      const overlay = $('#report-overlay');
+  if (!overlay || !iframe || !triggerBtn) {
+    return;
+  }
 
-      if (iframe) iframe.src = url;
-      if (overlay) overlay.classList.add('open');
-    });
-  });
-}
-
-// -------------------- Print / PDF --------------------
-function setupPrintButton() {
-  const btn = $('#rb-print-btn');
-  if (!btn) return;
-
-  btn.addEventListener('click', () => {
+  // เปิด overlay + โหลดหน้า report
+  triggerBtn.addEventListener('click', (e) => {
+    e.preventDefault();
     if (!currentPropertyId) {
       alert('กรุณาเลือกบ้านจากรายการก่อน');
       return;
     }
+
     const url = `/renovation-book-report.html?property_id=${encodeURIComponent(
       currentPropertyId
     )}`;
-    window.open(url, '_blank'); // เปิดหน้ารายงาน แล้วค่อย Print to PDF จากหน้านั้น
+    iframe.src = url;
+    overlay.classList.add('open');
+  });
+
+  // ปิด overlay ด้วยปุ่มกากบาท
+  overlayClose?.addEventListener('click', () => {
+    overlay.classList.remove('open');
+    iframe.src = '';
+  });
+
+  // คลิกพื้นหลังด้านนอก เพื่อปิด overlay
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.classList.remove('open');
+      iframe.src = '';
+    }
   });
 }
 
 // -------------------- init --------------------
 document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage();      // ให้เฉพาะคนล็อกอินเห็น
+  await protectPage(); // ให้เฉพาะคนล็อกอินเห็น
   setupNav();
   setupMobileNav();
   await signOutIfAny();
 
   setupRbModal();
   setupAddButtons();
-  setupPrintButton();
   setupReportOverlay();
 
   const params = new URLSearchParams(window.location.search);
@@ -556,10 +560,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       headerBox.innerHTML = '<p style="color:#6b7280;">กำลังโหลดข้อมูลบ้าน...</p>';
     }
     if (specsBox) {
-      specsBox.innerHTML = '<p style="color:#6b7280;">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>';
+      specsBox.innerHTML =
+        '<p style="color:#6b7280;">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>';
     }
     if (contractorsBox) {
-      contractorsBox.innerHTML = '<p style="color:#6b7280;">กำลังโหลดข้อมูลทีมช่าง...</p>';
+      contractorsBox.innerHTML =
+        '<p style="color:#6b7280;">กำลังโหลดข้อมูลทีมช่าง...</p>';
     }
 
     try {
@@ -586,12 +592,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     showListMode();
     await loadPropertyList();
   }
-});
-
-const overlayClose = $('#report-overlay-close');
-const overlay = $('#report-overlay');
-
-overlayClose?.addEventListener('click', () => {
-  overlay.classList.remove('open');
-  $('#report-iframe').src = ''; // clear
 });
