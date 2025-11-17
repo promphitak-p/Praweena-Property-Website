@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>สมุดรีโนเวทบ้าน | Praweena Property</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/assets/css/renovation-book-report.css">
+ 
     <style>
       :root {
         --brand: #c49a5a;
@@ -210,6 +210,60 @@
           text-align: left;
         }
       }
+
+      /* -------------------------------
+   PRINT STYLE – สำหรับ Export PDF
+--------------------------------- */
+@page {
+  size: A4 portrait;         /* บอกเบราเซอร์ว่าอยากได้ A4 แนวตั้ง */
+  margin: 10mm;              /* ขอบกระดาษ (จะไปบวกกับ margin ของ browser อีกนิดหน่อย) */
+}
+
+@media print {
+  /* พื้นหลังหน้าเว็บให้เป็นขาวล้วน */
+  html, body {
+    background: #ffffff !important;
+  }
+
+  /* กล่องหลักของรายงาน ให้เต็มกระดาษ ไม่มีเงา ไม่มี border โป่งๆ */
+  .rbr-page {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* ซ่อนปุ่มที่ไม่ควรไปโผล่ใน PDF */
+  #rbr-back-btn,
+  #rbr-print-btn,
+  .header,
+  .navbar,
+  .site-nav {
+    display: none !important;
+  }
+
+  /* ถ้าหัวรายงานมีแถวปุ่มอยู่ใน header ซ่อนเฉพาะส่วนที่เป็นปุ่ม */
+  .rbr-header-left,
+  .rbr-header-right {
+    display: none !important;
+  }
+
+  /* เนื้อหาเอกสารให้ชิดบน ไม่เว้นเยอะเกินไป */
+  .rbr-content {
+    margin-top: 0 !important;
+  }
+
+  /* ตารางให้เส้นชัดขึ้นนิดนึงเวลาปริ้น */
+  .rbr-table,
+  .rbr-table th,
+  .rbr-table td,
+  table,
+  table th,
+  table td {
+    border-color: #cbd5e1 !important;
+  }
+}
+
     </style>
   </head>
   <body>
