@@ -224,6 +224,15 @@ async function renderContractors(propertyId) {
   }
 }
 
+function setupPrintButton() {
+  const btn = document.querySelector('#rbr-print-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    window.print();        // สั่ง Print จากใน iframe นี้เลย
+  });
+}
+
 // -------- main init --------
 document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
@@ -279,4 +288,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
   }
+    setupPrintButton();     // 👈 เพิ่มบรรทัดนี้
+
 });
