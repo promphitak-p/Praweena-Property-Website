@@ -89,10 +89,6 @@ function renderPropertySummary(property) {
   const box = $('#rb-report-property');
   if (!box) return;
 
-  const detailUrl = property.slug
-    ? `/property-detail.html?slug=${encodeURIComponent(property.slug)}`
-    : '';
-
   box.innerHTML = `
     <div class="report-property-summary">
       <div class="report-property-summary-title">
@@ -110,14 +106,6 @@ function renderPropertySummary(property) {
               property.province,
             ].filter(Boolean).join(' ')}
           </div>
-
-          ${
-            detailUrl
-              ? `<div class="report-pill" style="margin-top:.35rem;">
-                   🔗 หน้าเว็บลูกค้า: ${detailUrl}
-                 </div>`
-              : ''
-          }
         </div>
 
         <div>
@@ -141,6 +129,7 @@ function renderPropertySummary(property) {
     </div>
   `;
 }
+
 
 // ----------------- สเปกรีโนเวท -----------------
 async function renderSpecs(propertyId) {
