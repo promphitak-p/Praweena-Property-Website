@@ -255,3 +255,25 @@
     border-color: #cbd5e1 !important;
   }
 }
+
+/* ปรับหน้าสำหรับสั่ง Print */
+@media print {
+  /* ซ่อนปุ่มบนหัวเอกสาร */
+  .rbr-toolbar {
+    display: none !important;
+  }
+
+  /* ให้กระดาษเต็มหน้า ขอบธรรมดา ไม่ต้องมีเงาการ์ด */
+  body {
+    background: #ffffff !important;
+  }
+
+  .rbr-page {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 12mm 15mm !important; /* ขอบกระดาษ */
+  }
+}
