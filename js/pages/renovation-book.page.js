@@ -230,6 +230,7 @@ async function loadPropertyList() {
         <p style="margin:.35rem 0 0 0;font-size:.85rem;color:#6b7280;">
           ขนาด: ${p.size_text || '-'} • ${p.beds ?? '-'} นอน • ${p.baths ?? '-'} น้ำ • ที่จอดรถ ${p.parking ?? '-'}
         </p>
+
         <div class="rb-property-card-footer">
           <button class="btn btn-sm btn-primary rb-open-book-btn">เปิดสมุดรีโนเวท</button>
           ${
@@ -238,9 +239,13 @@ async function loadPropertyList() {
               : ''
           }
         </div>
+
       `;
 
-      const openBtn = card.querySelector('.rb-open-book-btn');
+      btnOpen.addEventListener('click', () => {
+        window.location.href = `/renovation-book-detail.html?property_id=${prop.id}`;
+        });
+
       openBtn.addEventListener('click', () => {
         const url = new URL(window.location.href);
         url.searchParams.set('property_id', p.id);
