@@ -27,15 +27,6 @@ const propertyModal   = document.getElementById('property-modal');
 const propertyForm    = document.getElementById('property-form');
 const addPropertyBtn  = document.getElementById('add-property-btn');
 
-// (ต้องมีใน html)
-//  - <input type="file" id="cover-upload" accept="image/*">
-//  - <input type="file" id="gallery-upload" accept="image/*" multiple>
-//  - <div id="gallery-preview"></div>
-//  - ส่วน youtube:
-//      <input id="youtube-input">
-//      <button id="youtube-add-btn">+ เพิ่มวิดีโอ YouTube</button>
-//      <ul id="youtube-list"></ul>
-
 // State
 let modalMap = null;
 let draggableMarker = null;
@@ -317,7 +308,7 @@ function injectPraweenaLandmarks(baseLat, baseLng, currentList = []) {
     .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
 }
 
-// ดึง POI แนะนำ
+// ดึง POI แนะนำ (ใช้ในบางกรณี — แต่ตอนโหลดหลักใช้ loadPoisForProperty)
 async function fetchNearbyPOIInline(lat, lng) {
   const listEl = document.getElementById('poi-candidate-list');
   if (listEl) {
@@ -486,14 +477,14 @@ function renderPOIInlineList() {
 
 // ✅ ฟอร์มเพิ่มสถานที่ใกล้เคียงด้วยตัวเอง
 function setupPoiManualForm() {
-  const nameInput     = document.getElementById('poi-name-input');
-  const typeInput     = document.getElementById('poi-type-input');
-  const distInput     = document.getElementById('poi-distance-input');
-  const latInput      = document.getElementById('poi-lat-input');
-  const lngInput      = document.getElementById('poi-lng-input');
-  const addBtn        = document.getElementById('poi-add-manual-btn');
+  const nameInput = document.getElementById('poi-name-input');
+  const typeInput = document.getElementById('poi-type-input');
+  const distInput = document.getElementById('poi-distance-input');
+  const latInput  = document.getElementById('poi-lat-input');
+  const lngInput  = document.getElementById('poi-lng-input');
+  const addBtn    = document.getElementById('poi-add-manual-btn');
 
-  if (!addBtn) return; // ถ้าไม่มี element ก็ไม่ต้องทำอะไร
+  if (!addBtn) return;
 
   addBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -504,15 +495,14 @@ function setupPoiManualForm() {
       return;
     }
 
-    // type / ระยะทาง / lat / lng
-    const type  = (typeInput?.value || '').trim();
+    const type = (typeInput?.value || '').trim();
     const baseLat = parseFloat(propertyForm?.elements.latitude?.value || '');
     const baseLng = parseFloat(propertyForm?.elements.longitude?.value || '');
 
-    let lat  = latInput?.value ? parseFloat(latInput.value) : NaN;
-    let lng  = lngInput?.value ? parseFloat(lngInput.value) : NaN;
+    let lat = latInput?.value ? parseFloat(latInput.value) : NaN;
+    let lng = lngInput?.value ? parseFloat(lngInput.value) : NaN;
 
-    // ถ้าไม่กรอกพิกัด ใช้พิกัดบ้าน
+    // ถ้าไม่กรอกพิกัด ให้ใช้พิกัดบ้าน
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       if (Number.isFinite(baseLat) && Number.isFinite(baseLng)) {
         lat = baseLat;
@@ -534,14 +524,12 @@ function setupPoiManualForm() {
       lat,
       lng,
       distance_km: Number.isFinite(dist) ? dist : null,
-      __saved: true   // ให้ติ๊ก checkbox ไว้เลย
+      __saved: true
     };
 
-    // ดันเข้า list รวม (ระบบเดิมใช้ poiCandidatesInline)
     poiCandidatesInline.push(poi);
     renderPOIInlineList();
 
-    // เคลียร์ฟอร์ม
     if (nameInput) nameInput.value = '';
     if (typeInput) typeInput.value = '';
     if (distInput) distInput.value = '';
@@ -657,30 +645,27 @@ function closeModal() {
     if (propertyForm.elements.id) propertyForm.elements.id.value = '';
   }
 
-const poiList = document.getElementById('poi-candidate-list');
-if (poiList) poiList.innerHTML = '';
+  const poiList = document.getElementById('poi-candidate-list');
+  if (poiList) poiList.innerHTML = '';
 
-// เคลียร์สเปก / ทีมช่างในโมดัล
-const specsList = document.getElementById('specs-list');
-if (specsList) specsList.innerHTML = '';
-const contractorsList = document.getElementById('property-contractors-list');
-if (contractorsList) contractorsList.innerHTML = '';
+  // reset รูป / youtube ทุกครั้งที่ปิด
+  currentGallery = [];
+  renderGalleryPreview();
+  currentYoutube = [];
+  renderYoutubeList();
 
-// ซ่อนฟอร์มเพิ่มสเปก ถ้าเปิดค้างอยู่
-const specFormWrapper = document.getElementById('spec-form-wrapper');
-if (specFormWrapper) specFormWrapper.style.display = 'none';
-
-// ซ่อนฟอร์มเพิ่มทีมช่าง ถ้าเปิดค้างอยู่
-const contractorFormWrapper = document.getElementById('contractor-form-wrapper');
-if (contractorFormWrapper) contractorFormWrapper.style.display = 'none';
-
-// reset รูป / youtube ทุกครั้งที่ปิด
-currentGallery = [];
-renderGalleryPreview();
-currentYoutube = [];
-renderYoutubeList();
+  // เคลียร์ฟอร์ม manual POI
+  const nameInput = document.getElementById('poi-name-input');
+  const typeInput = document.getElementById('poi-type-input');
+  const distInput = document.getElementById('poi-distance-input');
+  const latInput  = document.getElementById('poi-lat-input');
+  const lngInput  = document.getElementById('poi-lng-input');
+  if (nameInput) nameInput.value = '';
+  if (typeInput) typeInput.value = '';
+  if (distInput) distInput.value = '';
+  if (latInput)  latInput.value = '';
+  if (lngInput)  lngInput.value = '';
 }
-
 
 function installModalCloseHandlers() {
   document.querySelectorAll('#property-modal .modal-close').forEach(btn => {
@@ -762,7 +747,6 @@ async function loadProperties() {
 
     data.forEach(p => {
       const tr = document.createElement('tr');
-      const rbUrl = `/renovation-book.html?property_id=${encodeURIComponent(p.id)}`;
 
       tr.innerHTML = `
         <td>${p.title || '-'}</td>
@@ -800,7 +784,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await signOutIfAny();
 
   installModalCloseHandlers();
-  setupPoiManualForm();   // ✅ ผูกฟอร์มเพิ่มสถานที่เอง
+  setupPoiManualForm();   // ✅ ผูกฟอร์มเพิ่มสถานที่ใกล้เคียง
 
   // ปุ่มเพิ่มบ้าน
   addPropertyBtn?.addEventListener('click', () => {
@@ -828,7 +812,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         toast('กำลังอัปโหลดรูปหน้าปก...', 2000, 'info');
         const url = await uploadToCloudinary(file);
-        // ใส่เป็นรูปแรก
         currentGallery = [url, ...currentGallery];
         renderGalleryPreview();
         toast('อัปโหลดรูปหน้าปกสำเร็จ', 2000, 'success');
