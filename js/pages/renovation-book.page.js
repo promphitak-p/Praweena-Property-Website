@@ -482,42 +482,6 @@ function setupAddButtons() {
   });
 }
 
-// -------------------- ปุ่มเปิดหน้ารายงาน (overlay + iframe) --------------------
-function setupReportButton() {
-  const btn = $('#rb-open-report-btn');
-  if (!btn) return;
-
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-
-    if (!currentPropertyId) {
-      alert('กรุณาเลือกบ้านจากรายการก่อน');
-      return;
-    }
-
-    const url = `/renovation-book-report.html?property_id=${encodeURIComponent(
-      currentPropertyId
-    )}`;
-
-    const iframe = $('#report-iframe');
-    const overlay = $('#report-overlay');
-
-    if (iframe) iframe.src = url;
-    if (overlay) overlay.classList.add('open');
-  });
-
-  // ปุ่มปิด overlay
-  const overlayClose = $('#report-overlay-close');
-  const overlay = $('#report-overlay');
-
-  overlayClose?.addEventListener('click', () => {
-    if (!overlay) return;
-    overlay.classList.remove('open');
-    const iframe = $('#report-iframe');
-    if (iframe) iframe.src = ''; // clear
-  });
-}
-
 // -------------------- Overlay รายงาน + ปุ่ม Print --------------------
 function setupReportOverlay() {
   const overlay = $('#report-overlay');
@@ -573,7 +537,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupAddButtons();
 
   // ใช้ overlay สองปุ่มนี้แทน ไม่ต้องมี setupPrintButton แล้ว
-  setupReportButton();    // ปุ่ม "เปิดหน้ารายงานสมุดรีโนเวท"
   setupReportOverlay();   // ปุ่ม "พิมพ์ / Export PDF (ไว้สำหรับ Print)"
 
   const params = new URLSearchParams(window.location.search);
