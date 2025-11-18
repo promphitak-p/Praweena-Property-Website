@@ -1,321 +1,431 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>สมุดรีโนเวท - Praweena Property</title>
+<main class="page page-renovation-book">
+  <div class="container">
 
-  <!-- App CSS -->
-  <link rel="stylesheet" href="/assets/css/base.css"/>
-  <link rel="stylesheet" href="/assets/css/layout.css"/>
-  <link rel="stylesheet" href="/assets/css/components.css"/>
-  <link rel="stylesheet" href="/assets/css/style.css"/>
+    <!-- หัวหน้าเพจ -->
+    <header class="page-header">
+      <h1>สมุดรีโนเวทบ้าน (Renovation Book)</h1>
+      <p>ใช้บันทึกแผนรีโนเวทแบบละเอียดต่อ "1 หลัง"</p>
 
-  <!-- Favicon -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
-  <link rel="manifest" href="/assets/favicon/site.webmanifest">
-
-  <!-- Extra styles หน้าสมุดรีโนเวท + overlay รายงาน -->
-  <style>
-    /* โหมดพิมพ์จากหน้านี้ (ส่วนใหญ่จะพิมพ์จากหน้า report อยู่แล้ว) */
-    @media print {
-      header,
-      #rb-list-section,
-      #rb-back-btn,
-      .rb-actions-row,
-      .rb-report-overlay {
-        display: none !important;
-      }
-      body {
-        background: #ffffff;
-      }
-      #rb-detail-section {
-        display: block !important;
-      }
-      .card {
-        box-shadow: none !important;
-        border: 1px solid #e5e7eb;
-      }
-    }
-
-    .card-header.between {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    /* การ์ดในโหมด list บ้าน */
-    .rb-property-card {
-      border-radius: 12px;
-      border: 1px solid #e5e7eb;
-      padding: 1rem 1.25rem;
-      background: #ffffff;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-      transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-    }
-    .rb-property-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-      border-color: #d1b28a;
-    }
-
-    .rb-property-card-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 0.75rem;
-      align-items: baseline;
-      flex-wrap: wrap;
-    }
-
-    .rb-property-card-footer {
-      margin-top: 0.5rem;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .rb-actions-row {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1.25rem;
-      flex-wrap: wrap;
-    }
-
-    /* -------- FULLSCREEN REPORT OVERLAY (สไตล์โปรแกรมหมู่บ้าน) -------- */
-    .rb-report-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.55);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      z-index: 9999;
-    }
-
-    .rb-report-overlay.open {
-      display: flex;
-    }
-
-    .rb-report-overlay-inner {
-      background: #f9fafb;
-      border-radius: 18px;
-      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
-      width: 100%;
-      max-width: 980px;
-      min-height: 560px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border: 1px solid rgba(209, 178, 138, 0.6);
-    }
-
-    #report-overlay-close {
-      align-self: flex-end;
-      margin: 0.75rem 0.75rem 0;
-      border: none;
-      background: #111827;
-      color: #f9fafb;
-      font-size: 0.85rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-    #report-overlay-close:hover {
-      background: #374151;
-    }
-
-    #report-iframe {
-      border: none;
-      width: 100%;
-      flex: 1;
-      background: #ffffff;
-    }
-
-    /* มือถือ: ให้ layout ไม่อึดอัด */
-    @media (max-width: 768px) {
-      .grid.grid-cols-2 {
-        grid-template-columns: 1fr;
-      }
-      .rb-actions-row {
-        flex-direction: column;
-      }
-      .rb-report-overlay-inner {
-        border-radius: 12px;
-        padding-top: 0.25rem;
-      }
-    }
-  </style>
-</head>
-
-<body>
-  <header class="header">
-    <div class="container">
-      <nav class="nav">
-        <a href="/index.html" class="logo">
-          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
-          <span class="logo-text">Praweena Property</span>
-        </a>
-        <ul class="nav-links">
-          <li><a href="/index.html">หน้าแรก</a></li>
-          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
-          <li><a href="/leads.html">ผู้สนใจ</a></li>
-          <li><a href="/renovation-book.html" aria-current="page">สมุดรีโนเวท</a></li>
-          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
-        </ul>
-        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
-      </nav>
-    </div>
-  </header>
-
-  <main class="container">
-    <h1 style="margin:1.5rem 0 0.5rem 0;">สมุดรีโนเวทบ้าน</h1>
-    <p style="color:#6b7280;margin-bottom:1.5rem;font-size:.95rem;">
-      จัดเก็บข้อมูลวัสดุ สี กระเบื้อง สุขภัณฑ์ และทีมช่างของบ้านแต่ละหลังอย่างเป็นระบบ
-      ใช้อ้างอิงภายในทีม และส่งให้ลูกค้าตรวจสอบได้อย่างมืออาชีพ
-    </p>
-
-    <!-- โหมดแสดงรายการบ้านทั้งหมด -->
-    <section id="rb-list-section">
-      <p style="color:#6b7280;margin-bottom:1rem;">
-        เลือกบ้านที่ต้องการเปิดดู <strong>สมุดรีโนเวท</strong> หรือแก้ไขข้อมูลวัสดุ / ทีมช่าง
-      </p>
-      <div id="rb-property-list" class="grid grid-cols-2" style="gap:1rem;">
-        <!-- JS เติมการ์ดบ้าน -->
-      </div>
-    </section>
-
-    <!-- โหมดรายละเอียดสมุดรีโนเวทของบ้าน 1 หลัง -->
-    <section id="rb-detail-section" style="display:none;margin-top:1.5rem;">
-      <button id="rb-back-btn" class="btn btn-secondary btn-sm">
-        ← กลับไปหน้ารายการบ้าน
-      </button>
-
-      <div id="rb-detail-header" class="card" style="margin-top:1rem;">
-        <!-- JS เติมข้อมูลสรุปบ้าน -->
-      </div>
-
-      <div class="grid grid-cols-2" style="gap:1.5rem;margin-top:1.5rem;">
-        <div class="card">
-          <div class="card-header between">
-            <h3>สเปกรีโนเวท</h3>
-            <button id="rb-add-spec" class="btn btn-sm btn-primary">+ เพิ่มสเปก</button>
-          </div>
-          <div class="card-body" id="rb-specs">
-            <!-- JS เติม table สเปก -->
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header between">
-            <h3>ทีมช่าง</h3>
-            <button id="rb-add-contractor" class="btn btn-sm btn-primary">
-              + เพิ่มทีมช่าง
-            </button>
-          </div>
-          <div class="card-body" id="rb-contractors">
-            <!-- JS เติม table ทีมช่าง -->
-          </div>
-        </div>
-      </div>
-
-      <div class="rb-actions-row">
-        <button id="rb-print-btn" class="btn btn-primary">
-          🖨️ รายงานสมุดรีโนเวท (Print / Export PDF)
+      <!-- เลือกบ้านจากฐานข้อมูล (ถ้ามี) -->
+      <div class="page-header-actions">
+        <label>
+          เลือกบ้าน:
+          <select id="property-select">
+            <option value="">— เลือกบ้าน —</option>
+            <!-- เติมจาก JS / Supabase -->
+          </select>
+        </label>
+        <button id="create-new-renovation-book" type="button">
+          + สร้างสมุดรีโนเวทใหม่
         </button>
       </div>
+    </header>
+
+    <!-- CARD 1: ข้อมูลบ้าน & โปรเจกต์ -->
+    <section class="card">
+      <div class="card-header">
+        <h2>1. ข้อมูลบ้าน & โปรเจกต์</h2>
+      </div>
+      <div class="card-body form-grid">
+
+        <div class="form-group">
+          <label for="house_code">โค้ดบ้าน / ชื่อเล่นบ้าน</label>
+          <input id="house_code" name="house_code" type="text" placeholder="เช่น พ่อขุน12-วนิลา / WANGPHET-01">
+        </div>
+
+        <div class="form-group">
+          <label for="house_location">ที่ตั้ง (ซอย / โครงการ / เขต)</label>
+          <input id="house_location" name="house_location" type="text" placeholder="เช่น ซ.พ่อขุนทะเล 12, ใกล้ รร.ประจำจังหวัด">
+        </div>
+
+        <div class="form-group">
+          <label for="house_type">ประเภทบ้าน</label>
+          <select id="house_type" name="house_type">
+            <option value="">— เลือกประเภท —</option>
+            <option value="townhouse">ทาวน์เฮาส์</option>
+            <option value="single_house">บ้านเดี่ยว</option>
+            <option value="twin_house">บ้านแฝด</option>
+            <option value="commercial">อาคารพาณิชย์</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="house_storeys">จำนวนชั้น</label>
+          <input id="house_storeys" name="house_storeys" type="number" min="1" placeholder="เช่น 2">
+        </div>
+
+        <div class="form-group">
+          <label for="land_size">ขนาดที่ดิน (ตร.วา)</label>
+          <input id="land_size" name="land_size" type="number" step="0.1" placeholder="เช่น 20.2">
+        </div>
+
+        <div class="form-group">
+          <label for="usable_area">พื้นที่ใช้สอยโดยประมาณ (ตร.ม.)</label>
+          <input id="usable_area" name="usable_area" type="number" step="1" placeholder="เช่น 110">
+        </div>
+
+        <div class="form-group">
+          <label for="house_facing">ทิศที่หันหน้า</label>
+          <select id="house_facing" name="house_facing">
+            <option value="">— เลือกทิศ —</option>
+            <option value="east">ทิศตะวันออก</option>
+            <option value="west">ทิศตะวันตก</option>
+            <option value="north">ทิศเหนือ</option>
+            <option value="south">ทิศใต้</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="house_age">อายุอาคารโดยประมาณ (ปี)</label>
+          <input id="house_age" name="house_age" type="number" min="0" placeholder="เช่น 25">
+        </div>
+
+        <div class="form-group">
+          <label for="acquisition_type">แหล่งที่มาของบ้าน</label>
+          <select id="acquisition_type" name="acquisition_type">
+            <option value="">— เลือก —</option>
+            <option value="npa_bank">บ้าน NPA / ซับธนาคาร</option>
+            <option value="owner">ซื้อจากเจ้าของโดยตรง</option>
+            <option value="auction">ประมูล</option>
+            <option value="other">อื่น ๆ</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="project_goal">เป้าหมายโปรเจกต์</label>
+          <select id="project_goal" name="project_goal">
+            <option value="">— เลือก —</option>
+            <option value="flip_sell">รีโนเวทขาย (Flip)</option>
+            <option value="rent">รีโนเวทเพื่อปล่อยเช่า</option>
+            <option value="keep">ถือครองระยะยาว</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="target_buyer">กลุ่มลูกค้าเป้าหมายของบ้านหลังนี้</label>
+          <textarea id="target_buyer" name="target_buyer" rows="2"
+            placeholder="เช่น ข้าราชการ / คุณครู / พนักงานออฟฟิศ / ครอบครัวที่มีลูกเรียน รร.ประจำจังหวัด ฯลฯ"></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="design_concept">คอนเซ็ปต์รีโนเวท / สไตล์</label>
+          <textarea id="design_concept" name="design_concept" rows="2"
+            placeholder="เช่น มินิมอลอบอุ่น / โทนไม้ขาว / Luxury โทนหินอ่อน ฯลฯ"></textarea>
+        </div>
+
+      </div>
     </section>
-  </main>
 
-  <!-- Modal สำหรับเพิ่มสเปก / ทีมช่าง -->
-  <div id="rb-modal" class="modal">
-    <div class="modal-content">
-      <span class="modal-close" id="rb-modal-close">&times;</span>
-      <h3 id="rb-modal-title">เพิ่มข้อมูล</h3>
+    <!-- CARD 2: สภาพเดิม & ปัญหาหลัก -->
+    <section class="card">
+      <div class="card-header">
+        <h2>2. สภาพเดิม & ปัญหาหลัก</h2>
+      </div>
+      <div class="card-body form-grid">
 
-      <form id="rb-modal-form">
-        <!-- ฟิลด์: สเปกรีโนเวท -->
-        <div id="rb-modal-spec-fields">
-          <div class="form-group">
-            <label>โซน</label>
-            <input type="text" name="zone" class="form-control" placeholder="เช่น ห้องนั่งเล่น, ครัว, ห้องน้ำบน" required>
-          </div>
-          <div class="form-group">
-            <label>ประเภท</label>
-            <input type="text" name="item_type" class="form-control" placeholder="เช่น สี, กระเบื้อง, สุขภัณฑ์, ไฟ">
-          </div>
-          <div class="form-group">
-            <label>ยี่ห้อ</label>
-            <input type="text" name="brand" class="form-control" placeholder="เช่น TOA, Beger, COTTO">
-          </div>
-          <div class="form-group">
-            <label>รุ่น / ซีรีส์</label>
-            <input type="text" name="model_or_series" class="form-control">
-          </div>
-          <div class="form-group">
-            <label>เบอร์สี / โค้ด</label>
-            <input type="text" name="color_code" class="form-control">
-          </div>
-          <div class="form-group">
-            <label>ร้าน / ผู้ขาย</label>
-            <input type="text" name="supplier" class="form-control" placeholder="ชื่อร้าน / แหล่งซื้อ">
-          </div>
-          <div class="form-group">
-            <label>หมายเหตุ</label>
-            <textarea name="note" rows="3" class="form-control" placeholder="เช่น ผสม A:B 50:50 หรือรายละเอียดเพิ่มเติม"></textarea>
-          </div>
+        <div class="form-group full-width">
+          <label for="structural_issues">โครงสร้าง / พื้น / หลังคา (ปัญหาที่พบ)</label>
+          <textarea id="structural_issues" name="structural_issues" rows="3"
+            placeholder="เช่น พื้นทรุด / พื้นหลุม / หลังคารั่ว / คานแตกร้าว / ผนังร้าวตามเสา ฯลฯ"></textarea>
         </div>
 
-        <!-- ฟิลด์: ทีมช่าง -->
-        <div id="rb-modal-contractor-fields" style="display:none;">
-          <div class="form-group">
-            <label>ชื่อช่าง / ทีมงาน</label>
-            <input type="text" name="contractor_name" class="form-control" placeholder="ชื่อช่าง / ชื่อทีม" required>
-          </div>
-          <div class="form-group">
-            <label>สายงาน</label>
-            <input type="text" name="contractor_trade" class="form-control" placeholder="เช่น ปูกระเบื้อง, ทาสี, ระบบน้ำ">
-          </div>
-          <div class="form-group">
-            <label>เบอร์ติดต่อ</label>
-            <input type="text" name="contractor_phone" class="form-control" placeholder="เบอร์ติดต่อ (ถ้ามี)">
-          </div>
-          <div class="form-group">
-            <label>ขอบเขตงานในบ้านหลังนี้</label>
-            <textarea name="scope" rows="3" class="form-control" placeholder="เช่น ปูกระเบื้องชั้นล่าง, ทำห้องน้ำบนใหม่ทั้งหมด"></textarea>
-          </div>
-          <div class="form-group">
-            <label>ระยะเวลารับประกันงาน (เดือน)</label>
-            <input type="number" name="warranty_months" class="form-control" min="0" placeholder="เช่น 12 (ถ้าไม่มีเว้นว่างได้)">
-          </div>
+        <div class="form-group full-width">
+          <label for="plumbing_issues">ระบบท่อน้ำทิ้ง / สุขาภิบาล (ปัญหาที่พบ)</label>
+          <textarea id="plumbing_issues" name="plumbing_issues" rows="3"
+            placeholder="เช่น ท่อน้ำทิ้งตัน / บ่อพักไม่มี / ท่อเดิมเป็นท่อเก่า 2&quot; ฝังในพื้น ฯลฯ"></textarea>
         </div>
 
-        <div style="text-align:right;margin-top:1rem;">
-          <button type="button" class="btn btn-secondary" id="rb-modal-cancel">ยกเลิก</button>
-          <button type="submit" class="btn">บันทึก</button>
+        <div class="form-group full-width">
+          <label for="water_supply_issues">ระบบน้ำดี (ปัญหาที่พบ)</label>
+          <textarea id="water_supply_issues" name="water_supply_issues" rows="2"
+            placeholder="เช่น แรงดันน้ำอ่อน / ไม่มีปั๊มน้ำ / เดินท่อไม่เป็นระบบ ฯลฯ"></textarea>
         </div>
-      </form>
-    </div>
+
+        <div class="form-group full-width">
+          <label for="electrical_issues">ระบบไฟฟ้า (ปัญหาที่พบ)</label>
+          <textarea id="electrical_issues" name="electrical_issues" rows="2"
+            placeholder="เช่น เดินไฟรวมเส้น / ไม่มีสายดิน / ตู้ไฟเก่า ฯลฯ"></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="other_risks">ความเสี่ยงอื่น ๆ ที่ควรระวัง</label>
+          <textarea id="other_risks" name="other_risks" rows="2"
+            placeholder="เช่น น้ำท่วมขังหน้าบ้าน / ถนนแคบ รถเข้าออกยาก ฯลฯ"></textarea>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CARD 3: แผนโครงสร้าง + พื้น -->
+    <section class="card">
+      <div class="card-header">
+        <h2>3. แผนงานโครงสร้าง & งานพื้น</h2>
+      </div>
+      <div class="card-body form-grid">
+
+        <div class="form-group">
+          <label for="remove_old_screed">การจัดการปูนเก่า / พื้นเดิม</label>
+          <select id="remove_old_screed" name="remove_old_screed">
+            <option value="">— เลือก —</option>
+            <option value="remove_all">สกัดปูนเก่าออกทั้งหมด</option>
+            <option value="remove_partial">สกัดเฉพาะจุดที่มีปัญหา</option>
+            <option value="keep">คงพื้นเดิม (ตรวจสอบแล้วปลอดภัย)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="old_screed_thickness">ความหนาปูนเก่าโดยประมาณ (ซม.)</label>
+          <input id="old_screed_thickness" name="old_screed_thickness" type="number" step="0.5">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="new_screed_spec">สเปกปูนปรับระดับ / พื้นใหม่</label>
+          <textarea id="new_screed_spec" name="new_screed_spec" rows="2"
+            placeholder="เช่น ปูนทรายหนา 5 ซม. เทใหม่ทั้งแผง + wire-mesh 4 มม. ฯลฯ"></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="flooring_plan">แผนงานพื้น (กระเบื้อง / ลามิเนต / กระเบื้องยาง ฯลฯ)</label>
+          <textarea id="flooring_plan" name="flooring_plan" rows="3"
+            placeholder="แยกตามโซน: ชั้นล่าง, ชั้นบน, ครัว, ลานซักล้าง ฯลฯ"></textarea>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CARD 4: ท่อน้ำทิ้ง / สุขาภิบาล + น้ำดี -->
+    <section class="card">
+      <div class="card-header">
+        <h2>4. ระบบท่อน้ำทิ้ง / สุขาภิบาล & ระบบน้ำดี</h2>
+      </div>
+      <div class="card-body form-grid">
+
+        <div class="form-group">
+          <label for="drainage_plan">แผนงานท่อน้ำทิ้ง</label>
+          <select id="drainage_plan" name="drainage_plan">
+            <option value="">— เลือก —</option>
+            <option value="replace_all">รื้อและวางท่อใหม่ทั้งระบบ</option>
+            <option value="replace_partial">เปลี่ยนเฉพาะแนวที่จำเป็น</option>
+            <option value="keep">รักษาท่อเดิม (ทดสอบแล้วใช้งานได้ดี)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="pipe_size_main">ขนาดท่อเมนหลัก</label>
+          <input id="pipe_size_main" name="pipe_size_main" type="text" placeholder="เช่น ท่อ 4&quot; PVC ชั้น 8.5">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="drainage_notes">รายละเอียดวางท่อ / บ่อพัก / การระบายน้ำ</label>
+          <textarea id="drainage_notes" name="drainage_notes" rows="3"
+            placeholder="ตำแหน่งบ่อพัก, ทิศทางไหล, slope, จุดเสี่ยงอุดตัน ฯลฯ"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="water_supply_plan">แผนงานระบบน้ำดี</label>
+          <select id="water_supply_plan" name="water_supply_plan">
+            <option value="">— เลือก —</option>
+            <option value="new_all">เดินท่อใหม่ทั้งระบบ</option>
+            <option value="new_partial">เดินใหม่บางส่วน</option>
+            <option value="keep">คงระบบเดิม (ทดสอบแล้ว)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="water_tank_pump">ถังเก็บน้ำ / ปั๊มน้ำ</label>
+          <input id="water_tank_pump" name="water_tank_pump" type="text"
+            placeholder="เช่น ถัง 1000 ลิตร + ปั๊ม 150W ตั้งพื้น ฯลฯ">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="water_notes">หมายเหตุระบบน้ำ</label>
+          <textarea id="water_notes" name="water_notes" rows="2"></textarea>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CARD 5: ระบบไฟฟ้า -->
+    <section class="card">
+      <div class="card-header">
+        <h2>5. ระบบไฟฟ้า</h2>
+      </div>
+      <div class="card-body form-grid">
+
+        <div class="form-group">
+          <label for="electric_plan">แผนระบบไฟ</label>
+          <select id="electric_plan" name="electric_plan">
+            <option value="">— เลือก —</option>
+            <option value="rewire_all">เดินสายไฟใหม่ทั้งหลัง</option>
+            <option value="rewire_partial">เดินใหม่บางส่วน</option>
+            <option value="keep">ใช้ของเดิม (ตรวจสอบแล้ว)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="main_breaker_spec">ตู้ไฟ / เมนเบรกเกอร์</label>
+          <input id="main_breaker_spec" name="main_breaker_spec" type="text"
+            placeholder="เช่น ตู้ Load Center 12 ช่อง, มี RCBO ฯลฯ">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="lighting_plan">แผนไฟส่องสว่าง & ปลั๊ก</label>
+          <textarea id="lighting_plan" name="lighting_plan" rows="3"
+            placeholder="จุดไฟหลัก / ไฟซ่อน / Dimmer / ปลั๊กตามจุดใช้งาน ฯลฯ"></textarea>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CARD 6: ห้องน้ำ & ครัว -->
+    <section class="card">
+      <div class="card-header">
+        <h2>6. ห้องน้ำ & ครัว</h2>
+      </div>
+      <div class="card-body form-grid">
+
+        <div class="form-group full-width">
+          <label for="bathroom_plan">แผนรีโนเวทห้องน้ำ (แยกห้องได้ในรายละเอียด)</label>
+          <textarea id="bathroom_plan" name="bathroom_plan" rows="3"
+            placeholder="เช่น รื้อทั้งห้อง / ระบบกันซึม / ปรับ slope / สุขภัณฑ์ ฯลฯ"></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="kitchen_plan">แผนครัว</label>
+          <textarea id="kitchen_plan" name="kitchen_plan" rows="3"
+            placeholder="ครัวไทย / ครัวฝรั่ง / เคาน์เตอร์ปูน / ดูดควัน / จุดเตา ฯลฯ"></textarea>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CARD 7: ทีมช่าง / ไทม์ไลน์ / งบ -->
+    <section class="card">
+      <div class="card-header">
+        <h2>7. ทีมช่าง / ไทม์ไลน์ / งบรีโนเวท</h2>
+      </div>
+      <div class="card-body">
+
+        <!-- ทีมช่าง -->
+        <h3>ทีมช่าง & ลำดับงาน</h3>
+        <div class="table-responsive">
+          <table class="table" id="contractor-table">
+            <thead>
+              <tr>
+                <th>ลำดับ</th>
+                <th>ประเภทงาน</th>
+                <th>ชื่อช่าง / ทีม</th>
+                <th>เบอร์โทร</th>
+                <th>เริ่ม</th>
+                <th>จบ</th>
+                <th>สถานะ</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- เติมด้วย JS หรือใส่แถวเปล่า ๆ ก่อน -->
+              <tr>
+                <td>1</td>
+                <td><input name="contractor[0][trade]" placeholder="เช่น รื้อทุบ"></td>
+                <td><input name="contractor[0][name]" placeholder="ชื่อช่าง"></td>
+                <td><input name="contractor[0][phone]" placeholder="เบอร์"></td>
+                <td><input name="contractor[0][start]" type="date"></td>
+                <td><input name="contractor[0][end]" type="date"></td>
+                <td>
+                  <select name="contractor[0][status]">
+                    <option value="">—</option>
+                    <option value="pending">รอเข้า</option>
+                    <option value="in_progress">กำลังทำ</option>
+                    <option value="done">เสร็จ</option>
+                    <option value="delay">ล่าช้า</option>
+                  </select>
+                </td>
+                <td><input name="contractor[0][note]"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- งบประมาณ -->
+        <h3>สรุปงบรีโนเวท</h3>
+        <div class="table-responsive">
+          <table class="table" id="budget-table">
+            <thead>
+              <tr>
+                <th>หมวดงาน</th>
+                <th>งบประมาณตั้งต้น (บาท)</th>
+                <th>ใช้จริง (บาท)</th>
+                <th>ส่วนต่าง</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>รื้อถอน</td>
+                <td><input name="budget[demolition][plan]" type="number"></td>
+                <td><input name="budget[demolition][actual]" type="number"></td>
+                <td><input name="budget[demolition][diff]" type="number" readonly></td>
+                <td><input name="budget[demolition][note]" type="text"></td>
+              </tr>
+              <tr>
+                <td>โครงสร้าง / พื้น</td>
+                <td><input name="budget[structure][plan]" type="number"></td>
+                <td><input name="budget[structure][actual]" type="number"></td>
+                <td><input name="budget[structure][diff]" type="number" readonly></td>
+                <td><input name="budget[structure][note]" type="text"></td>
+              </tr>
+              <tr>
+                <td>ท่อน้ำ / สุขาภิบาล</td>
+                <td><input name="budget[plumbing][plan]" type="number"></td>
+                <td><input name="budget[plumbing][actual]" type="number"></td>
+                <td><input name="budget[plumbing][diff]" type="number" readonly></td>
+                <td><input name="budget[plumbing][note]" type="text"></td>
+              </tr>
+              <tr>
+                <td>ไฟฟ้า</td>
+                <td><input name="budget[electric][plan]" type="number"></td>
+                <td><input name="budget[electric][actual]" type="number"></td>
+                <td><input name="budget[electric][diff]" type="number" readonly></td>
+                <td><input name="budget[electric][note]" type="text"></td>
+              </tr>
+              <tr>
+                <td>ห้องน้ำ</td>
+                <td><input name="budget[bathroom][plan]" type="number"></td>
+                <td><input name="budget[bathroom][actual]" type="number"></td>
+                <td><input name="budget[bathroom][diff]" type="number" readonly></td>
+                <td><input name="budget[bathroom][note]" type="text"></td>
+              </tr>
+              <tr>
+                <td>ครัว</td>
+                <td><input name="budget[kitchen][plan]" type="number"></td>
+                <td><input name="budget[kitchen][actual]" type="number"></td>
+                <td><input name="budget[kitchen][diff]" type="number" readonly></td>
+                <td><input name="budget[kitchen][note]" type="text"></td>
+              </tr>
+              <tr>
+                <td>สี / งานตกแต่ง</td>
+                <td><input name="budget[finishing][plan]" type="number"></td>
+                <td><input name="budget[finishing][actual]" type="number"></td>
+                <td><input name="budget[finishing][diff]" type="number" readonly></td>
+                <td><input name="budget[finishing][note]" type="text"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- หมายเหตุรวม -->
+        <div class="form-group full-width">
+          <label for="summary_notes">สรุปภาพรวม / สิ่งที่ต้องโฟกัสเป็นพิเศษ</label>
+          <textarea id="summary_notes" name="summary_notes" rows="3"></textarea>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ปุ่มบันทึก -->
+    <section class="page-actions">
+      <button id="save-renovation-book" type="button">บันทึกสมุดรีโนเวท</button>
+    </section>
+
   </div>
-
-  <!-- JS main (มีแค่ตัวเดียวพอ) -->
-  <script type="module" src="/js/pages/renovation-book.page.js"></script>
-
-  <!-- FULLSCREEN REPORT OVERLAY -->
-  <div id="report-overlay" class="rb-report-overlay">
-    <div class="rb-report-overlay-inner">
-      <button id="report-overlay-close" class="rb-report-overlay-close">✕ ปิด</button>
-      <iframe id="report-iframe" title="Renovation Report"></iframe>
-    </div>
-  </div>
-</body>
-</html>
+</main>
