@@ -158,6 +158,57 @@
   <ul id="poi-candidate-list" class="poi-inline-list">
     <!-- JS จะใส่ให้ -->
   </ul>
+
+<!-- ✅ ฟอร์มเพิ่มสถานที่ใกล้เคียงด้วยตัวเอง -->
+<div id="poi-manual-box" style="margin-top:1rem;padding:0.75rem 1rem;border-radius:12px;border:1px solid #e5e7eb;background:#f9fafb;">
+  <p style="font-weight:600;margin-bottom:.5rem;font-size:.9rem;">
+    เพิ่มสถานที่ใกล้เคียงด้วยตัวเอง
+  </p>
+
+  <div class="form-group">
+    <label>ชื่อสถานที่ *</label>
+    <input id="poi-name-input" type="text" class="form-control"
+           placeholder="เช่น โรงเรียนสุราษฎร์พิทยา">
+  </div>
+
+  <div class="form-group">
+    <label>ประเภท (type)</label>
+    <input id="poi-type-input" type="text" class="form-control"
+           placeholder="เช่น school, market, hospital, government">
+    <small style="color:#6b7280;font-size:.8rem;">
+      ใช้คำอังกฤษสั้น ๆ จะช่วยให้ระบบจัดไอคอน/สีได้ เช่น school, hospital, market
+    </small>
+  </div>
+
+  <div class="form-row" style="display:flex;gap:.75rem;">
+    <div class="form-group" style="flex:1;">
+      <label>ระยะทาง (กม.)</label>
+      <input id="poi-distance-input" type="number" step="0.01" min="0"
+             class="form-control" placeholder="เช่น 0.80">
+    </div>
+    <div class="form-group" style="flex:1;">
+      <label>Latitude</label>
+      <input id="poi-lat-input" type="number" step="0.000001"
+             class="form-control" placeholder="เว้นว่างได้ ถ้าใช้พิกัดบ้าน">
+    </div>
+    <div class="form-group" style="flex:1;">
+      <label>Longitude</label>
+      <input id="poi-lng-input" type="number" step="0.000001"
+             class="form-control" placeholder="เว้นว่างได้ ถ้าใช้พิกัดบ้าน">
+    </div>
+  </div>
+
+  <small style="color:#6b7280;font-size:.8rem;">
+    ถ้าไม่กรอก Latitude / Longitude ระบบจะใช้พิกัดบ้านคำนวณระยะทางให้อัตโนมัติ
+  </small>
+
+  <div style="text-align:right;margin-top:.75rem;">
+    <button id="poi-add-manual-btn" class="btn btn-sm btn-secondary">
+      + เพิ่มสถานที่นี้เข้าในรายการ
+    </button>
+  </div>
+</div>
+
   <small style="color:#6b7280;">*ติ๊กออกได้ถ้าไม่ต้องการแสดงบางแห่ง</small>
 </div>
 

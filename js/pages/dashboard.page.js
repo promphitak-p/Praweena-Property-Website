@@ -484,6 +484,74 @@ function renderPOIInlineList() {
   });
 }
 
+// ✅ ฟอร์มเพิ่มสถานที่ใกล้เคียงด้วยตัวเอง
+function setupPoiManualForm() {
+  const nameInput     = document.getElementById('poi-name-input');
+  const typeInput     = document.getElementById('poi-type-input');
+  const distInput     = document.getElementById('poi-distance-input');
+  const latInput      = document.getElementById('poi-lat-input');
+  const lngInput      = document.getElementById('poi-lng-input');
+  const addBtn        = document.getElementById('poi-add-manual-btn');
+
+  if (!addBtn) return; // ถ้าไม่มี element ก็ไม่ต้องทำอะไร
+
+  addBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    const name = (nameInput?.value || '').trim();
+    if (!name) {
+      toast('กรุณากรอกชื่อสถานที่', 2500, 'error');
+      return;
+    }
+
+    // type / ระยะทาง / lat / lng
+    const type  = (typeInput?.value || '').trim();
+    const baseLat = parseFloat(propertyForm?.elements.latitude?.value || '');
+    const baseLng = parseFloat(propertyForm?.elements.longitude?.value || '');
+
+    let lat  = latInput?.value ? parseFloat(latInput.value) : NaN;
+    let lng  = lngInput?.value ? parseFloat(lngInput.value) : NaN;
+
+    // ถ้าไม่กรอกพิกัด ใช้พิกัดบ้าน
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      if (Number.isFinite(baseLat) && Number.isFinite(baseLng)) {
+        lat = baseLat;
+        lng = baseLng;
+      } else {
+        toast('กรุณาเลือกตำแหน่งบ้านบนแผนที่ หรือกรอกพิกัดสถานที่', 3000, 'error');
+        return;
+      }
+    }
+
+    let dist = distInput?.value ? parseFloat(distInput.value) : NaN;
+    if (!Number.isFinite(dist) && Number.isFinite(baseLat) && Number.isFinite(baseLng)) {
+      dist = kmDistance(baseLat, baseLng, lat, lng);
+    }
+
+    const poi = {
+      name,
+      type,
+      lat,
+      lng,
+      distance_km: Number.isFinite(dist) ? dist : null,
+      __saved: true   // ให้ติ๊ก checkbox ไว้เลย
+    };
+
+    // ดันเข้า list รวม (ระบบเดิมใช้ poiCandidatesInline)
+    poiCandidatesInline.push(poi);
+    renderPOIInlineList();
+
+    // เคลียร์ฟอร์ม
+    if (nameInput) nameInput.value = '';
+    if (typeInput) typeInput.value = '';
+    if (distInput) distInput.value = '';
+    if (latInput)  latInput.value = '';
+    if (lngInput)  lngInput.value = '';
+
+    toast('เพิ่มสถานที่ใกล้เคียงแล้ว (อย่าลืมกดบันทึกบ้าน)', 2500, 'success');
+  });
+}
+
 // บันทึก POI ที่ติ๊ก
 async function saveInlinePois(propertyId, baseLat, baseLng) {
   if (!propertyId) return;
@@ -732,6 +800,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await signOutIfAny();
 
   installModalCloseHandlers();
+  setupPoiManualForm();   // ✅ ผูกฟอร์มเพิ่มสถานที่เอง
 
   // ปุ่มเพิ่มบ้าน
   addPropertyBtn?.addEventListener('click', () => {
