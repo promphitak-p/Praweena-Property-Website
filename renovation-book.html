@@ -1,3 +1,182 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>สมุดรีโนเวท - Praweena Property</title>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/assets/css/base.css"/>
+  <link rel="stylesheet" href="/assets/css/layout.css"/>
+  <link rel="stylesheet" href="/assets/css/components.css"/>
+  <link rel="stylesheet" href="/assets/css/style.css"/>
+
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/assets/favicon/site.webmanifest">
+
+  <!-- Extra styles หน้าสมุดรีโนเวท + overlay รายงาน -->
+  <style>
+    /* โหมดพิมพ์จากหน้านี้ (ส่วนใหญ่จะพิมพ์จากหน้า report อยู่แล้ว) */
+    @media print {
+      header,
+      #rb-list-section,
+      #rb-back-btn,
+      .rb-actions-row,
+      .rb-report-overlay {
+        display: none !important;
+      }
+      body {
+        background: #ffffff;
+      }
+      #rb-detail-section {
+        display: block !important;
+      }
+      .card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb;
+      }
+    }
+
+    .card-header.between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* การ์ดในโหมด list บ้าน */
+    .rb-property-card {
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 1rem 1.25rem;
+      background: #ffffff;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+    .rb-property-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      border-color: #d1b28a;
+    }
+
+    .rb-property-card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .rb-property-card-footer {
+      margin-top: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .rb-actions-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    /* -------- FULLSCREEN REPORT OVERLAY (สไตล์โปรแกรมหมู่บ้าน) -------- */
+    .rb-report-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      z-index: 9999;
+    }
+
+    .rb-report-overlay.open {
+      display: flex;
+    }
+
+    .rb-report-overlay-inner {
+      background: #f9fafb;
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+      width: 100%;
+      max-width: 980px;
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid rgba(209, 178, 138, 0.6);
+    }
+
+    #report-overlay-close {
+      align-self: flex-end;
+      margin: 0.75rem 0.75rem 0;
+      border: none;
+      background: #111827;
+      color: #f9fafb;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    #report-overlay-close:hover {
+      background: #374151;
+    }
+
+    #report-iframe {
+      border: none;
+      width: 100%;
+      flex: 1;
+      background: #ffffff;
+    }
+
+    /* มือถือ: ให้ layout ไม่อึดอัด */
+    @media (max-width: 768px) {
+      .grid.grid-cols-2 {
+        grid-template-columns: 1fr;
+      }
+      .rb-actions-row {
+        flex-direction: column;
+      }
+      .rb-report-overlay-inner {
+        border-radius: 12px;
+        padding-top: 0.25rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
+          <span class="logo-text">Praweena Property</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="/renovation-book.html" aria-current="page">สมุดรีโนเวท</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
+        </ul>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
+
 <main class="page page-renovation-book">
   <div class="container">
 
@@ -429,3 +608,88 @@
 
   </div>
 </main>
+
+
+  <!-- Modal สำหรับเพิ่มสเปก / ทีมช่าง -->
+  <div id="rb-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" id="rb-modal-close">&times;</span>
+      <h3 id="rb-modal-title">เพิ่มข้อมูล</h3>
+
+      <form id="rb-modal-form">
+        <!-- ฟิลด์: สเปกรีโนเวท -->
+        <div id="rb-modal-spec-fields">
+          <div class="form-group">
+            <label>โซน</label>
+            <input type="text" name="zone" class="form-control" placeholder="เช่น ห้องนั่งเล่น, ครัว, ห้องน้ำบน" required>
+          </div>
+          <div class="form-group">
+            <label>ประเภท</label>
+            <input type="text" name="item_type" class="form-control" placeholder="เช่น สี, กระเบื้อง, สุขภัณฑ์, ไฟ">
+          </div>
+          <div class="form-group">
+            <label>ยี่ห้อ</label>
+            <input type="text" name="brand" class="form-control" placeholder="เช่น TOA, Beger, COTTO">
+          </div>
+          <div class="form-group">
+            <label>รุ่น / ซีรีส์</label>
+            <input type="text" name="model_or_series" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>เบอร์สี / โค้ด</label>
+            <input type="text" name="color_code" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>ร้าน / ผู้ขาย</label>
+            <input type="text" name="supplier" class="form-control" placeholder="ชื่อร้าน / แหล่งซื้อ">
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea name="note" rows="3" class="form-control" placeholder="เช่น ผสม A:B 50:50 หรือรายละเอียดเพิ่มเติม"></textarea>
+          </div>
+        </div>
+
+        <!-- ฟิลด์: ทีมช่าง -->
+        <div id="rb-modal-contractor-fields" style="display:none;">
+          <div class="form-group">
+            <label>ชื่อช่าง / ทีมงาน</label>
+            <input type="text" name="contractor_name" class="form-control" placeholder="ชื่อช่าง / ชื่อทีม" required>
+          </div>
+          <div class="form-group">
+            <label>สายงาน</label>
+            <input type="text" name="contractor_trade" class="form-control" placeholder="เช่น ปูกระเบื้อง, ทาสี, ระบบน้ำ">
+          </div>
+          <div class="form-group">
+            <label>เบอร์ติดต่อ</label>
+            <input type="text" name="contractor_phone" class="form-control" placeholder="เบอร์ติดต่อ (ถ้ามี)">
+          </div>
+          <div class="form-group">
+            <label>ขอบเขตงานในบ้านหลังนี้</label>
+            <textarea name="scope" rows="3" class="form-control" placeholder="เช่น ปูกระเบื้องชั้นล่าง, ทำห้องน้ำบนใหม่ทั้งหมด"></textarea>
+          </div>
+          <div class="form-group">
+            <label>ระยะเวลารับประกันงาน (เดือน)</label>
+            <input type="number" name="warranty_months" class="form-control" min="0" placeholder="เช่น 12 (ถ้าไม่มีเว้นว่างได้)">
+          </div>
+        </div>
+
+        <div style="text-align:right;margin-top:1rem;">
+          <button type="button" class="btn btn-secondary" id="rb-modal-cancel">ยกเลิก</button>
+          <button type="submit" class="btn">บันทึก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JS main (มีแค่ตัวเดียวพอ) -->
+  <script type="module" src="/js/pages/renovation-book.page.js"></script>
+
+  <!-- FULLSCREEN REPORT OVERLAY -->
+  <div id="report-overlay" class="rb-report-overlay">
+    <div class="rb-report-overlay-inner">
+      <button id="report-overlay-close" class="rb-report-overlay-close">✕ ปิด</button>
+      <iframe id="report-iframe" title="Renovation Report"></iframe>
+    </div>
+  </div>
+</body>
+</html>
