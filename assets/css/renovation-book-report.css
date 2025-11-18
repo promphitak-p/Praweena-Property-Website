@@ -277,3 +277,68 @@
     padding: 12mm 15mm !important; /* ขอบกระดาษ */
   }
 }
+
+/* Bar ปุ่มด้านบน */
+.rbr-header-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.rbr-btn-back, .rbr-btn-print {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  cursor: pointer;
+}
+
+.rbr-btn-print {
+  background: #d0b48c;
+  border-color: #c29a6c;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* LOGO BLOCK */
+.rbr-logo-block {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 0 0.4rem;
+  border-bottom: 1px solid #eaeaea;
+  margin-bottom: 1rem;
+}
+
+.rbr-logo-img {
+  width: 64px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+}
+
+.rbr-logo-text .rbr-title-main {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.rbr-title-sub {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* PRINT MODE */
+@media print {
+  .rbr-header-bar {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .rbr-logo-img {
+    display: block !important;
+  }
+}

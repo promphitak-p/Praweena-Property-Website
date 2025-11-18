@@ -13,21 +13,28 @@
         
         <header class="rbr-header">
 
-            <div class="rbr-header-left">
-                <button id="rbr-back-btn" ...>← กลับสมุดรีโนเวท</button>
-            </div>
-            <div class="rbr-header-right">
-                <button id="rbr-print-btn" ...>พิมพ์ / Export PDF</button>
+            <!-- ปุ่มย้อนกลับ / ปุ่มพิมพ์ -->
+            <div class="rbr-header-bar">
+                <button id="rbr-back-btn" class="rbr-btn-back">
+                ← กลับสมุดรีโนเวท
+                </button>
+                <button id="rbr-print-btn" class="rbr-btn-print">
+                🖨️ พิมพ์ / Export PDF
+                </button>
             </div>
 
-          <div class="rbr-logo">
-            <div class="rbr-logo-mark">P</div>
-            <div>
-              <p class="rbr-title-main">สมุดรีโนเวทบ้าน</p>
-              <p class="rbr-title-sub">Praweena Property – Renovation Specification</p>
+            <!-- LOGO + TITLE BLOCK -->
+            <div class="rbr-logo-block">
+                <img src="/assets/img/logo.png" alt="Praweena Property" class="rbr-logo-img"/>
+
+                <div class="rbr-logo-text">
+                <h1 class="rbr-title-main">สมุดรีโนเวทบ้าน</h1>
+                <p class="rbr-title-sub">Praweena Property – Renovation Specification</p>
+                </div>
             </div>
-          </div>
-          <div class="rbr-meta" id="rbr-meta"></div>
+
+            <!-- META (วันที่ / รหัสบ้าน) -->
+            <div class="rbr-meta" id="rbr-meta"></div>
         </header>
 
         <section>
