@@ -55,3 +55,89 @@
 body.rb-report-open {
   overflow: hidden;
 }
+
+/* container หลัก ให้ไม่ชิดขอบเกินไปบนมือถือ */
+.page-renovation-book .container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+}
+
+/* card ให้ดูเป็นบล็อกอ่านง่าย */
+.page-renovation-book .card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+.page-renovation-book .card-header h2 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+/* 🧩 GRID ฟอร์ม: เริ่มจาก 1 คอลัมน์ก่อน (เหมาะกับมือถือ) */
+.page-renovation-book .form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem 1.5rem;
+}
+
+/* ช่องฟอร์มทั่วไป */
+.page-renovation-book .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.page-renovation-book label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.page-renovation-book input,
+.page-renovation-book select,
+.page-renovation-book textarea {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* ช่องที่ต้องการให้เต็มแถว */
+.page-renovation-book .form-group.full-width {
+  /* มือถือ 1 คอลัมน์อยู่แล้ว ไม่ต้องทำอะไร */
+}
+
+/* 📱 breakpoint แรก: จอประมาณ iPad ขึ้นไป → 2 คอลัมน์ */
+@media (min-width: 768px) {
+  .page-renovation-book .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-renovation-book .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ตารางให้เลื่อนในแนวนอนได้บนมือถือ */
+.page-renovation-book .table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ปุ่มด้านล่างฟอร์ม */
+.page-renovation-book .page-actions {
+  margin: 1.25rem 0 2rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#save-renovation-book {
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
