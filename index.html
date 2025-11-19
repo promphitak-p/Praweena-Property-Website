@@ -48,32 +48,34 @@
     </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <div class="container">
-        <div class="hero-grad">
-          <h1>ค้นหาบ้านในฝันของคุณ</h1>
-          <p>บ้าน ทาวน์เฮ้าส์ บ้านสวย ทำเลดีในสุราษฎร์ธานี</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="container" id="listings">
-      <h2>รายการล่าสุด</h2>
-
-      <form id="filter-form" class="grid grid-cols-4" style="margin: 2rem 0;">
-        <div class="form-group">
-          <input type="search" name="q" class="form-control" placeholder="ค้นหาชื่อโครงการหรือทำเล...">
-        </div>
-        <div class="form-group">
-          <select name="district" class="form-control">
-            <option value="">ทุกอำเภอ</option>
-            <option value="เมืองสุราษฎร์ธานี">เมืองสุราษฎร์ธานี</option>
-            <option value="เกาะสมุย">เกาะสมุย</option>
-            <option value="กาญจนดิษฐ์">กาญจนดิษฐ์</option>
-          </select>
-        </div>
+<main>
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content"> <h1>ค้นหาบ้านในฝันของคุณ</h1>
+        <p>บ้าน ทาวน์เฮ้าส์ บ้านสวย ทำเลดีในสุราษฎร์ธานี</p>
+        
+        <form id="hero-filter-form" class="search-bar-primary">
+            <div class="form-group search-input-group">
+                <label for="q-search" class="sr-only">ค้นหาชื่อโครงการหรือทำเล</label>
+                <input type="search" id="q-search" name="q" class="form-control" placeholder="ค้นหาชื่อโครงการ, ทำเล, หรือประเภททรัพย์สิน...">
+            </div>
+            
+            <button type="submit" class="btn btn-primary search-btn">ค้นหา</button>
         </form>
+        
+      </div>
+    </div>
+  </section>
+
+  <section class="container" id="listings">
+    <h2>รายการล่าสุด</h2>
+    <form id="filter-form-advanced" class="grid grid-cols-4 advanced-filters" style="margin: 2rem 0;">
+      <div class="form-group">
+        <select name="district" class="form-control">
+          <option value="">ทุกอำเภอ</option>
+          </select>
+      </div>
+      </form>
 
       <div id="property-grid" class="grid property-grid">
         <p>กำลังโหลดรายการ...</p>

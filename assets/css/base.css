@@ -254,3 +254,143 @@ img {
   cursor: pointer;
   color: var(--text-light);
 }
+
+/* ==================================== */
+/* 1. HERO SECTION STYLES */
+/* ==================================== */
+
+.hero {
+    /* กำหนดภาพพื้นหลัง, ควรใช้ภาพที่เกี่ยวข้องกับอสังหาริมทรัพย์ */
+    background-image: url('../img/hero-background.jpg'); /* ปรับเปลี่ยน path ของรูปภาพให้ถูกต้อง */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    
+    /* กำหนดความสูง เพื่อให้ Hero Section ดูโดดเด่น */
+    min-height: 500px;
+    height: 70vh; /* ใช้หน่วย vh เพื่อให้ปรับตามความสูงของหน้าจอ */
+    
+    /* จัดองค์ประกอบภายในให้อยู่ตรงกลางตามแนวตั้ง */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+/* ชั้นสีทับ (Gradient Overlay) เพื่อเพิ่มความชัดเจนของข้อความ */
+.hero-grad {
+    /* ใช้สีดำจางๆ ไล่ระดับ หรือสีทึบจางๆ */
+    background-color: rgba(0, 0, 0, 0.4); 
+    padding: 2rem;
+    border-radius: 8px;
+    color: #ffffff; /* เปลี่ยนสีข้อความให้เป็นสีขาว */
+    width: 100%; /* ให้เต็มความกว้างของ container */
+}
+
+.hero-grad h1 {
+    font-size: 3rem; /* ปรับขนาดให้ใหญ่และโดดเด่น */
+    margin-bottom: 0.5rem;
+    color: #ffffff;
+}
+
+.hero-grad p {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+/* ==================================== */
+/* 2. PRIMARY SEARCH BAR STYLES */
+/* ==================================== */
+
+.search-bar-primary {
+    /* ใช้ Flexbox จัดเรียงช่องค้นหาและปุ่มให้อยู่ในแถวเดียวกัน */
+    display: flex;
+    gap: 10px; /* ระยะห่างระหว่างช่อง */
+    
+    /* ควบคุมขนาดของฟอร์มค้นหาไม่ให้ใหญ่เกินไป */
+    max-width: 700px;
+    margin: 0 auto;
+    background-color: #ffffff; /* พื้นหลังสีขาวเพื่อให้ตัดกับ Hero */
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.search-input-group {
+    /* ให้ช่อง input ขยายเต็มพื้นที่ที่เหลือ */
+    flex-grow: 1; 
+}
+
+.search-bar-primary .form-control {
+    /* ปรับปรุงช่อง input ภายในฟอร์มหลัก */
+    width: 100%;
+    padding: 12px 15px;
+    border: none; /* ลบเส้นขอบเดิมออกเพื่อให้ดูเป็นส่วนหนึ่งของกล่อง */
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.search-btn {
+    /* สไตล์ปุ่ม CTA หลัก */
+    padding: 12px 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    background-color: var(--color-primary, #007bff); /* ใช้สีหลักของธีม */
+    color: #ffffff;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.search-btn:hover {
+    background-color: var(--color-primary-dark, #0056b3);
+}
+
+/* สำหรับ Accessibility: ซ่อน Label สำหรับ Screen Readers */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ==================================== */
+/* 3. RESPONSIVENESS (Mobile Adjustment) */
+/* ==================================== */
+
+@media (max-width: 768px) {
+    .hero {
+        /* ลดความสูงบนมือถือ */
+        min-height: 400px;
+        height: 50vh;
+    }
+    
+    .hero-grad h1 {
+        /* ลดขนาดตัวอักษรบนมือถือ */
+        font-size: 2rem;
+    }
+    
+    .hero-grad p {
+        /* ซ่อนคำอธิบายรองบนมือถือ (Optional) */
+        font-size: 1rem;
+    }
+
+    .search-bar-primary {
+        /* บนมือถือ ให้ช่องค้นหาและปุ่มจัดเรียงเป็นแนวตั้ง */
+        flex-direction: column;
+        padding: 15px;
+        gap: 15px;
+    }
+    
+    .search-btn {
+        /* ให้ปุ่มเต็มความกว้างบนมือถือ */
+        width: 100%;
+    }
+}
