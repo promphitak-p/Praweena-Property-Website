@@ -221,7 +221,7 @@ async function loadPropertyList() {
       card.innerHTML = `
         <div class="rb-property-card-header">
           <div>
-            <h3 style="margin:0;font-size:1.05rem;">${p.title || '-'}</h3>
+            <h3 style="margin:0,font-size:1.05rem;">${p.title || '-'}</h3>
             <p style="margin:.15rem 0 0 0;color:#4b5563;">
               ${p.address || ''} ${p.district || ''} ${p.province || ''}
             </p>
@@ -528,16 +528,16 @@ function setupReportOverlay() {
 
 // -------------------- init --------------------
 document.addEventListener('DOMContentLoaded', async () => {
+  // auth + nav
   await protectPage();
   setupNav();
   setupMobileNav();
   await signOutIfAny();
 
+  // modal / ปุ่มเพิ่มข้อมูล / overlay report
   setupRbModal();
   setupAddButtons();
-
-  // ใช้ overlay สองปุ่มนี้แทน ไม่ต้องมี setupPrintButton แล้ว
-  setupReportOverlay();   // ปุ่ม "พิมพ์ / Export PDF (ไว้สำหรับ Print)"
+  setupReportOverlay();
 
   const params = new URLSearchParams(window.location.search);
   const propertyIdParam = params.get('property_id');
@@ -596,5 +596,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     // โหมดรายการบ้าน
     showListMode();
     await loadPropertyList();
+  }
+
+  // -------------------- Sticky header + Scroll-to-top --------------------
+  const header = document.querySelector('.page-renovation-book .page-header');
+  const scrollBtn = document.getElementById('scroll-to-top');
+
+  const onScroll = () => {
+    if (header) {
+      if (window.scrollY > 10) header.classList.add('is-scrolled');
+      else header.classList.remove('is-scrolled');
+    }
+
+    if (scrollBtn) {
+      if (window.scrollY > 300) scrollBtn.classList.add('show');
+      else scrollBtn.classList.remove('show');
+    }
+  };
+
+  window.addEventListener('scroll', onScroll);
+  onScroll();
+
+  if (scrollBtn) {
+    scrollBtn.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
   }
 });

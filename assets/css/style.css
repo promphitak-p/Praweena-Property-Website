@@ -141,3 +141,82 @@ body.rb-report-open {
   font-size: 0.9rem;
   cursor: pointer;
 }
+
+/* === Base Typography === */
+html {
+  font-size: 16px;           /* กัน Safari ซูมเวลาแตะ input */
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  color: #111827;
+  background-color: #f3f4f6;
+  -webkit-text-size-adjust: 100%; /* กัน Safari ปรับขนาดเอง */
+}
+
+/* ปุ่มหลักด้านล่างฟอร์ม */
+.page-renovation-book .page-actions {
+  margin: 1.25rem 0 2.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ดีฟอลต์บนจอใหญ่ */
+#save-renovation-book {
+  padding: 0.75rem 1.75rem;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #111827;
+  color: #fff;
+}
+
+/* 📱 มือถือ: ปุ่มกว้างเกือบเต็มจอ + จัดชิดซ้ายให้ดูเต็ม */
+@media (max-width: 767px) {
+  .page-renovation-book .page-actions {
+    justify-content: center;
+  }
+
+  #save-renovation-book {
+    width: 100%;
+    max-width: 480px;
+    display: inline-flex;
+    justify-content: center;
+  }
+}
+
+/* ปุ่มเลื่อนขึ้นบนสุด */
+.page-renovation-book .scroll-to-top {
+  position: fixed;
+  right: 1rem;
+  bottom: 1.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  border: none;
+  background: #111827;
+  color: #fff;
+  font-size: 1.2rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+  cursor: pointer;
+  z-index: 30;
+}
+
+/* แสดงเมื่อเลื่อนลงมาเยอะหน่อย */
+.page-renovation-book .scroll-to-top.show {
+  display: flex;
+}
+
+/* บนจอใหญ่เลื่อนไม่บ่อย อาจซ่อนหรือย่อได้ (ถ้ากุ้งอยาก) */
+@media (min-width: 1024px) {
+  .page-renovation-book .scroll-to-top {
+    bottom: 2rem;
+    right: 2rem;
+  }
+}
