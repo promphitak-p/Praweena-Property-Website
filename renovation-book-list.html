@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>รายการบ้านสำหรับสมุดรีโนเวท - Praweena Property</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS หลักที่ใช้อยู่แล้ว -->
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+
+<body>
+  <!-- TOP NAV -->
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
+          <span class="logo-text">Praweena Property</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="/renovation-book-list.html" aria-current="page">สมุดรีโนเวท</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
+        </ul>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page page-renovation-list">
+    <div class="container">
+
+      <!-- หัวหน้าเพจ -->
+      <header class="page-header">
+        <div>
+          <h1>รายการบ้านสำหรับสมุดรีโนเวท</h1>
+          <p>เลือกบ้านที่จะทำสมุดรีโนเวท หรือเพิ่มบ้านหลังใหม่เข้าระบบ</p>
+        </div>
+
+        <div class="page-header-actions">
+          <a href="/dashboard.html" class="btn btn-primary">
+            + เพิ่มบ้านหลังใหม่
+          </a>
+        </div>
+      </header>
+
+      <!-- แถบค้นหา + auto-complete -->
+      <section class="card">
+        <div class="card-body">
+          <div class="property-search-bar">
+            <div class="property-search-input-wrap">
+              <input
+                id="property-search"
+                type="search"
+                placeholder="ค้นหาจาก ชื่อบ้าน, ซอย, โค้ดบ้าน, อำเภอ..."
+                autocomplete="off"
+              />
+              <ul id="property-search-suggestions" class="property-search-suggestions"></ul>
+            </div>
+
+            <div class="property-search-extra">
+              <select id="property-filter-status">
+                <option value="">ทุกสถานะ</option>
+                <option value="published">เผยแพร่แล้ว</option>
+                <option value="draft">ยังไม่เผยแพร่</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- รายการบ้าน -->
+      <section class="rb-property-list-section">
+        <div id="rb-property-list" class="rb-property-list-grid">
+          <!-- เติมด้วย JS -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ปุ่มเลื่อนไปบนสุด -->
+    <button id="scroll-to-top" class="scroll-to-top" type="button" aria-label="เลื่อนขึ้นด้านบน">
+      ↑
+    </button>
+  </main>
+
+  <!-- JS -->
+  <script type="module" src="/js/pages/renovation-book-list.page.js"></script>
+</body>
+</html>

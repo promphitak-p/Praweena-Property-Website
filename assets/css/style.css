@@ -442,3 +442,178 @@ body {
 body.rb-report-open {
   overflow: hidden;
 }
+
+/* ================================
+   Renovation Book - List Page
+   ================================ */
+
+.page-renovation-list .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-renovation-list .page-header h1 {
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.page-renovation-list .page-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* search bar + auto-complete */
+.property-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.property-search-input-wrap {
+  position: relative;
+  flex: 1 1 260px;
+}
+
+.property-search-input-wrap input[type="search"] {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  font-size: 0.9rem;
+}
+
+.property-search-input-wrap input[type="search"]:focus {
+  outline: none;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.3);
+}
+
+.property-search-suggestions {
+  position: absolute;
+  top: 2.35rem;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  border: 1px solid #e5e7eb;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+  margin: 0;
+  list-style: none;
+  display: none;
+  z-index: 40;
+}
+
+.property-search-suggestions.show {
+  display: block;
+}
+
+.property-search-suggestion-item {
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+.property-search-suggestion-item:hover {
+  background: #f9fafb;
+}
+
+.property-search-suggestion-item .suggestion-title {
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.property-search-suggestion-item .suggestion-sub {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.property-search-extra select {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  font-size: 0.85rem;
+}
+
+/* grid การ์ดบ้าน */
+.rb-property-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* ใช้ร่วมกับ rb-property-card เดิม ถ้ายังไม่มีให้แนบแบบนี้ */
+.rb-property-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rb-property-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.rb-property-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.rb-property-location {
+  margin: 0.1rem 0 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.rb-property-meta {
+  text-align: right;
+  min-width: 120px;
+}
+
+.rb-property-price {
+  font-weight: 600;
+  color: #b45309;
+  font-size: 0.9rem;
+}
+
+.rb-property-status {
+  font-size: 0.78rem;
+}
+
+.rb-property-brief {
+  margin: 0.1rem 0 0.4rem 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.rb-property-card-footer {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .page-renovation-list .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rb-property-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
