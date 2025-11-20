@@ -52,19 +52,24 @@ function renderPropertyCard(property) {
  */
 async function loadProperties() {
   const grid = $('#property-grid');
-  const filterForm = $('#filter-form');
   
-clear(grid);
+  // NEW: อ้างอิงถึง ID ฟอร์มใหม่
+  const heroForm = $('#hero-filter-form'); // ฟอร์มค้นหาหลัก
+  const advancedForm = $('#filter-form-advanced'); // ฟอร์มกรองละเอียด
+
+  clear(grid);
   // --- แสดง Skeleton ก่อนโหลด ---
   for (let i = 0; i < 6; i++) {
     grid.append(renderSkeletonCard());
   }
   // ----------------------------
 
-  // ดึงค่าจากฟอร์ม filter
+  // NEW: ดึงค่าจากฟอร์มที่ถูกต้อง โดยใช้ Optional Chaining (?.) เพื่อป้องกัน TypeError
   const filters = {
-    q: filterForm.elements.q.value || null,
-    district: filterForm.elements.district.value || null,
+    // Keyword (q) ดึงมาจากฟอร์มหลัก (heroForm)
+    q: heroForm?.elements.q.value || null,
+    // District ดึงมาจากฟอร์มกรองละเอียด (advancedForm)
+    district: advancedForm?.elements.district.value || null,
   };
 
   const { data, error } = await listPublic(filters);
@@ -94,11 +99,22 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMobileNav(); // <-- 2. เรียกใช้งาน
   loadProperties(); // โหลดครั้งแรกเมื่อหน้าเว็บพร้อม
 
-  // เพิ่ม event listener ให้ฟอร์ม filter
-  // เมื่อมีการพิมพ์หรือเลือกค่าใหม่ ให้โหลดข้อมูลใหม่
-  $('#filter-form').addEventListener('input', (e) => {
-    loadProperties();
-  });
+// 1. NEW: เพิ่ม event listener ให้ฟอร์ม Advanced Filter (เมื่อมีการเปลี่ยนค่าใน Select Box)
+  const advancedFormElement = $('#filter-form-advanced');
+  if (advancedFormElement) { // ตรวจสอบว่ามีองค์ประกอบอยู่จริง
+    advancedFormElement.addEventListener('input', (e) => {
+      loadProperties(); // โหลดข้อมูลใหม่ทันทีที่มีการกรอง
+    });
+  }
+
+  // 2. NEW: เพิ่ม event listener ให้ฟอร์ม Hero (เมื่อกดปุ่ม "ค้นหา")
+  const heroFormElement = $('#hero-filter-form');
+  if (heroFormElement) { // ตรวจสอบว่ามีองค์ประกอบอยู่จริง
+    heroFormElement.addEventListener('submit', (e) => {
+      e.preventDefault(); // **สำคัญ:** ป้องกันการโหลดหน้าใหม่เมื่อกด Submit
+      loadProperties(); // โหลดข้อมูลใหม่
+    });
+  }
 });
 
 function renderSkeletonCard() {
