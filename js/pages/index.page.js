@@ -52,6 +52,12 @@ function renderPropertyCard(property) {
  */
 async function loadProperties() {
   const grid = $('#property-grid');
+
+// NEW: เพิ่มการตรวจสอบความปลอดภัย: หากหา Container ไม่พบ ให้หยุดทำงาน
+  if (!grid) {
+    console.error('Property grid container (#property-grid) not found. Check HTML ID.');
+    return;
+  }
   
   // NEW: อ้างอิงถึง ID ฟอร์มใหม่
   const heroForm = $('#hero-filter-form'); // ฟอร์มค้นหาหลัก
