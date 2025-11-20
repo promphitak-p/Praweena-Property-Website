@@ -64,6 +64,17 @@ async function loadProperties() {
   }
   // ----------------------------
 
+  const filters = {
+    // Keyword (q) ดึงมาจากฟอร์มหลัก (heroForm)
+    q: heroForm?.elements.q.value || null,
+    
+    // NEW: ดึงค่าจากฟอร์มกรองละเอียด (advancedForm)
+    district: advancedForm?.elements.district.value || null,
+    type: advancedForm?.elements.type.value || null, // NEW!
+    price_min: advancedForm?.elements.price_min.value || null, // NEW!
+    price_max: advancedForm?.elements.price_max.value || null, // NEW!
+  };
+
   // NEW: ดึงค่าจากฟอร์มที่ถูกต้อง โดยใช้ Optional Chaining (?.) เพื่อป้องกัน TypeError
   const filters = {
     // Keyword (q) ดึงมาจากฟอร์มหลัก (heroForm)
@@ -90,29 +101,32 @@ async function loadProperties() {
     const card = renderPropertyCard(property);
     grid.append(card);
   });
+  
 }
 
 // --- Main execution ---
 document.addEventListener('DOMContentLoaded', () => {
-  setupNav();
-  signOutIfAny();
-  setupMobileNav(); // <-- 2. เรียกใช้งาน
-  loadProperties(); // โหลดครั้งแรกเมื่อหน้าเว็บพร้อม
+  setupNav();
+  signOutIfAny();
+  setupMobileNav();
+  
+  loadProperties(); // โหลดครั้งแรก
 
-// 1. NEW: เพิ่ม event listener ให้ฟอร์ม Advanced Filter (เมื่อมีการเปลี่ยนค่าใน Select Box)
-  const advancedFormElement = $('#filter-form-advanced');
-  if (advancedFormElement) { // ตรวจสอบว่ามีองค์ประกอบอยู่จริง
-    advancedFormElement.addEventListener('input', (e) => {
-      loadProperties(); // โหลดข้อมูลใหม่ทันทีที่มีการกรอง
+  // 1. NEW: เพิ่ม event listener ให้ปุ่ม "กรองข้อมูล" (ID: advanced-filter-btn)
+  const advancedFilterBtn = $('#advanced-filter-btn'); 
+  if (advancedFilterBtn) { 
+    advancedFilterBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadProperties(); // โหลดข้อมูลเมื่อกดปุ่มกรองเท่านั้น
     });
   }
-
-  // 2. NEW: เพิ่ม event listener ให้ฟอร์ม Hero (เมื่อกดปุ่ม "ค้นหา")
+    
+  // 2. Hero Form (เมื่อกด Submit) - คงโค้ดเดิม
   const heroFormElement = $('#hero-filter-form');
-  if (heroFormElement) { // ตรวจสอบว่ามีองค์ประกอบอยู่จริง
+  if (heroFormElement) { 
     heroFormElement.addEventListener('submit', (e) => {
-      e.preventDefault(); // **สำคัญ:** ป้องกันการโหลดหน้าใหม่เมื่อกด Submit
-      loadProperties(); // โหลดข้อมูลใหม่
+      e.preventDefault(); 
+      loadProperties(); 
     });
   }
 });
