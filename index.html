@@ -49,53 +49,58 @@
     </div>
   </section>
 
-<section class="container" id="listings">
-    <h2>รายการล่าสุด</h2>
-    
-<form id="filter-form" class="grid grid-cols-4 advanced-filters" style="margin: 2rem 0;">
-        
-                <div class="form-group">
-            <label for="filter-district" class="sr-only">เลือกอำเภอ</label>
-            <select name="district" id="filter-district" class="form-control">
-                <option value="">ทุกอำเภอ</option>
-                <option value="เมืองสุราษฎร์ธานี">เมืองสุราษฎร์ธานี</option>
-                <option value="เกาะสมุย">เกาะสมุย</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label for="filter-type" class="sr-only">เลือกประเภททรัพย์สิน</label>
-            <select name="type" id="filter-type" class="form-control">
+    <section class="container" id="listings">
+        <h2>รายการล่าสุด</h2>
+
+          <form id="filter-form-advanced" class="advanced-filters">
+            <div class="form-group">
+              <label for="filter-district" class="sr-only">เลือกอำเภอ</label>
+              <select name="district" id="filter-district" class="form-control">
+                <option value="">ทุกอำเภอ</option>
+                <option value="เมืองสุราษฎร์ธานี">เมืองสุราษฎร์ธานี</option>
+                <option value="เกาะสมุย">เกาะสมุย</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="filter-type" class="sr-only">เลือกประเภททรัพย์สิน</label>
+              <select name="type" id="filter-type" class="form-control">
                 <option value="">ทุกประเภท</option>
                 <option value="บ้านเดี่ยว">บ้านเดี่ยว</option>
                 <option value="ทาวน์เฮ้าส์">ทาวน์เฮ้าส์</option>
                 <option value="คอนโด">คอนโด</option>
                 <option value="ที่ดิน">ที่ดิน</option>
-            </select>
-        </div>
+              </select>
+            </div>
 
-        <div class="form-group">
-            <label for="filter-price-min" class="sr-only">ราคาสูงสุด</label>
-            <input type="number" name="price_min" id="filter-price-min" class="form-control" placeholder="ราคาต่ำสุด (บาท)">
-        </div>
+            <div class="form-group">
+              <label for="filter-price-min" class="sr-only">ราคาต่ำสุด</label>
+              <input type="number" name="price_min" id="filter-price-min"
+                    class="form-control" placeholder="ราคาต่ำสุด (บาท)">
+            </div>
 
-        <div class="form-group">
-            <label for="filter-price-max" class="sr-only">ราคาต่ำสุด</label>
-            <input type="number" name="price_max" id="filter-price-max" class="form-control" placeholder="ราคาสูงสุด (บาท)">
-        </div>
-        
-    </form>
-    
-    <div style="margin-top: -1rem; margin-bottom: 2rem; display:flex; justify-content:flex-end;">
-        <button id="advanced-filter-btn" class="btn">กรองข้อมูล</button>
-    </div>
+            <div class="form-group">
+              <label for="filter-price-max" class="sr-only">ราคาสูงสุด</label>
+              <input type="number" name="price_max" id="filter-price-max"
+                    class="form-control" placeholder="ราคาสูงสุด (บาท)">
+            </div>
 
-      <!-- 👇 เพิ่มตรงนี้ เพื่อให้ JS ใส่การ์ดบ้าน -->
-    <div id="property-grid" class="property-grid grid">
-      <!-- JS จะ inject การ์ดบ้านเข้ามาตรงนี้ -->
-    </div>
-    
-    </section>
+            <div class="form-group form-group--button">
+              <button id="advanced-filter-btn" class="btn" type="submit">
+                กรองข้อมูล
+              </button>
+            </div>
+          </form>
+      
+              <div style="margin-top: -1rem; margin-bottom: 2rem; display:flex; justify-content:flex-end;">
+                  <button id="advanced-filter-btn" class="btn">กรองข้อมูล</button>
+              </div>
+
+              <!-- 👇 เพิ่มตรงนี้ เพื่อให้ JS ใส่การ์ดบ้าน -->
+              <div id="property-grid" class="property-grid grid">
+                <!-- JS จะ inject การ์ดบ้านเข้ามาตรงนี้ -->
+              </div>
+        </section>
   </main>
 
   <footer style="text-align: center; padding: 2rem; margin-top: 2rem; color: var(--text-light);">

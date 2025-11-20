@@ -191,17 +191,33 @@ main {
 /* Filters: 4 responsive columns */
 .advanced-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr)); /* 4 ฟิลด์ + ปุ่ม */
   gap: 1rem;
   align-items: flex-end;
+  margin: 2rem 0;
 }
 
+.advanced-filters .form-group--button {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* tablet: เหลือ 2 คอลัมน์ ปุ่มจะขึ้นแถวใหม่และกินเต็มคอลัมน์ */
 @media (max-width: 1024px) {
   .advanced-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .advanced-filters .form-group--button {
+    justify-content: stretch;
+  }
+
+  .advanced-filters .form-group--button .btn {
+    width: 100%;
+  }
 }
 
+/* mobile: 1 คอลัมน์เรียงลงมา */
 @media (max-width: 640px) {
   .advanced-filters {
     grid-template-columns: 1fr;
