@@ -1,99 +1,111 @@
-/* ===== Renovation Report Overlay ===== */
+/* assets/css/style.css
+ * Page-specific styles: Renovation Book (หลังบ้าน)
+ * - ใช้เฉพาะกับ <main class="page-renovation-book">
+ * - ไม่แตะ html, body หรือ layout หลักของเว็บ
+ */
 
-.rb-report-overlay {
-  position: fixed;
-  inset: 0; /* top/right/bottom/left = 0 */
-  background: rgba(15, 23, 42, 0.55); /* เทาเข้มโปร่ง ๆ */
-  display: none;                      /* ซ่อนไว้ตอนเริ่มต้น */
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  z-index: 60;                         /* ให้อยู่หน้าทุกอย่าง */
+/* ==============================
+   1. โครงหน้า Renovation Book
+   ============================== */
+
+.page-renovation-book {
+  background: #f3f4f6;
+  padding: 1.5rem 0 3rem;
 }
 
-.rb-report-overlay.open {
-  display: flex;                       /* เปิด overlay เมื่อมีคลาส .open */
-}
-
-.rb-report-overlay-inner {
-  background: #f9fafb;
-  border-radius: 24px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
-  width: min(1120px, 100%);
-  height: min(90vh, 800px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-}
-
-/* ปุ่มปิด overlay */
-.rb-report-overlay-close {
-  align-self: flex-end;
-  margin: 12px 12px 0 0;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(15, 23, 42, 0.06);
-  font-size: 0.82rem;
-  cursor: pointer;
-  color: #111827;
-}
-
-.rb-report-overlay-close:hover {
-  background: rgba(15, 23, 42, 0.12);
-}
-
-/* iframe รายงาน ให้เต็มพื้นที่ที่เหลือ */
-#report-iframe {
-  width: 100%;
-  flex: 1;         /* กินพื้นที่แนวตั้งทั้งหมดที่เหลือในกล่อง */
-  border: none;
-  background: #fff;
-}
-
-body.rb-report-open {
-  overflow: hidden;
-}
-
-/* container หลัก ให้ไม่ชิดขอบเกินไปบนมือถือ */
+/* container ด้านใน ใช้พื้นที่แคบลง อ่านง่ายขึ้น */
 .page-renovation-book .container {
   max-width: 1040px;
   margin: 0 auto;
-  padding: 1rem 1.25rem;
+  padding: 0 1.25rem 0;
 }
 
-/* card ให้ดูเป็นบล็อกอ่านง่าย */
+/* หัวหน้าเพจ + แถบเลือกบ้าน */
+.page-renovation-book .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f3f4f6;
+  padding: 0.75rem 0 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.page-renovation-book .page-header h1 {
+  font-size: 1.35rem;
+  margin: 0 0 0.25rem;
+}
+
+.page-renovation-book .page-header p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.page-renovation-book .page-header-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.page-renovation-book .page-header-actions select {
+  min-width: 220px;
+}
+
+/* เงาบาง ๆ ตอนเลื่อนลงมาแล้ว */
+.page-renovation-book .page-header.is-scrolled {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.10);
+}
+
+/* ปุ่ม "ย้อนกลับ" ด้านบนโหมด detail */
+#rb-back-btn {
+  margin-bottom: 0.75rem;
+}
+
+/* ==============================
+   2. การ์ดและ layout ภายในเพจ
+   ============================== */
+
 .page-renovation-book .card {
-  background: #fff;
+  background: #ffffff;
   border-radius: 12px;
   padding: 1rem 1.25rem;
   margin-bottom: 1rem;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
-.page-renovation-book .card-header h2 {
-  font-size: 1rem;
+.page-renovation-book .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
-/* 🧩 GRID ฟอร์ม: เริ่มจาก 1 คอลัมน์ก่อน (เหมาะกับมือถือ) */
+.page-renovation-book .card-header h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ฟอร์มในแต่ละการ์ด: เริ่ม 1 คอลัมน์ (เหมาะกับมือถือ) */
 .page-renovation-book .form-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.75rem 1.5rem;
 }
 
-/* ช่องฟอร์มทั่วไป */
 .page-renovation-book .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  font-size: 0.9rem;
 }
 
-.page-renovation-book label {
-  font-size: 0.85rem;
+.page-renovation-book .form-group label {
   font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
 }
 
 .page-renovation-book input,
@@ -103,37 +115,99 @@ body.rb-report-open {
   border: 1px solid #e5e7eb;
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
+  font-family: inherit;
 }
 
-/* ช่องที่ต้องการให้เต็มแถว */
+/* ช่องที่ต้องการเต็มแถว */
 .page-renovation-book .form-group.full-width {
-  /* มือถือ 1 คอลัมน์อยู่แล้ว ไม่ต้องทำอะไร */
+  /* มือถือ 1 คอลัมน์อยู่แล้ว ไม่ต้องเซ็ตอะไรเพิ่ม */
 }
 
-/* 📱 breakpoint แรก: จอประมาณ iPad ขึ้นไป → 2 คอลัมน์ */
-@media (min-width: 768px) {
-  .page-renovation-book .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+/* ==============================
+   3. ตารางข้อมูล (ทีมช่าง / งบ)
+   ============================== */
 
-  .page-renovation-book .form-group.full-width {
-    grid-column: 1 / -1;
-  }
-}
-
-/* ตารางให้เลื่อนในแนวนอนได้บนมือถือ */
 .page-renovation-book .table-responsive {
   width: 100%;
   overflow-x: auto;
 }
 
-/* ปุ่มด้านล่างฟอร์ม */
-.page-renovation-book .page-actions {
-  margin: 1.25rem 0 2rem;
-  display: flex;
-  justify-content: flex-end;
+.page-renovation-book table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
+.page-renovation-book th,
+.page-renovation-book td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.page-renovation-book thead th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+/* ==============================
+   4. รายการบ้าน (โหมด list)
+   ============================== */
+
+.rb-property-card {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.rb-property-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  border-color: #d1b28a;
+}
+
+.rb-property-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.rb-property-card-footer {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* แถวปุ่ม "เพิ่มสเปก" / "เพิ่มทีมช่าง" ใต้หัวข้อใน detail */
+.rb-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+/* ==============================
+   5. ปุ่มบันทึก & ปุ่มแอคชันส่วนท้าย
+   ============================== */
+
+.page-renovation-book .page-actions {
+  margin: 1.25rem 0 2.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ปุ่มบันทึกสมุดรีโนเวทหลักด้านล่าง */
 #save-renovation-book {
   padding: 0.6rem 1.2rem;
   border-radius: 999px;
@@ -142,53 +216,10 @@ body.rb-report-open {
   cursor: pointer;
 }
 
-/* === Base Typography === */
-html {
-  font-size: 16px;           /* กัน Safari ซูมเวลาแตะ input */
-}
+/* ==============================
+   6. Scroll-to-top button
+   ============================== */
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  line-height: 1.6;
-  color: #111827;
-  background-color: #f3f4f6;
-  -webkit-text-size-adjust: 100%; /* กัน Safari ปรับขนาดเอง */
-}
-
-/* ปุ่มหลักด้านล่างฟอร์ม */
-.page-renovation-book .page-actions {
-  margin: 1.25rem 0 2.5rem;
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* ดีฟอลต์บนจอใหญ่ */
-#save-renovation-book {
-  padding: 0.75rem 1.75rem;
-  border-radius: 999px;
-  border: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: #111827;
-  color: #fff;
-}
-
-/* 📱 มือถือ: ปุ่มกว้างเกือบเต็มจอ + จัดชิดซ้ายให้ดูเต็ม */
-@media (max-width: 767px) {
-  .page-renovation-book .page-actions {
-    justify-content: center;
-  }
-
-  #save-renovation-book {
-    width: 100%;
-    max-width: 480px;
-    display: inline-flex;
-    justify-content: center;
-  }
-}
-
-/* ปุ่มเลื่อนขึ้นบนสุด */
 .page-renovation-book .scroll-to-top {
   position: fixed;
   right: 1rem;
@@ -198,25 +229,115 @@ body {
   border-radius: 999px;
   border: none;
   background: #111827;
-  color: #fff;
-  font-size: 1.2rem;
+  color: #ffffff;
   display: none;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.3);
   cursor: pointer;
-  z-index: 30;
+  z-index: 40;
 }
 
-/* แสดงเมื่อเลื่อนลงมาเยอะหน่อย */
 .page-renovation-book .scroll-to-top.show {
   display: flex;
 }
 
-/* บนจอใหญ่เลื่อนไม่บ่อย อาจซ่อนหรือย่อได้ (ถ้ากุ้งอยาก) */
 @media (min-width: 1024px) {
   .page-renovation-book .scroll-to-top {
-    bottom: 2rem;
     right: 2rem;
+    bottom: 2rem;
+  }
+}
+
+/* ==============================
+   7. Renovation Report Overlay
+   ============================== */
+
+.rb-report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 60;
+}
+
+.rb-report-overlay.open {
+  display: flex;
+}
+
+.rb-report-overlay-inner {
+  background: #f9fafb;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+  width: 100%;
+  max-width: 980px;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(209, 178, 138, 0.6);
+}
+
+.rb-report-overlay-close {
+  align-self: flex-end;
+  margin: 0.75rem 0.75rem 0;
+  border: none;
+  background: #111827;
+  color: #f9fafb;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rb-report-overlay-close:hover {
+  background: #374151;
+}
+
+/* iframe แสดงหน้า report */
+#report-iframe {
+  border: none;
+  width: 100%;
+  flex: 1;
+  background: #ffffff;
+}
+
+/* ==============================
+   8. Responsive tweaks
+   ============================== */
+
+@media (min-width: 768px) {
+  /* ฟอร์ม → 2 คอลัมน์บนจอ iPad ขึ้นไป */
+  .page-renovation-book .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-renovation-book .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  /* ปรับ header ให้ใช้พื้นที่น้อยลงบนมือถือ */
+  .page-renovation-book .page-header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .page-renovation-book .page-actions {
+    justify-content: center;
+  }
+
+  #save-renovation-book {
+    width: 100%;
+    max-width: 480px;
+    display: inline-flex;
+    justify-content: center;
   }
 }
