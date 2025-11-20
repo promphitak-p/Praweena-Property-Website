@@ -5,166 +5,115 @@
   <title>รายงานสมุดรีโนเวท - Praweena Property</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- ใช้ CSS ที่เราจัดระเบียบแล้ว -->
   <link rel="stylesheet" href="/assets/css/renovation-book-report.css">
-
-  <style>
-    body {
-      background: #f3f4f6;
-      font-size: 14px;
-    }
-
-    .rb-report-page {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 1.25rem;
-    }
-
-    .rb-report-card {
-      background: #ffffff;
-      border-radius: 14px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 0.75rem;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
-      border: 1px solid #e5e7eb;
-    }
-
-    .rb-report-card h2 {
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .rb-report-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem 1.5rem;
-    }
-
-    @media (max-width: 768px) {
-      .rb-report-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .rb-report-field-label {
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 0.1rem;
-    }
-
-    .rb-report-field-value {
-      color: #111827;
-      white-space: pre-wrap;
-    }
-
-    .rb-report-subtitle {
-      font-size: 0.85rem;
-      color: #6b7280;
-      margin-bottom: 0.25rem;
-    }
-
-    .rb-report-header-title {
-      font-size: 1.2rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .rb-report-header-meta {
-      font-size: 0.9rem;
-      color: #4b5563;
-    }
-
-    .rb-report-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      background: #fef3c7;
-      color: #92400e;
-      font-size: 0.75rem;
-      margin-left: 0.25rem;
-    }
-
-    .rb-table-wrapper {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table.rb-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-
-    table.rb-table th,
-    table.rb-table td {
-      border: 1px solid #e5e7eb;
-      padding: 0.3rem 0.4rem;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    table.rb-table th {
-      background: #f9fafb;
-      font-weight: 600;
-    }
-
-    .rb-empty {
-      color: #9ca3af;
-      font-size: 0.85rem;
-    }
-  </style>
 </head>
 <body>
-  <main class="rb-report-page">
-    <section class="rb-report-card" id="rb-report-header">
-      <!-- เติมด้วย JS -->
-      <p>กำลังโหลดข้อมูล...</p>
-    </section>
+  <div class="rbr-shell">
+    <!-- แถบเครื่องมือด้านบน: ปุ่มกลับ + ปุ่มพิมพ์ -->
+    <header class="rbr-header-bar">
+      <div>
+        <button type="button" class="rbr-btn-back" id="rbr-back-btn">
+          ← กลับไปสมุดรีโนเวท
+        </button>
+      </div>
+      <div class="rbr-toolbar">
+        <button type="button" class="rbr-btn-print" id="rbr-print-btn">
+          🖨 พิมพ์ / Export PDF
+        </button>
+      </div>
+    </header>
 
-    <section class="rb-report-card" id="rb-report-section-1">
-      <h2>1. ข้อมูลบ้าน & โปรเจกต์</h2>
-      <div class="rb-report-grid" id="rb-report-section-1-body"></div>
-    </section>
+    <!-- เนื้อหารายงาน -->
+    <main class="rbr-content">
+      <article class="rbr-page">
 
-    <section class="rb-report-card" id="rb-report-section-2">
-      <h2>2. สภาพเดิม & ปัญหาหลัก</h2>
-      <div class="rb-report-grid" id="rb-report-section-2-body"></div>
-    </section>
+        <!-- หัวรายงาน: ชื่อบ้าน / ทำเล / ราคา (เติมด้วย JS) -->
+        <section class="rbr-section" id="rb-report-header">
+          <p>กำลังโหลดข้อมูล...</p>
+        </section>
 
-    <section class="rb-report-card" id="rb-report-section-3">
-      <h2>3. แผนโครงสร้าง & งานพื้น</h2>
-      <div class="rb-report-grid" id="rb-report-section-3-body"></div>
-    </section>
+        <!-- 1. ข้อมูลบ้าน & โปรเจกต์ -->
+        <section class="rbr-section" id="rb-report-section-1">
+          <h2 class="rbr-section-title">1. ข้อมูลบ้าน & โปรเจกต์</h2>
+          <div class="rbr-summary-card" id="rb-report-section-1-body">
+            <!-- เติมด้วย JS เป็น key-value หรือ list -->
+          </div>
+        </section>
 
-    <section class="rb-report-card" id="rb-report-section-4">
-      <h2>4. ระบบท่อน้ำทิ้ง / สุขาภิบาล & ระบบน้ำดี</h2>
-      <div class="rb-report-grid" id="rb-report-section-4-body"></div>
-    </section>
+        <!-- 2. สภาพเดิม & ปัญหาหลัก -->
+        <section class="rbr-section" id="rb-report-section-2">
+          <h2 class="rbr-section-title">2. สภาพเดิม & ปัญหาหลัก</h2>
+          <div class="rbr-summary-card" id="rb-report-section-2-body">
+            <!-- เติมด้วย JS -->
+          </div>
+        </section>
 
-    <section class="rb-report-card" id="rb-report-section-5">
-      <h2>5. ระบบไฟฟ้า</h2>
-      <div class="rb-report-grid" id="rb-report-section-5-body"></div>
-    </section>
+        <!-- 3. แผนโครงสร้าง & งานพื้น -->
+        <section class="rbr-section" id="rb-report-section-3">
+          <h2 class="rbr-section-title">3. แผนโครงสร้าง & งานพื้น</h2>
+          <div class="rbr-summary-card" id="rb-report-section-3-body">
+            <!-- เติมด้วย JS -->
+          </div>
+        </section>
 
-    <section class="rb-report-card" id="rb-report-section-6">
-      <h2>6. ห้องน้ำ & ครัว</h2>
-      <div class="rb-report-grid" id="rb-report-section-6-body"></div>
-    </section>
+        <!-- 4. ระบบท่อน้ำทิ้ง / สุขาภิบาล & ระบบน้ำดี -->
+        <section class="rbr-section" id="rb-report-section-4">
+          <h2 class="rbr-section-title">4. ระบบท่อน้ำทิ้ง / สุขาภิบาล & ระบบน้ำดี</h2>
+          <div class="rbr-summary-card" id="rb-report-section-4-body">
+            <!-- เติมด้วย JS -->
+          </div>
+        </section>
 
-    <section class="rb-report-card" id="rb-report-section-7">
-      <h2>7. สรุปภาพรวม</h2>
-      <div id="rb-report-section-7-body"></div>
-    </section>
+        <!-- 5. ระบบไฟฟ้า -->
+        <section class="rbr-section" id="rb-report-section-5">
+          <h2 class="rbr-section-title">5. ระบบไฟฟ้า</h2>
+          <div class="rbr-summary-card" id="rb-report-section-5-body">
+            <!-- เติมด้วย JS -->
+          </div>
+        </section>
 
-    <section class="rb-report-card">
-      <h2>สเปกรีโนเวท (วัสดุ / สี / สุขภัณฑ์)</h2>
-      <div id="rb-report-specs"></div>
-    </section>
+        <!-- 6. ห้องน้ำ & ครัว -->
+        <section class="rbr-section" id="rb-report-section-6">
+          <h2 class="rbr-section-title">6. ห้องน้ำ & ครัว</h2>
+          <div class="rbr-summary-card" id="rb-report-section-6-body">
+            <!-- เติมด้วย JS -->
+          </div>
+        </section>
 
-    <section class="rb-report-card">
-      <h2>ทีมช่าง & ขอบเขตงาน</h2>
-      <div id="rb-report-contractors"></div>
-    </section>
-  </main>
+        <!-- 7. สรุปภาพรวม -->
+        <section class="rbr-section" id="rb-report-section-7">
+          <h2 class="rbr-section-title">7. สรุปภาพรวม</h2>
+          <div class="rbr-summary-card" id="rb-report-section-7-body">
+            <!-- เติมด้วย JS -->
+          </div>
+        </section>
+
+        <!-- สเปกรีโนเวท (วัสดุ / สี / สุขภัณฑ์) -->
+        <section class="rbr-section">
+          <h2 class="rbr-section-title">สเปกรีโนเวท (วัสดุ / สี / สุขภัณฑ์)</h2>
+          <div class="rbr-table-wrapper" id="rb-report-specs">
+            <!-- JS ใส่ table เข้ามา เช่น <table class="rbr-table"> ... -->
+          </div>
+        </section>
+
+        <!-- ทีมช่าง & ขอบเขตงาน -->
+        <section class="rbr-section">
+          <h2 class="rbr-section-title">ทีมช่าง & ขอบเขตงาน</h2>
+          <div class="rbr-table-wrapper" id="rb-report-contractors">
+            <!-- JS ใส่ table เข้ามา -->
+          </div>
+        </section>
+
+        <!-- footer เล็ก ๆ ด้านล่าง -->
+        <footer class="rbr-footer">
+          <span>Praweena Property – สมุดรีโนเวทบ้าน</span>
+          <span id="rb-report-generated-at">สร้างรายงานเมื่อ: -</span>
+        </footer>
+
+      </article>
+    </main>
+  </div>
 
   <script type="module" src="/js/pages/renovation-book-report.page.js"></script>
 </body>
