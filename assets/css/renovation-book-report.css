@@ -246,14 +246,23 @@
   }
 
   /* ตารางให้เส้นชัดขึ้นนิดนึงเวลาปริ้น */
-  .rbr-table,
-  .rbr-table th,
-  .rbr-table td,
-  table,
-  table th,
-  table td {
-    border-color: #cbd5e1 !important;
-  }
+.rbr-table,
+.rb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.rbr-table th,
+.rbr-table td,
+.rb-table th,
+.rb-table td {
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+
 }
 
 /* ปรับหน้าสำหรับสั่ง Print */
