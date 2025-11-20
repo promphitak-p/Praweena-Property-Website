@@ -51,37 +51,30 @@ function renderPropertyCard(property) {
  * โหลดและแสดงรายการอสังหาฯ
  */
 async function loadProperties() {
-  const grid = $('#property-grid');
-  
-  // NEW: อ้างอิงถึง ID ฟอร์มใหม่
-  const heroForm = $('#hero-filter-form'); // ฟอร์มค้นหาหลัก
-  const advancedForm = $('#filter-form-advanced'); // ฟอร์มกรองละเอียด
+  const grid = $('#property-grid');
+  
+  // NEW: อ้างอิงถึง ID ฟอร์มใหม่
+  const heroForm = $('#hero-filter-form'); // ฟอร์มค้นหาหลัก
+  const advancedForm = $('#filter-form-advanced'); // ฟอร์มกรองละเอียด
 
-  clear(grid);
-  // --- แสดง Skeleton ก่อนโหลด ---
-  for (let i = 0; i < 6; i++) {
-    grid.append(renderSkeletonCard());
-  }
-  // ----------------------------
+  clear(grid);
+  // --- แสดง Skeleton ก่อนโหลด ---
+  for (let i = 0; i < 6; i++) {
+    grid.append(renderSkeletonCard());
+  }
+  // ----------------------------
 
-  const filters = {
-    // Keyword (q) ดึงมาจากฟอร์มหลัก (heroForm)
-    q: heroForm?.elements.q.value || null,
-    
-    // NEW: ดึงค่าจากฟอร์มกรองละเอียด (advancedForm)
-    district: advancedForm?.elements.district.value || null,
-    type: advancedForm?.elements.type.value || null, // NEW!
-    price_min: advancedForm?.elements.price_min.value || null, // NEW!
-    price_max: advancedForm?.elements.price_max.value || null, // NEW!
-  };
-
-  // NEW: ดึงค่าจากฟอร์มที่ถูกต้อง โดยใช้ Optional Chaining (?.) เพื่อป้องกัน TypeError
-  const filters = {
-    // Keyword (q) ดึงมาจากฟอร์มหลัก (heroForm)
-    q: heroForm?.elements.q.value || null,
-    // District ดึงมาจากฟอร์มกรองละเอียด (advancedForm)
-    district: advancedForm?.elements.district.value || null,
-  };
+  // [ชุดตัวกรองที่ถูกต้อง: ใช้ชุดนี้ชุดเดียว]
+  const filters = {
+    // Keyword (q) ดึงมาจากฟอร์มหลัก (heroForm)
+    q: heroForm?.elements.q.value || null,
+    
+    // NEW: ดึงค่าจากฟอร์มกรองละเอียด (advancedForm)
+    district: advancedForm?.elements.district.value || null,
+    type: advancedForm?.elements.type.value || null, // NEW!
+    price_min: advancedForm?.elements.price_min.value || null, // NEW!
+    price_max: advancedForm?.elements.price_max.value || null, // NEW!
+  };
 
   const { data, error } = await listPublic(filters);
 
