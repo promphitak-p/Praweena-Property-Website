@@ -60,10 +60,10 @@ main {
 
 /* === Combined Responsive Styles === */
 @media (max-width: 768px) {
-  /* General container padding for mobile */
-  .container {
-    padding: 0 1rem;
+  #filter-form.grid.grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
   }
+}
 
   /* Stack 3-column grids vertically (e.g., property detail page) */
   .grid.grid-cols-3 {
@@ -84,7 +84,6 @@ main {
   #filter-form.grid.grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
   }
-}
 
 /* ==================================== */
 /* 1. HERO SECTION STYLES (Layout) */
