@@ -1,8 +1,9 @@
 //------------------------------------------------------------
 // หน้า "สมุดรีโนเวท" (หลังบ้าน)
-// - โหมด 1: แสดงรายการบ้านทั้งหมด
-// - โหมด 2: แสดงสมุดรีโนเวทของบ้าน 1 หลัง (สเปก + ทีมช่าง)
-// - เพิ่ม / ลบ สเปก + ทีมช่าง ผ่าน Modal ฟอร์มสวย ๆ
+// - เลือกบ้านจาก dropdown
+// - บันทึกฟอร์มสมุดรีโนเวทลง Supabase
+// - จัดการสเปก + ทีมช่าง (เหมือนเดิม)
+// - เปิดรายงานสวย ๆ ผ่าน renovation-book-report.html
 //------------------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
@@ -17,6 +18,7 @@ import {
   deletePropertyContractor
 } from '../services/propertyContractorsService.js';
 import { upsertContractor } from '../services/contractorsService.js';
+import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '../services/renovationBookService.js';
 import { $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 
@@ -31,7 +33,23 @@ let rbSpecFields = null;
 let rbContractorFields = null;
 let rbModalMode = null; // 'spec' | 'contractor'
 
-// -------------------- helper DOM --------------------
+// -------------------- helper --------------------
+const getEl = (id) => document.getElementById(id) || null;
+
+function getInputValue(id) {
+  const el = getEl(id);
+  return el ? el.value.trim() : '';
+}
+
+function getNumberValue(id) {
+  const raw = getInputValue(id);
+  if (!raw) return null;
+  const n = Number(raw);
+  if (Number.isNaN(n)) return null;
+  return n;
+}
+
+// -------------------- หน้าจอ list/detail (เผื่อยังใช้อยู่) --------------------
 function showListMode() {
   const listSec = $('#rb-list-section');
   const detailSec = $('#rb-detail-section');
@@ -182,7 +200,7 @@ function setupRbModal() {
   });
 }
 
-// -------------------- รายการบ้าน --------------------
+// -------------------- รายการบ้าน (ใช้เติม dropdown หรือ list mode) --------------------
 async function loadPropertyList() {
   const list = $('#rb-property-list');
   if (!list) return;
@@ -221,7 +239,7 @@ async function loadPropertyList() {
       card.innerHTML = `
         <div class="rb-property-card-header">
           <div>
-            <h3 style="margin:0,font-size:1.05rem;">${p.title || '-'}</h3>
+            <h3 style="margin:0;font-size:1.05rem;">${p.title || '-'}</h3>
             <p style="margin:.15rem 0 0 0;color:#4b5563;">
               ${p.address || ''} ${p.district || ''} ${p.province || ''}
             </p>
@@ -245,7 +263,7 @@ async function loadPropertyList() {
         </div>
       `;
 
-      // ปุ่ม "เปิดสมุดรีโนเวท"
+      // ปุ่ม "เปิดสมุดรีโนเวท" (ใช้แบบ list mode เดิม)
       const openBtn = card.querySelector('.rb-open-book-btn');
       if (openBtn) {
         openBtn.addEventListener('click', (e) => {
@@ -526,18 +544,252 @@ function setupReportOverlay() {
   });
 }
 
+// -------------------- ฟอร์มสมุดรีโนเวท: map <-> payload --------------------
+function collectRenovationFormData() {
+  if (!currentPropertyId) return null;
+
+  return {
+    property_id: currentPropertyId,
+
+    // CARD 1
+    house_code: getInputValue('house_code') || null,
+    house_location: getInputValue('house_location') || null,
+    house_type: getInputValue('house_type') || null,
+    house_storeys: getNumberValue('house_storeys'),
+    land_size: getNumberValue('land_size'),
+    usable_area: getNumberValue('usable_area'),
+    house_facing: getInputValue('house_facing') || null,
+    house_age: getNumberValue('house_age'),
+    acquisition_type: getInputValue('acquisition_type') || null,
+    project_goal: getInputValue('project_goal') || null,
+    target_buyer: getInputValue('target_buyer') || null,
+    design_concept: getInputValue('design_concept') || null,
+
+    // CARD 2
+    structural_issues: getInputValue('structural_issues') || null,
+    plumbing_issues: getInputValue('plumbing_issues') || null,
+    water_supply_issues: getInputValue('water_supply_issues') || null,
+    electrical_issues: getInputValue('electrical_issues') || null,
+    other_risks: getInputValue('other_risks') || null,
+
+    // CARD 3
+    remove_old_screed: getInputValue('remove_old_screed') || null,
+    old_screed_thickness: getNumberValue('old_screed_thickness'),
+    new_screed_spec: getInputValue('new_screed_spec') || null,
+    flooring_plan: getInputValue('flooring_plan') || null,
+
+    // CARD 4
+    drainage_plan: getInputValue('drainage_plan') || null,
+    pipe_size_main: getInputValue('pipe_size_main') || null,
+    drainage_notes: getInputValue('drainage_notes') || null,
+    water_supply_plan: getInputValue('water_supply_plan') || null,
+    water_tank_pump: getInputValue('water_tank_pump') || null,
+    water_notes: getInputValue('water_notes') || null,
+
+    // CARD 5
+    electric_plan: getInputValue('electric_plan') || null,
+    main_breaker_spec: getInputValue('main_breaker_spec') || null,
+    lighting_plan: getInputValue('lighting_plan') || null,
+
+    // CARD 6
+    bathroom_plan: getInputValue('bathroom_plan') || null,
+    kitchen_plan: getInputValue('kitchen_plan') || null,
+
+    // CARD 7
+    summary_notes: getInputValue('summary_notes') || null
+  };
+}
+
+function fillRenovationForm(data) {
+  // ถ้ายังไม่มี record → เคลียร์ฟอร์ม
+  const setVal = (id, value) => {
+    const el = getEl(id);
+    if (!el) return;
+    el.value = value ?? '';
+  };
+
+  if (!data) {
+    [
+      'house_code', 'house_location', 'house_type', 'house_storeys',
+      'land_size', 'usable_area', 'house_facing', 'house_age',
+      'acquisition_type', 'project_goal', 'target_buyer', 'design_concept',
+      'structural_issues', 'plumbing_issues', 'water_supply_issues', 'electrical_issues', 'other_risks',
+      'remove_old_screed', 'old_screed_thickness', 'new_screed_spec', 'flooring_plan',
+      'drainage_plan', 'pipe_size_main', 'drainage_notes', 'water_supply_plan', 'water_tank_pump', 'water_notes',
+      'electric_plan', 'main_breaker_spec', 'lighting_plan',
+      'bathroom_plan', 'kitchen_plan',
+      'summary_notes'
+    ].forEach((id) => setVal(id, ''));
+    return;
+  }
+
+  setVal('house_code', data.house_code);
+  setVal('house_location', data.house_location);
+  setVal('house_type', data.house_type);
+  setVal('house_storeys', data.house_storeys);
+  setVal('land_size', data.land_size);
+  setVal('usable_area', data.usable_area);
+  setVal('house_facing', data.house_facing);
+  setVal('house_age', data.house_age);
+  setVal('acquisition_type', data.acquisition_type);
+  setVal('project_goal', data.project_goal);
+  setVal('target_buyer', data.target_buyer);
+  setVal('design_concept', data.design_concept);
+
+  setVal('structural_issues', data.structural_issues);
+  setVal('plumbing_issues', data.plumbing_issues);
+  setVal('water_supply_issues', data.water_supply_issues);
+  setVal('electrical_issues', data.electrical_issues);
+  setVal('other_risks', data.other_risks);
+
+  setVal('remove_old_screed', data.remove_old_screed);
+  setVal('old_screed_thickness', data.old_screed_thickness);
+  setVal('new_screed_spec', data.new_screed_spec);
+  setVal('flooring_plan', data.flooring_plan);
+
+  setVal('drainage_plan', data.drainage_plan);
+  setVal('pipe_size_main', data.pipe_size_main);
+  setVal('drainage_notes', data.drainage_notes);
+  setVal('water_supply_plan', data.water_supply_plan);
+  setVal('water_tank_pump', data.water_tank_pump);
+  setVal('water_notes', data.water_notes);
+
+  setVal('electric_plan', data.electric_plan);
+  setVal('main_breaker_spec', data.main_breaker_spec);
+  setVal('lighting_plan', data.lighting_plan);
+
+  setVal('bathroom_plan', data.bathroom_plan);
+  setVal('kitchen_plan', data.kitchen_plan);
+
+  setVal('summary_notes', data.summary_notes);
+}
+
+// โหลดสมุดรีโนเวทของบ้านหนึ่งหลังแล้วเติมฟอร์ม
+async function loadRenovationBookForProperty(propertyId) {
+  try {
+    const data = await getRenovationBookByPropertyId(propertyId);
+    fillRenovationForm(data);
+  } catch (err) {
+    console.error(err);
+    toast('โหลดสมุดรีโนเวทไม่สำเร็จ', 3000, 'error');
+  }
+}
+
+// -------------------- ผูก dropdown เลือกบ้าน --------------------
+async function setupPropertySelect(initialPropertyIdFromUrl) {
+  const select = getEl('property-select');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">— เลือกบ้าน —</option>';
+
+  try {
+    const { data, error } = await listAll();
+    if (error) throw error;
+
+    if (!data || !data.length) {
+      select.innerHTML = '<option value="">(ยังไม่มีบ้านในระบบ)</option>';
+      return;
+    }
+
+    data.forEach((p) => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.title || `ID ${p.id}`;
+      select.appendChild(opt);
+    });
+
+    // ถ้า URL มี property_id → เซ็ตค่าตามนั้น
+    if (initialPropertyIdFromUrl) {
+      select.value = initialPropertyIdFromUrl;
+      if (select.value !== initialPropertyIdFromUrl) {
+        // ถ้าไม่มี option ตรง id นี้ก็ไม่ต้องทำอะไร
+      } else {
+        await onPropertySelected(initialPropertyIdFromUrl);
+      }
+    }
+
+    // เปลี่ยนบ้านจาก dropdown
+    select.addEventListener('change', async () => {
+      const val = select.value || '';
+      if (!val) {
+        currentPropertyId = null;
+        currentProperty = null;
+        fillRenovationForm(null);
+        return;
+      }
+      await onPropertySelected(val);
+    });
+  } catch (err) {
+    console.error(err);
+    toast('โหลดรายการบ้านสำหรับ dropdown ไม่สำเร็จ', 3000, 'error');
+  }
+}
+
+async function onPropertySelected(propertyId) {
+  currentPropertyId = propertyId;
+
+  // ดึงข้อมูลบ้านมาแสดงหัวเรื่อง
+  try {
+    const prop = await fetchPropertyById(propertyId);
+    if (!prop) {
+      toast('ไม่พบบ้านหลังนี้', 3000, 'error');
+      return;
+    }
+    currentProperty = prop;
+    renderDetailHeader(prop);
+  } catch (err) {
+    console.error(err);
+    toast('โหลดข้อมูลบ้านไม่สำเร็จ', 3000, 'error');
+  }
+
+  // โหลดสมุดรีโนเวท + สเปก + ทีมช่าง
+  await loadRenovationBookForProperty(propertyId);
+  await loadSpecsForProperty(propertyId);
+  await loadContractorsForProperty(propertyId);
+}
+
+// -------------------- ปุ่มบันทึกสมุดรีโนเวท --------------------
+function setupSaveButton() {
+  const btn = getEl('save-renovation-book');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    if (!currentPropertyId) {
+      toast('กรุณาเลือกบ้านก่อนบันทึกสมุดรีโนเวท', 3000, 'error');
+      return;
+    }
+
+    const payload = collectRenovationFormData();
+    if (!payload) return;
+
+    const oldLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+
+    try {
+      await upsertRenovationBookForProperty(payload);
+      toast('บันทึกสมุดรีโนเวทเรียบร้อย', 2500, 'success');
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกสมุดรีโนเวทไม่สำเร็จ: ' + (err.message || err), 3000, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldLabel;
+    }
+  });
+}
+
 // -------------------- init --------------------
 document.addEventListener('DOMContentLoaded', async () => {
-  // auth + nav
   await protectPage();
   setupNav();
   setupMobileNav();
   await signOutIfAny();
 
-  // modal / ปุ่มเพิ่มข้อมูล / overlay report
   setupRbModal();
   setupAddButtons();
   setupReportOverlay();
+  setupSaveButton();
 
   const params = new URLSearchParams(window.location.search);
   const propertyIdParam = params.get('property_id');
@@ -552,53 +804,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  if (propertyIdParam) {
-    // โหมดดูสมุดรีโนเวทของบ้าน 1 หลัง
-    currentPropertyId = propertyIdParam;
-    showDetailMode();
+  // dropdown เลือกบ้าน
+  await setupPropertySelect(propertyIdParam || null);
 
-    const headerBox = $('#rb-detail-header');
-    const specsBox = $('#rb-specs');
-    const contractorsBox = $('#rb-contractors');
-
-    if (headerBox) {
-      headerBox.innerHTML = '<p style="color:#6b7280;">กำลังโหลดข้อมูลบ้าน...</p>';
-    }
-    if (specsBox) {
-      specsBox.innerHTML =
-        '<p style="color:#6b7280;">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>';
-    }
-    if (contractorsBox) {
-      contractorsBox.innerHTML =
-        '<p style="color:#6b7280;">กำลังโหลดข้อมูลทีมช่าง...</p>';
-    }
-
-    try {
-      const prop = await fetchPropertyById(propertyIdParam);
-      if (!prop) {
-        toast('ไม่พบบ้านหลังนี้', 3000, 'error');
-        showListMode();
-        await loadPropertyList();
-        return;
-      }
-
-      currentProperty = prop;
-      renderDetailHeader(prop);
-      await loadSpecsForProperty(currentPropertyId);
-      await loadContractorsForProperty(currentPropertyId);
-    } catch (err) {
-      console.error(err);
-      toast('โหลดข้อมูลบ้านไม่สำเร็จ', 3000, 'error');
-      showListMode();
-      await loadPropertyList();
-    }
-  } else {
-    // โหมดรายการบ้าน
+  // ถ้ากุ้งยังใช้ list mode แยก section อยู่ ก็โหลด list ให้ด้วย
+  if (!propertyIdParam) {
     showListMode();
     await loadPropertyList();
+  } else {
+    showDetailMode();
   }
 
-  // -------------------- Sticky header + Scroll-to-top --------------------
+  // Sticky header + Scroll to top
   const header = document.querySelector('.page-renovation-book .page-header');
   const scrollBtn = document.getElementById('scroll-to-top');
 
