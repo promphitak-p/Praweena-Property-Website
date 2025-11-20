@@ -55,22 +55,21 @@ main {
    3) Homepage Hero
    =========================== */
 
-/* พื้นหลัง hero ของหน้าแรก */
+/* พื้นหลัง hero ของหน้าแรก (กระชับความสูง) */
 .hero {
-  background-image: url('/assets/img/hero-background.jpg'); /* ปรับ path ตามโปรเจกต์จริง */
+  background-image: url('/assets/img/hero-background.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 
-  min-height: 500px;
-  height: 70vh;
+  /* ใช้เนื้อหาเป็นตัวกำหนดความสูง + กันโล่งเกินไป */
+  min-height: 380px;
+  padding: 2.5rem 0 3rem;
 
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-
-  padding: 3rem 0;
 }
 
 /* กล่อง overlay ทับบนภาพพื้นหลังให้ข้อความอ่านง่าย (ถ้าใช้ .hero-grad ใน HTML) */
@@ -156,8 +155,9 @@ main {
   }
 
   .hero {
-    min-height: 350px;
-    height: 45vh;
+    min-height: 320px;
+    padding: 2rem 0 2.5rem;
+    /* ไม่ต้องกำหนด height ให้แล้ว */
   }
 
   .hero-grad h1 {
