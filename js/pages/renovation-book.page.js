@@ -782,9 +782,6 @@ function setupSaveButton() {
 // -------------------- init --------------------
 document.addEventListener('DOMContentLoaded', async () => {
   await protectPage();
-  setupNav();
-  setupMobileNav();
-  await signOutIfAny();
 
   setupRbModal();
   setupAddButtons();
