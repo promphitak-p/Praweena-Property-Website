@@ -1,25 +1,23 @@
 // js/services/renovationBookService.js
 import { supabase } from '../utils/supabaseClient.js';
 
-// ดึงสมุดรีโนเวทของบ้าน 1 หลัง (ถ้ายังไม่มีจะได้ null)
-export async function getRenovationBookByPropertyId(propertyId) {
+export async function getRenovationBookByPropertyId(property_id) {
   const { data, error } = await supabase
     .from('renovation_books')
     .select('*')
-    .eq('property_id', propertyId)
+    .eq('property_id', property_id)
     .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') { // not found
-    throw error;
-  }
+  // error PGRST116 = not found
+  if (error && error.code !== 'PGRST116') throw error;
+
   return data || null;
 }
 
-// บันทึก (insert/update) สมุดรีโนเวทของบ้าน 1 หลัง
-export async function upsertRenovationBookForProperty(payload) {
+export async function upsertRenovationBookForProperty(book) {
   const { data, error } = await supabase
     .from('renovation_books')
-    .upsert(payload, {
+    .upsert(book, {
       onConflict: 'property_id'
     })
     .select()
@@ -28,3 +26,4 @@ export async function upsertRenovationBookForProperty(payload) {
   if (error) throw error;
   return data;
 }
+
