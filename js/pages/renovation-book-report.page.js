@@ -6,9 +6,7 @@ import { listSpecsByProperty } from '../services/propertySpecsService.js';
 import { listContractorsForProperty } from '../services/propertyContractorsService.js';
 import { $ } from '../ui/dom.js';
 
-// helper
-const getEl = (id) => document.getElementById(id) || null;
-
+// ---------------- helper ----------------
 async function fetchPropertyById(id) {
   const { data, error } = await listAll();
   if (error) throw error;
@@ -36,12 +34,13 @@ function fieldFull(label, value) {
   `;
 }
 
+// ---------------- header ----------------
 async function renderHeader(property, book) {
   const box = $('#rb-report-header');
   if (!box) return;
 
   if (!property) {
-    box.innerHTML = '<p class="rb-empty">ไม่พบบ้านหลังนี้ในระบบ</p>';
+    box.innerHTML = '<p class="rbr-note">ไม่พบบ้านหลังนี้ในระบบ</p>';
     return;
   }
 
@@ -49,27 +48,40 @@ async function renderHeader(property, book) {
   const statusBadge = `<span class="rb-report-badge">${statusText}</span>`;
 
   box.innerHTML = `
-    <div class="rb-report-header-title">
-      ${property.title || '-'} ${statusBadge}
-    </div>
-    <div class="rb-report-header-meta">
-      ${property.address || ''} ${property.district || ''} ${property.province || ''}<br>
-      ขนาด: ${property.size_text || '-'} • ${property.beds ?? '-'} นอน • ${property.baths ?? '-'} น้ำ • ที่จอดรถ ${property.parking ?? '-'}<br>
-      ราคา ${formatPrice(Number(property.price) || 0)}
-      ${
-        book?.house_code
-          ? `<br>โค้ดบ้าน / ชื่อในระบบ: ${book.house_code}`
-          : ''
-      }
-    </div>
+    <header class="rbr-header">
+      <div class="rbr-header-left">
+        <div class="rbr-title-main">
+          สมุดรีโนเวท: ${property.title || '-'} ${statusBadge}
+        </div>
+        <div class="rbr-title-sub">
+          ${property.address || ''} ${property.district || ''} ${property.province || ''}
+        </div>
+        <div class="rbr-meta">
+          ขนาด: ${property.size_text || '-'} • ${property.beds ?? '-'} นอน • ${property.baths ?? '-'} น้ำ • ที่จอดรถ ${property.parking ?? '-'}<br>
+          ราคา ${formatPrice(Number(property.price) || 0)}
+          ${
+            book?.house_code
+              ? `<br>โค้ดบ้าน / ชื่อในระบบ: ${book.house_code}`
+              : ''
+          }
+        </div>
+      </div>
+      <div class="rbr-header-right">
+        <div class="rbr-logo-block">
+          <div class="rbr-logo-mark">PP</div>
+          <div class="rbr-logo-text">Praweena Property</div>
+        </div>
+      </div>
+    </header>
   `;
 }
 
+// ---------------- sections ----------------
 function renderSection1(book) {
   const box = $('#rb-report-section-1-body');
   if (!box) return;
   if (!book) {
-    box.innerHTML = '<p class="rb-empty">ยังไม่มีข้อมูลสมุดรีโนเวทสำหรับบ้านหลังนี้</p>';
+    box.innerHTML = '<p class="rbr-note">ยังไม่มีข้อมูลสมุดรีโนเวทสำหรับบ้านหลังนี้</p>';
     return;
   }
 
@@ -93,7 +105,7 @@ function renderSection2(book) {
   const box = $('#rb-report-section-2-body');
   if (!box) return;
   if (!book) {
-    box.innerHTML = '<p class="rb-empty">ไม่มีข้อมูล</p>';
+    box.innerHTML = '<p class="rbr-note">ไม่มีข้อมูล</p>';
     return;
   }
 
@@ -110,7 +122,7 @@ function renderSection3(book) {
   const box = $('#rb-report-section-3-body');
   if (!box) return;
   if (!book) {
-    box.innerHTML = '<p class="rb-empty">ไม่มีข้อมูล</p>';
+    box.innerHTML = '<p class="rbr-note">ไม่มีข้อมูล</p>';
     return;
   }
 
@@ -126,7 +138,7 @@ function renderSection4(book) {
   const box = $('#rb-report-section-4-body');
   if (!box) return;
   if (!book) {
-    box.innerHTML = '<p class="rb-empty">ไม่มีข้อมูล</p>';
+    box.innerHTML = '<p class="rbr-note">ไม่มีข้อมูล</p>';
     return;
   }
 
@@ -144,7 +156,7 @@ function renderSection5(book) {
   const box = $('#rb-report-section-5-body');
   if (!box) return;
   if (!book) {
-    box.innerHTML = '<p class="rb-empty">ไม่มีข้อมูล</p>';
+    box.innerHTML = '<p class="rbr-note">ไม่มีข้อมูล</p>';
     return;
   }
 
@@ -159,7 +171,7 @@ function renderSection6(book) {
   const box = $('#rb-report-section-6-body');
   if (!box) return;
   if (!book) {
-    box.innerHTML = '<p class="rb-empty">ไม่มีข้อมูล</p>';
+    box.innerHTML = '<p class="rbr-note">ไม่มีข้อมูล</p>';
     return;
   }
 
@@ -173,13 +185,17 @@ function renderSection7(book) {
   const box = $('#rb-report-section-7-body');
   if (!box) return;
   if (!book) {
-    box.innerHTML = '<p class="rb-empty">ไม่มีข้อมูล</p>';
+    box.innerHTML = '<p class="rbr-note">ไม่มีข้อมูล</p>';
     return;
   }
 
-  box.innerHTML = fieldFull('สรุปภาพรวม / สิ่งที่ต้องโฟกัสเป็นพิเศษ', book.summary_notes);
+  box.innerHTML = fieldFull(
+    'สรุปภาพรวม / สิ่งที่ต้องโฟกัสเป็นพิเศษ',
+    book.summary_notes
+  );
 }
 
+// ---------------- specs table ----------------
 async function renderSpecs(propertyId) {
   const box = $('#rb-report-specs');
   if (!box) return;
@@ -187,7 +203,7 @@ async function renderSpecs(propertyId) {
   try {
     const specs = await listSpecsByProperty(propertyId);
     if (!specs.length) {
-      box.innerHTML = '<p class="rb-empty">ยังไม่มีการบันทึกสเปกรีโนเวท</p>';
+      box.innerHTML = '<p class="rbr-note">ยังไม่มีการบันทึกสเปกรีโนเวท</p>';
       return;
     }
 
@@ -209,27 +225,26 @@ async function renderSpecs(propertyId) {
       .join('');
 
     box.innerHTML = `
-      <div class="rb-table-wrapper">
-        <table class="rb-table">
-          <thead>
-            <tr>
-              <th>โซน</th>
-              <th>ประเภท</th>
-              <th>ยี่ห้อ / รุ่น / เบอร์สี</th>
-              <th>ร้าน / ผู้ขาย</th>
-              <th>หมายเหตุ</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <table class="rbr-table">
+        <thead>
+          <tr>
+            <th>โซน</th>
+            <th>ประเภท</th>
+            <th>ยี่ห้อ / รุ่น / เบอร์สี</th>
+            <th>ร้าน / ผู้ขาย</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
     `;
   } catch (err) {
     console.error(err);
-    box.innerHTML = '<p class="rb-empty">โหลดข้อมูลสเปกไม่สำเร็จ</p>';
+    box.innerHTML = '<p class="rbr-note">โหลดข้อมูลสเปกไม่สำเร็จ</p>';
   }
 }
 
+// ---------------- contractors table ----------------
 async function renderContractors(propertyId) {
   const box = $('#rb-report-contractors');
   if (!box) return;
@@ -237,7 +252,7 @@ async function renderContractors(propertyId) {
   try {
     const links = await listContractorsForProperty(propertyId);
     if (!links.length) {
-      box.innerHTML = '<p class="rb-empty">ยังไม่มีข้อมูลทีมช่าง</p>';
+      box.innerHTML = '<p class="rbr-note">ยังไม่มีข้อมูลทีมช่าง</p>';
       return;
     }
 
@@ -257,27 +272,26 @@ async function renderContractors(propertyId) {
       .join('');
 
     box.innerHTML = `
-      <div class="rb-table-wrapper">
-        <table class="rb-table">
-          <thead>
-            <tr>
-              <th>ชื่อช่าง</th>
-              <th>สายงาน</th>
-              <th>เบอร์ติดต่อ</th>
-              <th>ขอบเขตงาน</th>
-              <th>รับประกัน (เดือน)</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <table class="rbr-table">
+        <thead>
+          <tr>
+            <th>ชื่อช่าง</th>
+            <th>สายงาน</th>
+            <th>เบอร์ติดต่อ</th>
+            <th>ขอบเขตงาน</th>
+            <th>รับประกัน (เดือน)</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
     `;
   } catch (err) {
     console.error(err);
-    box.innerHTML = '<p class="rb-empty">โหลดข้อมูลทีมช่างไม่สำเร็จ</p>';
+    box.innerHTML = '<p class="rbr-note">โหลดข้อมูลทีมช่างไม่สำเร็จ</p>';
   }
 }
 
+// ---------------- init ----------------
 document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const propertyId = params.get('property_id');
@@ -285,9 +299,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const headerBox = $('#rb-report-header');
   if (!propertyId) {
     if (headerBox) {
-      headerBox.innerHTML = '<p class="rb-empty">ไม่มี property_id ใน URL</p>';
+      headerBox.innerHTML = '<p class="rbr-note">ไม่มี property_id ใน URL</p>';
     }
     return;
+  }
+
+  // ปุ่มพิมพ์
+  const printBtn = $('#rbr-print-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  // เวลาสร้างรายงาน
+  const generatedAtEl = $('#rb-report-generated-at');
+  if (generatedAtEl) {
+    const now = new Date();
+    generatedAtEl.textContent =
+      'สร้างรายงานเมื่อ: ' + now.toLocaleString('th-TH');
   }
 
   try {
@@ -309,7 +339,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.error(err);
     if (headerBox) {
-      headerBox.innerHTML = '<p class="rb-empty">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+      headerBox.innerHTML =
+        '<p class="rbr-note">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
     }
   }
 });
