@@ -3,6 +3,23 @@ import { setupMobileNav } from '../ui/mobileNav.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { setupNav } from '../utils/config.js';
 
+function markActiveNav() {
+  const currentPage = document.body?.dataset?.page;
+  if (!currentPage) return;
+
+  const links = document.querySelectorAll('.nav-links a[data-nav]');
+  links.forEach((a) => {
+    const navKey = a.dataset.nav;
+    if (navKey === currentPage) {
+      a.classList.add('active');
+      a.setAttribute('aria-current', 'page');
+    } else {
+      a.classList.remove('active');
+      a.removeAttribute('aria-current');
+    }
+  });
+}
+
 // โหลด header จาก /partials/header.html แล้ว inject เข้า #app-header
 export async function loadHeader() {
   const container = document.getElementById('app-header');
@@ -20,10 +37,13 @@ export async function loadHeader() {
     const html = await res.text();
     container.innerHTML = html;
 
-    // เรียก setup ต่าง ๆ หลังจาก header อยู่ใน DOM แล้ว
+    // setup global nav / mobile / sign-out
     setupNav();
     setupMobileNav();
     await signOutIfAny();
+
+    // ⭐ ใส่ active ให้เมนูตาม data-page
+    markActiveNav();
   } catch (err) {
     console.error('โหลด header ล้มเหลว:', err);
     container.innerHTML = `

@@ -617,3 +617,21 @@ body.rb-report-open {
     align-items: stretch;
   }
 }
+
+/* เมนูที่ active */
+.nav-links a.active {
+  color: var(--primary);
+  font-weight: 600;
+  position: relative;
+}
+
+.nav-links a.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.25rem;
+  width: 100%;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 999px;
+}
