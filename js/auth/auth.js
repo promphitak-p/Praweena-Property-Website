@@ -25,3 +25,13 @@ export async function signOutIfAny() {
     }
   });
 }
+
+// js/auth/auth.js
+import { getSession } from '../lib/supabaseClient.js';
+
+export async function protectPage() {
+  const session = await getSession();
+  if (!session) {
+    location.href = '/auth.html'; // หรือหน้า login ของกุ้ง
+  }
+}
