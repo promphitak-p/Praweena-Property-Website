@@ -20,6 +20,7 @@ export async function getContractById(id) {
     .select('*')
     .eq('id', id)
     .single();
+
   if (error) throw error;
   return data;
 }
@@ -27,22 +28,21 @@ export async function getContractById(id) {
 export async function listContracts() {
   /**
    * เงื่อนไขสำคัญ:
-   * - contracts.lead_id ต้องเป็น FK -> leads.id (uuid)
-   * - contracts.property_id ต้องเป็น FK -> properties.id (bigint)
-   * 
-   * ถ้าตั้ง FK แล้ว Supabase จะ join ให้อัตโนมัติด้วย select('..., leads(*), properties(*)')
+   * - contracts.lead_id เป็น FK -> leads.id (uuid)
+   * - contracts.property_id เป็น FK -> properties.id (bigint)
+   *
+   * NOTE:
+   * ชื่อคอลัมน์ใน leads อาจไม่ใช่ full_name / name ตามเดิม
+   * เพื่อกันพังเวลา schema เปลี่ยน ให้ดึง leads(*) และ properties(*) ทั้งแถว
+   * แล้วไปเลือก field ที่มีจริงในหน้า render อีกที
    */
 
   const { data, error } = await supabase
     .from(TABLE)
     .select(`
       *,
-      leads:lead_id (
-        id, full_name, name, phone, email
-      ),
-      properties:property_id (
-        id, title, name, address, price
-      )
+      leads:lead_id (*),
+      properties:property_id (*)
     `)
     .order('created_at', { ascending: false });
 
@@ -55,6 +55,7 @@ export async function deleteContract(id) {
     .from(TABLE)
     .delete()
     .eq('id', id);
+
   if (error) throw error;
   return true;
 }
