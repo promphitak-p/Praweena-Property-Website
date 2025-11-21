@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>รายการสัญญา - Praweena Property</title>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/assets/css/base.css"/>
+  <link rel="stylesheet" href="/assets/css/layout.css"/>
+  <link rel="stylesheet" href="/assets/css/components.css"/>
+  <link rel="stylesheet" href="/assets/css/style.css"/>
+
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/assets/favicon/site.webmanifest">
+</head>
+
+<body>
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
+          <span class="logo-text">Praweena Property</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="/index.html">หน้าแรก</a></li>
+          <li><a href="/dashboard.html">แดชบอร์ด</a></li>
+          <li><a href="/leads.html">ผู้สนใจ</a></li>
+          <li><a href="/renovation-book-list.html">สมุดรีโนเวท</a></li>
+          <li><a href="/contract-list.html" aria-current="page">สัญญา</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
+        </ul>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page page-contract-list">
+    <div class="container">
+
+      <!-- Page header / hero เล็กๆ -->
+      <header class="page-header">
+        <h1>รายการสัญญา</h1>
+        <p>ค้นหา/เปิดแก้ไขสัญญาได้เหมือนสมุดรีโนเวท</p>
+
+        <div class="page-header-actions" style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;">
+          
+          <!-- search + autocomplete -->
+          <div class="rb-search" style="min-width:260px;flex:1;">
+            <input
+              id="contracts-search-input"
+              type="text"
+              placeholder="ค้นหาเลขสัญญา / ชื่อลูกค้า / เบอร์ / บ้าน"
+              autocomplete="off"
+            />
+            <div id="contracts-search-suggestions" class="rb-search-suggestions"></div>
+          </div>
+
+          <!-- quick filters (2 ปุ่มตามที่กุ้งชอบ) -->
+          <div class="rb-filters" style="display:flex; gap:.5rem;">
+            <button id="filter-all" class="btn btn-sm rb-filter-btn is-active" type="button">
+              ทั้งหมด
+            </button>
+            <button id="filter-active" class="btn btn-sm btn-secondary rb-filter-btn" type="button">
+              ยังไม่จบ/กำลังดำเนินการ
+            </button>
+          </div>
+
+          <!-- status dropdown เพิ่มเผื่อสัญญาเยอะ -->
+          <label style="display:flex; align-items:center; gap:.35rem;">
+            สถานะ:
+            <select id="contracts-status-filter" class="form-control" style="min-width:150px;">
+              <option value="all">ทั้งหมด</option>
+              <option value="draft">ร่าง</option>
+              <option value="pending">รอดำเนินการ</option>
+              <option value="active">มีผลแล้ว</option>
+              <option value="closed">ปิดสัญญาแล้ว</option>
+              <option value="cancelled">ยกเลิก</option>
+            </select>
+          </label>
+
+          <!-- new contract -->
+          <a href="/contract-form.html" class="btn btn-sm" id="create-contract-btn">
+            + สร้างสัญญาใหม่
+          </a>
+        </div>
+      </header>
+
+      <!-- list -->
+      <section class="card">
+        <div class="card-header">
+          <h2>สัญญาทั้งหมด</h2>
+        </div>
+
+        <div class="card-body">
+          <div id="contracts-list" class="property-grid">
+            <!-- JS render cards here -->
+          </div>
+
+          <div id="contracts-empty" class="rb-empty" style="display:none;">
+            ยังไม่มีสัญญาในระบบ
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <button id="scroll-to-top" class="scroll-to-top" type="button" aria-label="เลื่อนขึ้นด้านบน">
+      ↑
+    </button>
+  </main>
+
+  <script type="module" src="/js/pages/contract-list.page.js"></script>
+</body>
+</html>
