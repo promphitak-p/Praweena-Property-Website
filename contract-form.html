@@ -1,0 +1,167 @@
+<!-- contract-form.html -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>แบบฟอร์มสัญญา - Praweena Property</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/assets/css/base.css"/>
+  <link rel="stylesheet" href="/assets/css/layout.css"/>
+  <link rel="stylesheet" href="/assets/css/components.css"/>
+  <link rel="stylesheet" href="/assets/css/style.css"/>
+
+  <!-- jsPDF สำหรับสร้าง PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+  <!-- Header เดิม ใช้เมนู active ตาม JS global -->
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
+          <span class="logo-text">Praweena Property</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="/index.html" data-nav="home">หน้าแรก</a></li>
+          <li><a href="/dashboard.html" data-nav="dashboard">แดชบอร์ด</a></li>
+          <li><a href="/leads.html" data-nav="leads">ผู้สนใจ</a></li>
+          <li><a href="/renovation-book-list.html" data-nav="renovation">สมุดรีโนเวท</a></li>
+          <li><a href="/contract-form.html" data-nav="contracts" aria-current="page">สัญญา</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
+        </ul>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page page-contract">
+    <div class="container">
+
+      <!-- หัวหน้าเพจ -->
+      <header class="page-header">
+        <h1>แบบฟอร์มสัญญา</h1>
+        <p>ดึงข้อมูลลูกค้าอัตโนมัติจากระบบ แล้วสร้างไฟล์ PDF ได้ทันที</p>
+        <p id="contract-lead-info" class="text-muted" style="margin-top:0.5rem;font-size:0.9rem;">
+          กำลังตรวจสอบข้อมูลลูกค้า...
+        </p>
+      </header>
+
+      <!-- CARD: ข้อมูลผู้ทำสัญญา -->
+      <section class="card">
+        <div class="card-header">
+          <h2>1. ข้อมูลผู้ทำสัญญา (ลูกค้า)</h2>
+        </div>
+        <div class="card-body form-grid">
+
+          <div class="form-group">
+            <label for="client_name">ชื่อ-นามสกุล</label>
+            <input id="client_name" name="client_name" class="form-control" type="text" placeholder="ชื่อ-นามสกุลลูกค้า">
+          </div>
+
+          <div class="form-group">
+            <label for="client_idcard">เลขบัตรประชาชน</label>
+            <input id="client_idcard" name="client_idcard" class="form-control" type="text" placeholder="เลขบัตรประชาชน">
+          </div>
+
+          <div class="form-group">
+            <label for="client_phone">เบอร์ติดต่อ</label>
+            <input id="client_phone" name="client_phone" class="form-control" type="text" placeholder="เบอร์โทร">
+          </div>
+
+          <div class="form-group">
+            <label for="client_email">อีเมล</label>
+            <input id="client_email" name="client_email" class="form-control" type="email" placeholder="อีเมล (ถ้ามี)">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="client_address">ที่อยู่ตามบัตรประชาชน</label>
+            <textarea id="client_address" name="client_address" class="form-control" rows="2"></textarea>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CARD: ข้อมูลทรัพย์สิน -->
+      <section class="card">
+        <div class="card-header">
+          <h2>2. ข้อมูลทรัพย์สิน</h2>
+        </div>
+        <div class="card-body form-grid">
+
+          <div class="form-group">
+            <label for="property_title">ชื่อบ้าน / โปรเจกต์</label>
+            <input id="property_title" name="property_title" class="form-control" type="text"
+                   placeholder="เช่น พ่อขุน12 - น้องวนิลา">
+          </div>
+
+          <div class="form-group">
+            <label for="property_price">ราคาซื้อขาย (บาท)</label>
+            <input id="property_price" name="property_price" class="form-control" type="number" min="0">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="property_address">ที่ตั้งทรัพย์สิน</label>
+            <textarea id="property_address" name="property_address" class="form-control" rows="2"></textarea>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CARD: รายละเอียดสัญญา -->
+      <section class="card">
+        <div class="card-header">
+          <h2>3. รายละเอียดสัญญา</h2>
+        </div>
+        <div class="card-body form-grid">
+
+          <div class="form-group">
+            <label for="contract_date">วันที่ทำสัญญา</label>
+            <input id="contract_date" name="contract_date" class="form-control" type="date">
+          </div>
+
+          <div class="form-group">
+            <label for="contract_place">สถานที่ทำสัญญา</label>
+            <input id="contract_place" name="contract_place" class="form-control" type="text"
+                   placeholder="เช่น สำนักงาน Praweena Property">
+          </div>
+
+          <div class="form-group">
+            <label for="deposit_amount">เงินมัดจำ / จอง (บาท)</label>
+            <input id="deposit_amount" name="deposit_amount" class="form-control" type="number" min="0">
+          </div>
+
+          <div class="form-group">
+            <label for="transfer_date">กำหนดวันโอนกรรมสิทธิ์โดยประมาณ</label>
+            <input id="transfer_date" name="transfer_date" class="form-control" type="date">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="contract_terms">เงื่อนไขสำคัญ / หมายเหตุ</label>
+            <textarea id="contract_terms" name="contract_terms" class="form-control" rows="4"
+              placeholder="เช่น ผู้ซื้อเป็นผู้รับผิดชอบค่าใช้จ่าย ณ วันโอน, เงื่อนไขการกู้ไม่ผ่าน ฯลฯ"></textarea>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ปุ่มทำงาน -->
+      <section class="page-actions" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <button id="btn-generate-contract" type="button" class="btn">
+          สร้างสัญญา (PDF)
+        </button>
+        <button id="btn-back-to-leads" type="button" class="btn btn-secondary">
+          กลับไปหน้าผู้สนใจ
+        </button>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- JS main (module) -->
+  <script type="module" src="/js/pages/contract-form.page.js"></script>
+</body>
+</html>

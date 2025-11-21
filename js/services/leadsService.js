@@ -35,3 +35,16 @@ export async function listLeads() {
 export async function updateLead(id, changes) {
   return await supabase.from('leads').update(changes).eq('id', id);
 }
+
+export async function getLeadById(id) {
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+  return data || null;
+}
