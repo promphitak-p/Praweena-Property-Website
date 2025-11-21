@@ -3,7 +3,7 @@ import { setupMobileNav } from '../ui/mobileNav.js';
 import { toast } from '../ui/toast.js';
 import { protectPage } from '../auth/auth.js';
 import { setupNav } from '../utils/config.js';
-import { supabase } from '../utils/supabaseClient.js';
+// import { supabase } from '../utils/supabaseClient.js'; // ยังไม่ได้ใช้ ตัดทิ้งได้
 
 import { upsertContract, getContractById } from '../services/contractsService.js';
 import { listLeads } from '../services/leadsService.js';
@@ -15,15 +15,20 @@ protectPage(); // ไม่ login = เด้งออก
 
 // ---------- Helpers ----------
 const $ = (sel) => document.querySelector(sel);
-const fmt = (n) => {
-  const num = Number(n || 0);
-  return num.toLocaleString('th-TH');
-};
-const todayStr = () => new Date().toISOString().slice(0,10);
+const fmt = (n) => Number(n || 0).toLocaleString('th-TH');
+const todayStr = () => new Date().toISOString().slice(0, 10);
 
-function pick(obj, keys, fallback='') {
+function pick(obj, keys, fallback = '') {
   for (const k of keys) if (obj && obj[k] != null && obj[k] !== '') return obj[k];
   return fallback;
+}
+
+// ✅ normalize ให้มั่นใจว่าออกมาเป็น array เสมอ
+function toArray(res) {
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.data)) return res.data;
+  if (res && Array.isArray(res.data?.data)) return res.data.data;
+  return [];
 }
 
 // ---------- Elements ----------
@@ -63,15 +68,18 @@ let leadsCache = [];
 let propertiesCache = [];
 
 // ---------- Load initial data ----------
-(async function init(){
-  try{
-    contract_date.value = todayStr();
+(async function init() {
+  try {
+    if (contract_date) contract_date.value = todayStr();
 
     // 1) Leads cache for autocomplete
-    leadsCache = await listLeads();
+    const leadsRes = await listLeads();
+    leadsCache = toArray(leadsRes);
 
     // 2) Properties dropdown
-    propertiesCache = await listAllProperties();
+    const propsRes = await listAllProperties();
+    propertiesCache = toArray(propsRes);
+
     renderProperties(propertiesCache);
 
     // 3) If edit mode (?id=xxx)
@@ -79,41 +87,52 @@ let propertiesCache = [];
     const id = params.get('id');
     if (id) await loadContract(id);
 
-  }catch(err){
+  } catch (err) {
     console.error(err);
     toast('โหลดข้อมูลไม่สำเร็จ');
   }
 })();
 
-function renderProperties(list){
+function renderProperties(list) {
+  if (!property_id) return;
+
   property_id.innerHTML = `<option value="">-- เลือกบ้าน --</option>`;
-  list.forEach(p=>{
+
+  if (!Array.isArray(list) || list.length === 0) {
+    // ถ้าไม่มีบ้านเลย ให้กันพัง + ช่วยดีบัก
+    console.warn('properties list is empty or not array:', list);
+    return;
+  }
+
+  list.forEach(p => {
     const id = p.id;
-    const title = pick(p, ['title','name','project_name','slug'], 'บ้าน');
-    const price = pick(p, ['price','sell_price'], '');
-    const addr = pick(p, ['address','full_address','location'], '');
+    const title = pick(p, ['title', 'name', 'project_name', 'slug'], 'บ้าน');
+    const price = pick(p, ['price', 'sell_price'], '');
+    const addr = pick(p, ['address', 'full_address', 'location'], '');
+
     const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = `${title}${price?` • ${fmt(price)}฿`:''}`;
+    opt.value = String(id); // ✅ ทำให้เป็น string เสมอ
+    opt.textContent = `${title}${price ? ` • ${fmt(price)}฿` : ''}`;
     opt.dataset.title = title;
     opt.dataset.price = price;
     opt.dataset.address = addr;
+
     property_id.appendChild(opt);
   });
 }
 
-async function loadContract(id){
+async function loadContract(id) {
   const c = await getContractById(id);
   contract_id.value = c.id;
 
   // lead
   lead_id.value = c.lead_id || '';
-  const lead = c.leads || leadsCache.find(x=>x.id===c.lead_id);
+  const lead = c.leads || leadsCache.find(x => x.id === c.lead_id);
   if (lead) fillLead(lead);
 
   // property
-  property_id.value = c.property_id || '';
-  const prop = c.properties || propertiesCache.find(x=>x.id===c.property_id);
+  property_id.value = c.property_id != null ? String(c.property_id) : '';
+  const prop = c.properties || propertiesCache.find(x => String(x.id) === String(c.property_id));
   if (prop) fillProperty(prop);
 
   // contract fields
@@ -129,30 +148,30 @@ async function loadContract(id){
 }
 
 // ---------- Autocomplete Leads ----------
-leadSearch.addEventListener('input', (e)=>{
+leadSearch?.addEventListener('input', (e) => {
   const q = e.target.value.trim().toLowerCase();
   if (!q) return closeAc();
 
-  const hits = leadsCache.filter(l=>{
-    const name = pick(l, ['full_name','name'], '').toLowerCase();
-    const phone = pick(l, ['phone','tel'], '').toLowerCase();
+  const hits = leadsCache.filter(l => {
+    const name = pick(l, ['full_name', 'name'], '').toLowerCase();
+    const phone = pick(l, ['phone', 'tel'], '').toLowerCase();
     const email = pick(l, ['email'], '').toLowerCase();
     return name.includes(q) || phone.includes(q) || email.includes(q);
   }).slice(0, 8);
 
   if (!hits.length) return closeAc();
   leadAc.innerHTML = '';
-  hits.forEach(l=>{
-    const name = pick(l, ['full_name','name'], '-');
-    const phone = pick(l, ['phone','tel'], '');
+  hits.forEach(l => {
+    const name = pick(l, ['full_name', 'name'], '-');
+    const phone = pick(l, ['phone', 'tel'], '');
     const email = pick(l, ['email'], '');
     const div = document.createElement('div');
     div.className = 'ac-item';
     div.innerHTML = `
       <div><strong>${name}</strong></div>
-      <small>${phone}${email?` • ${email}`:''}</small>
+      <small>${phone}${email ? ` • ${email}` : ''}</small>
     `;
-    div.addEventListener('click', ()=>{
+    div.addEventListener('click', () => {
       fillLead(l);
       leadSearch.value = name;
       closeAc();
@@ -162,42 +181,45 @@ leadSearch.addEventListener('input', (e)=>{
   leadAc.classList.add('open');
 });
 
-document.addEventListener('click', (e)=>{
+document.addEventListener('click', (e) => {
   if (!e.target.closest('.ac-wrap')) closeAc();
 });
-function closeAc(){
-  leadAc.classList.remove('open');
+
+function closeAc() {
+  leadAc?.classList.remove('open');
 }
 
-function fillLead(l){
+function fillLead(l) {
   lead_id.value = l.id || '';
-  lead_name.value = pick(l, ['full_name','name']);
-  lead_phone.value = pick(l, ['phone','tel']);
+  lead_name.value = pick(l, ['full_name', 'name']);
+  lead_phone.value = pick(l, ['phone', 'tel']);
   lead_email.value = pick(l, ['email']);
-  lead_idcard.value = pick(l, ['id_card','idcard','citizen_id']);
-  lead_address.value = pick(l, ['address','full_address','home_address']);
+  lead_idcard.value = pick(l, ['id_card', 'idcard', 'citizen_id']);
+  lead_address.value = pick(l, ['address', 'full_address', 'home_address']);
 }
 
 // ---------- Property selection ----------
-property_id.addEventListener('change', ()=>{
+property_id?.addEventListener('change', () => {
   const id = property_id.value;
   if (!id) return;
-  const p = propertiesCache.find(x=>x.id===id);
+
+  const p = propertiesCache.find(x => String(x.id) === String(id));
   if (p) fillProperty(p);
 });
 
-function fillProperty(p){
-  property_name.value = pick(p, ['title','name','project_name']);
-  property_price.value = pick(p, ['price','sell_price'], 0);
-  property_address.value = pick(p, ['address','full_address','location']);
+function fillProperty(p) {
+  property_name.value = pick(p, ['title', 'name', 'project_name']);
+  property_price.value = pick(p, ['price', 'sell_price'], 0);
+  property_address.value = pick(p, ['address', 'full_address', 'location']);
   calcRemain();
 }
 
 // ---------- Auto calc remain ----------
-[property_price, deposit_amount, paid_amount].forEach(el=>{
-  el.addEventListener('input', calcRemain);
+[property_price, deposit_amount, paid_amount].forEach(el => {
+  el?.addEventListener('input', calcRemain);
 });
-function calcRemain(){
+
+function calcRemain() {
   const price = Number(property_price.value || 0);
   const dep = Number(deposit_amount.value || 0);
   const paid = Number(paid_amount.value || 0);
@@ -206,8 +228,8 @@ function calcRemain(){
 }
 
 // ---------- Save contract ----------
-saveBtn.addEventListener('click', async ()=>{
-  try{
+saveBtn?.addEventListener('click', async () => {
+  try {
     const payload = collectPayload();
     if (!payload.lead_id) return toast('กรุณาเลือกลูกค้าก่อน');
     if (!payload.property_id) return toast('กรุณาเลือกบ้านก่อน');
@@ -216,20 +238,20 @@ saveBtn.addEventListener('click', async ()=>{
     contract_id.value = saved.id;
 
     toast('บันทึกสัญญาแล้ว ✅');
-    history.replaceState(null,'',`/contract-form.html?id=${saved.id}`);
+    history.replaceState(null, '', `/contract-form.html?id=${saved.id}`);
 
-  }catch(err){
+  } catch (err) {
     console.error(err);
     toast('บันทึกไม่สำเร็จ');
   }
 });
 
-function collectPayload(){
+function collectPayload() {
   return {
     id: contract_id.value || undefined,
 
     lead_id: lead_id.value || null,
-    property_id: property_id.value || null,
+    property_id: property_id.value ? Number(property_id.value) : null, // ✅ bigint id ควรส่งเป็น number
 
     contract_date: contract_date.value || null,
     contract_type: contract_type.value || 'reservation',
@@ -255,22 +277,20 @@ function collectPayload(){
 }
 
 // ---------- Preview / Export PDF ----------
-previewBtn.addEventListener('click', ()=>{
+previewBtn?.addEventListener('click', () => {
   const payload = collectPayload();
   previewBox.innerHTML = renderPreview(payload);
   previewModal.classList.add('open');
 });
 
-previewClose.addEventListener('click', ()=>previewModal.classList.remove('open'));
-previewModal.addEventListener('click', (e)=>{
+previewClose?.addEventListener('click', () => previewModal.classList.remove('open'));
+previewModal?.addEventListener('click', (e) => {
   if (e.target === previewModal) previewModal.classList.remove('open');
 });
 
-printBtn.addEventListener('click', ()=>{
-  window.print();
-});
+printBtn?.addEventListener('click', () => window.print());
 
-function renderPreview(p){
+function renderPreview(p) {
   const typeLabel =
     p.contract_type === 'sale' ? 'สัญญาซื้อขาย' :
     p.contract_type === 'lease' ? 'สัญญาเช่า' : 'สัญญาจอง';
@@ -289,23 +309,23 @@ function renderPreview(p){
 
     <h3>ข้อมูลลูกค้า</h3>
     <div class="pv-grid">
-      <div class="pv-row"><div class="pv-label">ชื่อ</div><div class="pv-value">${p.lead_name||'-'}</div></div>
-      <div class="pv-row"><div class="pv-label">เบอร์โทร</div><div class="pv-value">${p.lead_phone||'-'}</div></div>
-      <div class="pv-row"><div class="pv-label">อีเมล</div><div class="pv-value">${p.lead_email||'-'}</div></div>
-      <div class="pv-row"><div class="pv-label">เลขบัตร</div><div class="pv-value">${p.lead_idcard||'-'}</div></div>
+      <div class="pv-row"><div class="pv-label">ชื่อ</div><div class="pv-value">${p.lead_name || '-'}</div></div>
+      <div class="pv-row"><div class="pv-label">เบอร์โทร</div><div class="pv-value">${p.lead_phone || '-'}</div></div>
+      <div class="pv-row"><div class="pv-label">อีเมล</div><div class="pv-value">${p.lead_email || '-'}</div></div>
+      <div class="pv-row"><div class="pv-label">เลขบัตร</div><div class="pv-value">${p.lead_idcard || '-'}</div></div>
       <div class="pv-row" style="grid-column: span 2;">
         <div class="pv-label">ที่อยู่</div>
-        <div class="pv-value">${p.lead_address||'-'}</div>
+        <div class="pv-value">${p.lead_address || '-'}</div>
       </div>
     </div>
 
     <h3 style="margin-top:1rem;">ข้อมูลบ้าน</h3>
     <div class="pv-grid">
-      <div class="pv-row"><div class="pv-label">ชื่อบ้าน</div><div class="pv-value">${p.property_name||'-'}</div></div>
+      <div class="pv-row"><div class="pv-label">ชื่อบ้าน</div><div class="pv-value">${p.property_name || '-'}</div></div>
       <div class="pv-row"><div class="pv-label">ราคาขาย</div><div class="pv-value">${fmt(p.property_price)} บาท</div></div>
       <div class="pv-row" style="grid-column: span 2;">
         <div class="pv-label">ที่อยู่บ้าน</div>
-        <div class="pv-value">${p.property_address||'-'}</div>
+        <div class="pv-value">${p.property_address || '-'}</div>
       </div>
     </div>
 
@@ -314,7 +334,7 @@ function renderPreview(p){
       <div class="pv-row"><div class="pv-label">เงินจอง/มัดจำ</div><div class="pv-value">${fmt(p.deposit_amount)} บาท</div></div>
       <div class="pv-row"><div class="pv-label">ชำระแล้ว</div><div class="pv-value">${fmt(p.paid_amount)} บาท</div></div>
       <div class="pv-row"><div class="pv-label">คงเหลือ</div><div class="pv-value">${fmt(p.remain_amount)} บาท</div></div>
-      <div class="pv-row"><div class="pv-label">กำหนดโอน/นัดใหญ่</div><div class="pv-value">${p.transfer_date||'-'}</div></div>
+      <div class="pv-row"><div class="pv-label">กำหนดโอน/นัดใหญ่</div><div class="pv-value">${p.transfer_date || '-'}</div></div>
     </div>
 
     <h3 style="margin-top:1rem;">เงื่อนไขเพิ่มเติม</h3>
