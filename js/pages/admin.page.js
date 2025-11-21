@@ -8,6 +8,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   await protectPage();      // ✅ ไม่ล็อกอิน = เด้งออก
   setupNav();
   setupMobileNav();
-  autoActiveNav();
   await signOutIfAny();
 });
