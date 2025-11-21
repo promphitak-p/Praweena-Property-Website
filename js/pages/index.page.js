@@ -106,7 +106,6 @@ async function loadProperties() {
 // --- Main execution ---
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
-  autoActiveNav();
   signOutIfAny();
   setupMobileNav();
   loadProperties(); // โหลดครั้งแรก
