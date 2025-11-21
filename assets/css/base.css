@@ -1,17 +1,40 @@
 /* assets/css/base.css */
 :root {
-  /*--brand: #2b5d4c;*/
---brand: #a89772;
-  --brand-2: #d7c7a6;
-  --bg: #f9fafb;
-  --text: #1f2937;
-  --text-light: #6b7280;
+  /* Gold Luxury Palette */
+  --gold-1: #bfa063;     /* ทองกลาง */
+  --gold-2: #d6c49a;     /* ทองอ่อน */
+  --gold-3: #a98b57;     /* ทองเข้มเงา */
+  --gold-4: #f0e6d2;     /* ครีมทอง */
+
+  /* ใช้แทน brand เดิม */
+  --brand: var(--gold-3);
+  --brand-2: var(--gold-2);
+
+  /* ไล่สีทองแบบเงาวาว */
+  --gold-grad: linear-gradient(
+    135deg,
+    var(--gold-3) 0%,
+    var(--gold-1) 25%,
+    var(--gold-2) 50%,
+    var(--gold-1) 75%,
+    var(--gold-3) 100%
+  );
+
+  /* อัปเดต Grad ให้ทุกปุ่ม & header ใช้ */
+  --grad: var(--gold-grad);
+
+  /* พื้นหลังเว็บ */
+  --bg: #f7f7f7;
+
   --surface: #ffffff;
-  --border-color: #e5e7eb;
+  --border-color: #e5e5e5;
+  --text: #1f1f1f;
+  --text-light: #666;
+
   --radius: 16px;
---grad: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 30%, var(--brand-2) 70%, var(--brand) 100%);
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 main {
@@ -46,13 +69,13 @@ img {
 
 /* === Header & Navigation === */
 .header {
+  background: var(--gold-grad);
+  color: white;
+  padding: 1rem 0;
   position: sticky;
   top: 0;
-  z-index: 40;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  z-index: 20;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
 /* เส้นไฮไลต์ทองบาง ๆ ด้านล่าง */
@@ -123,18 +146,11 @@ img {
 }
 
 /* hover นุ่ม ๆ */
-.nav-links a:hover {
-  background-color: #f3f4f6;
-  color: #111827;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(148, 115, 67, 0.18);
-}
-
-/* ลิงก์ active (ใส่ class="active" จาก JS ที่ทำไว้แล้ว) */
+.nav-links a:hover,
 .nav-links a.active {
-  background-image: var(--grad);
-  color: #ffffff;
-  box-shadow: 0 10px 24px rgba(148, 115, 67, 0.35);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  border-radius: 10px;
 }
 
 /* ปุ่มแฮมเบอร์เกอร์ (desktop ซ่อนไว้ก่อน) */
@@ -200,30 +216,25 @@ img {
 
 /* === Buttons === */
 .btn {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+  background: var(--gold-grad);
+  color: #fff;
   border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
   font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-  background: var(--grad);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  transition: 0.2s ease-in-out;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
 }
 
 .btn-secondary {
-    background-color: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border-color);
-    background-image: none;
+  background: #fff;
+  color: var(--gold-3);
+  border: 2px solid var(--gold-2);
 }
 
 /* === Forms === */
@@ -338,4 +349,15 @@ img {
   line-height: 1;
   cursor: pointer;
   color: var(--text-light);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--gold-2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header h2 {
+  color: var(--gold-3);
 }
