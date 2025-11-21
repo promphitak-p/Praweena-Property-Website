@@ -3,319 +3,372 @@ import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { setupNav } from '../utils/config.js';
-import { formatPrice } from '../utils/format.js';
 import { toast } from '../ui/toast.js';
-import { getLeadById } from '../services/leadsService.js';
-import {
-  getContractByLeadId,
-  upsertContractForLead
-} from '../services/contractsService.js';
+import { listAll } from '../services/propertiesService.js';
+import { listLeads } from '../services/leadsService.js'; 
+import { upsertContract, getContractById } from '../services/contractsService.js';
 
-const $ = (sel) => document.querySelector(sel);
-const getEl = (id) => document.getElementById(id) || null;
+const $ = (id) => document.getElementById(id);
 
-let currentLeadId = null;
-let currentPropertyId = null;
+let leadsCache = [];
+let propertiesCache = [];
+let currentContract = null;
 
-// ------------- helpers -------------
-function fillIfHas(id, value) {
-  const el = getEl(id);
-  if (!el) return;
-  el.value = value ?? '';
-}
-
-function getValue(id) {
-  const el = getEl(id);
+// ---------- helpers ----------
+const val = (id) => {
+  const el = $(id);
   return el ? el.value.trim() : '';
-}
-
-function getNumberOrNull(id) {
-  const raw = getValue(id);
-  if (!raw) return null;
-  const n = Number(raw.replace(/,/g, ''));
+};
+const num = (id) => {
+  const el = $(id);
+  if (!el) return null;
+  const n = Number(el.value);
   return Number.isFinite(n) ? n : null;
-}
+};
+const setVal = (id, v) => { const el = $(id); if (el) el.value = v ?? ''; };
 
-// ------------- โหลด Lead + Contract จาก URL -------------
-async function loadLeadFromUrl() {
-  const infoLine = $('#contract-lead-info');
-  const params = new URLSearchParams(window.location.search);
-  const leadId = params.get('lead_id');
-
-  if (!leadId) {
-    if (infoLine) {
-      infoLine.textContent = 'ไม่มี lead_id ใน URL (ควรเปิดหน้านี้จากหน้าผู้สนใจ)';
-    }
+// ---------- autocomplete ----------
+function renderLeadResults(items) {
+  const box = $('lead_results');
+  if (!box) return;
+  if (!items.length) {
+    box.style.display = 'none';
+    box.innerHTML = '';
     return;
   }
+  box.innerHTML = items.map(l => `
+    <div class="ac-item" data-id="${l.id}">
+      <strong>${l.name || '-'}</strong>
+      <small>${l.phone || ''} ${l.email ? '• ' + l.email : ''}</small>
+    </div>
+  `).join('');
+  box.style.display = 'block';
 
-  currentLeadId = leadId;
-
-  try {
-    const lead = await getLeadById(leadId);
-
-    if (!lead) {
-      if (infoLine) infoLine.textContent = `ไม่พบข้อมูลลูกค้า (ID: ${leadId})`;
-      return;
-    }
-
-    // ให้ currentPropertyId เอาจาก lead ถ้ามี
-    currentPropertyId = lead.property_id || null;
-
-    // ปรับชื่อ field ให้ตรงกับ schema ของกุ้ง
-    fillIfHas('client_name', lead.full_name || lead.name || '');
-    fillIfHas('client_phone', lead.phone || '');
-    fillIfHas('client_email', lead.email || '');
-    fillIfHas('client_idcard', lead.id_card || '');
-    fillIfHas('client_address', lead.address || '');
-
-    fillIfHas('property_title', lead.property_title || '');
-    fillIfHas(
-      'property_price',
-      lead.property_price ? Number(lead.property_price) : ''
-    );
-    fillIfHas('property_address', lead.property_address || '');
-
-    if (infoLine) {
-      infoLine.textContent = `เชื่อมกับลูกค้า: ${lead.full_name || lead.name || '-'} (ID: ${leadId})`;
-    }
-
-    // โหลด contract เดิม (ถ้ามี) ทับค่าเพิ่ม
-    await loadContractForLead(leadId);
-  } catch (err) {
-    console.error(err);
-    if (infoLine) {
-      infoLine.textContent = 'โหลดข้อมูลลูกค้าไม่สำเร็จ';
-    }
-    toast('โหลดข้อมูลลูกค้าไม่สำเร็จ', 3000, 'error');
-  }
+  box.querySelectorAll('.ac-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const lead = leadsCache.find(x => String(x.id) === String(id));
+      if (!lead) return;
+      pickLead(lead);
+      box.style.display = 'none';
+    });
+  });
 }
 
-async function loadContractForLead(leadId) {
-  try {
-    const contract = await getContractByLeadId(leadId);
-    if (!contract) return;
+function setupLeadAutocomplete() {
+  const input = $('lead_search');
+  const box = $('lead_results');
+  if (!input || !box) return;
 
-    // เติมข้อมูลจาก contracts ทับลงฟอร์ม
-    fillIfHas('client_name', contract.client_name);
-    fillIfHas('client_idcard', contract.client_idcard);
-    fillIfHas('client_phone', contract.client_phone);
-    fillIfHas('client_email', contract.client_email);
-    fillIfHas('client_address', contract.client_address);
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { renderLeadResults([]); return; }
 
-    fillIfHas('property_title', contract.property_title);
-    fillIfHas(
-      'property_price',
-      contract.property_price != null ? Number(contract.property_price) : ''
-    );
-    fillIfHas('property_address', contract.property_address);
+    const found = leadsCache
+      .filter(l =>
+        (l.name || '').toLowerCase().includes(q) ||
+        (l.phone || '').toLowerCase().includes(q) ||
+        (l.email || '').toLowerCase().includes(q)
+      )
+      .slice(0, 20);
 
-    // date เป็น YYYY-MM-DD อยู่แล้ว
-    fillIfHas('contract_date', contract.contract_date);
-    fillIfHas('contract_place', contract.contract_place);
-    fillIfHas(
-      'deposit_amount',
-      contract.deposit_amount != null ? Number(contract.deposit_amount) : ''
-    );
-    fillIfHas('transfer_date', contract.transfer_date);
-    fillIfHas('contract_terms', contract.contract_terms);
+    renderLeadResults(found);
+  });
 
-    const infoLine = $('#contract-lead-info');
-    if (infoLine) {
-      infoLine.textContent += ' • พบสัญญาที่บันทึกไว้แล้ว (โหลดข้อมูลขึ้นให้แล้ว)';
+  document.addEventListener('click', (e) => {
+    if (!box.contains(e.target) && e.target !== input) {
+      box.style.display = 'none';
     }
-  } catch (err) {
-    console.error(err);
-    toast('โหลดข้อมูลสัญญาไม่สำเร็จ', 3000, 'error');
-  }
+  });
 }
 
-// ------------- เก็บ payload สำหรับบันทึก -------------
-function collectContractPayload() {
-  if (!currentLeadId) return null;
+function pickLead(lead) {
+  setVal('lead_id', lead.id);
+  setVal('lead_search', `${lead.name || ''}`.trim());
+  setVal('customer_name', lead.name);
+  setVal('customer_phone', lead.phone);
+  setVal('customer_email', lead.email);
+  setVal('customer_idcard', lead.id_card);
+  setVal('customer_address', lead.address);
+}
+
+// ---------- properties ----------
+async function loadProperties() {
+  const select = $('property_select');
+  if (!select) return;
+
+  const { data, error } = await listAll();
+  if (error) throw error;
+  propertiesCache = data || [];
+
+  select.innerHTML = '<option value="">— เลือกบ้าน —</option>';
+  propertiesCache.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.title || `ID ${p.id}`;
+    select.appendChild(opt);
+  });
+
+  select.addEventListener('change', () => {
+    const id = select.value;
+    const p = propertiesCache.find(x => String(x.id) === String(id));
+    if (!p) return;
+
+    setVal('property_id', p.id);
+    setVal('property_title', p.title);
+    setVal('property_address', [p.address,p.district,p.province].filter(Boolean).join(' '));
+    setVal('property_price', p.price ?? '');
+    recalcRemaining();
+  });
+}
+
+// ---------- remaining ----------
+function recalcRemaining() {
+  const price = num('property_price') || 0;
+  const dep = num('deposit_amount') || 0;
+  setVal('remaining_amount', Math.max(price - dep, 0));
+}
+function setupRemainingCalc() {
+  $('property_price')?.addEventListener('input', recalcRemaining);
+  $('deposit_amount')?.addEventListener('input', recalcRemaining);
+}
+
+// ---------- collect payload ----------
+function collectPayload() {
+  const lead_id = val('lead_id') || null;
+  const property_id = val('property_id') || null;
 
   return {
-    lead_id: currentLeadId,
-    property_id: currentPropertyId,
+    id: val('contract_id') || undefined,
+    lead_id,
+    property_id,
 
-    client_name: getValue('client_name'),
-    client_idcard: getValue('client_idcard'),
-    client_phone: getValue('client_phone'),
-    client_email: getValue('client_email'),
-    client_address: getValue('client_address'),
+    customer_name: val('customer_name') || null,
+    customer_phone: val('customer_phone') || null,
+    customer_email: val('customer_email') || null,
+    customer_idcard: val('customer_idcard') || null,
+    customer_address: val('customer_address') || null,
 
-    property_title: getValue('property_title'),
-    property_price: getNumberOrNull('property_price'),
-    property_address: getValue('property_address'),
+    property_title: val('property_title') || null,
+    property_address: val('property_address') || null,
+    property_price: num('property_price'),
+    deposit_amount: num('deposit_amount'),
+    remaining_amount: num('remaining_amount'),
 
-    contract_date: getValue('contract_date') || null,
-    contract_place: getValue('contract_place'),
-    deposit_amount: getNumberOrNull('deposit_amount'),
-    transfer_date: getValue('transfer_date') || null,
-    contract_terms: getValue('contract_terms')
+    contract_date: val('contract_date') || null,
+    transfer_date: val('transfer_date') || null,
+    payment_method: val('payment_method') || null,
+    contract_terms: val('contract_terms') || null,
   };
 }
 
-// ------------- บันทึกสัญญาลง Supabase -------------
-async function saveContractOnly() {
-  if (!currentLeadId) {
-    toast('ไม่พบ lead_id สำหรับบันทึกสัญญา', 3000, 'error');
-    return false;
-  }
+// ---------- fill ----------
+function fillForm(c) {
+  if (!c) return;
 
-  const payload = collectContractPayload();
-  if (!payload) return false;
+  setVal('contract_id', c.id);
+  setVal('lead_id', c.lead_id);
+  setVal('property_id', c.property_id);
 
-  try {
-    await upsertContractForLead(payload);
-    toast('บันทึกข้อมูลสัญญาเรียบร้อย', 2200, 'success');
-    return true;
-  } catch (err) {
-    console.error(err);
-    toast('บันทึกข้อมูลสัญญาไม่สำเร็จ', 3000, 'error');
-    return false;
-  }
+  setVal('customer_name', c.customer_name);
+  setVal('customer_phone', c.customer_phone);
+  setVal('customer_email', c.customer_email);
+  setVal('customer_idcard', c.customer_idcard);
+  setVal('customer_address', c.customer_address);
+
+  setVal('property_title', c.property_title);
+  setVal('property_address', c.property_address);
+  setVal('property_price', c.property_price);
+  setVal('deposit_amount', c.deposit_amount);
+  setVal('remaining_amount', c.remaining_amount);
+
+  setVal('contract_date', c.contract_date ?? '');
+  setVal('transfer_date', c.transfer_date ?? '');
+  setVal('payment_method', c.payment_method ?? '');
+  setVal('contract_terms', c.contract_terms ?? '');
+
+  // reflect select
+  const ps = $('property_select');
+  if (ps && c.property_id) ps.value = c.property_id;
 }
 
-// ------------- PDF generator -------------
-function generateContractPdf() {
-  if (!window.jspdf || !window.jspdf.jsPDF) {
-    toast('ไม่พบ jsPDF ในหน้านี้', 3000, 'error');
+// ---------- save ----------
+async function saveContract() {
+  const payload = collectPayload();
+
+  if (!payload.customer_name) {
+    toast('กรุณาเลือกลูกค้าหรือกรอกชื่อลูกค้า', 2500, 'error');
     return;
   }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  if (!payload.property_id) {
+    toast('กรุณาเลือกบ้านก่อน', 2500, 'error');
+    return;
+  }
 
-  // ค่าในฟอร์ม
-  const clientName = getValue('client_name');
-  const clientIdCard = getValue('client_idcard');
-  const clientPhone = getValue('client_phone');
-  const clientEmail = getValue('client_email');
-  const clientAddress = getValue('client_address');
+  const btn = $('btn-save-contract');
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'กำลังบันทึก...';
 
-  const propertyTitle = getValue('property_title');
-  const propertyPriceNum = getNumberOrNull('property_price');
-
-  const propertyAddress = getValue('property_address');
-
-  const contractDate = getValue('contract_date');
-  const contractPlace = getValue('contract_place');
-  const depositAmountNum = getNumberOrNull('deposit_amount');
-  const transferDate = getValue('transfer_date');
-  const contractTerms = getValue('contract_terms');
-
-  // หัวกระดาษ
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('Reservation / Deposit Agreement', 105, 18, { align: 'center' });
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text(
-    'This document is a preliminary agreement for property reservation between Buyer and Seller.',
-    105,
-    26,
-    { align: 'center', maxWidth: 180 }
-  );
-
-  let y = 36;
-
-  const addSectionTitle = (text) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(text, 14, y);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-  };
-
-  const addLine = (label, value) => {
-    const line = `${label}: ${value || '-'}`;
-    doc.text(line, 16, y, { maxWidth: 180 });
-    y += 6;
-  };
-
-  // 1) Buyer
-  addSectionTitle('1. Buyer Information');
-  addLine('Full Name', clientName);
-  addLine('ID Card No.', clientIdCard);
-  addLine('Phone', clientPhone);
-  addLine('Email', clientEmail);
-  doc.text('Address:', 16, y);
-  y += 5;
-  doc.text(clientAddress || '-', 20, y, { maxWidth: 175 });
-  y += 10;
-
-  // 2) Property
-  addSectionTitle('2. Property Information');
-  addLine('Project / House', propertyTitle);
-  addLine(
-    'Price (THB)',
-    propertyPriceNum != null ? formatPrice(propertyPriceNum) : '-'
-  );
-  doc.text('Property Address:', 16, y);
-  y += 5;
-  doc.text(propertyAddress || '-', 20, y, { maxWidth: 175 });
-  y += 10;
-
-  // 3) Contract
-  addSectionTitle('3. Contract Details');
-  addLine('Contract Date', contractDate);
-  addLine('Contract Place', contractPlace);
-  addLine(
-    'Deposit Amount (THB)',
-    depositAmountNum != null ? formatPrice(depositAmountNum) : '-'
-  );
-  addLine('Expected Transfer Date', transferDate);
-  doc.text('Special Terms / Notes:', 16, y);
-  y += 5;
-  doc.text(contractTerms || '-', 20, y, { maxWidth: 175 });
-  y += 15;
-
-  // 4) Signatures
-  addSectionTitle('4. Signatures');
-
-  const sigY = y + 5;
-  doc.line(30, sigY, 90, sigY);
-  doc.text('Buyer Signature', 60, sigY + 5, { align: 'center' });
-
-  doc.line(120, sigY, 180, sigY);
-  doc.text('Seller / Authorized Person', 150, sigY + 5, { align: 'center' });
-
-  const safeName = clientName || 'contract';
-  const safeProp = propertyTitle || 'property';
-  const fileName = `contract-${safeName.replace(/\s+/g, '_')}-${safeProp.replace(
-    /\s+/g,
-    '_'
-  )}.pdf`;
-
-  doc.save(fileName);
+  try {
+    const saved = await upsertContract(payload);
+    currentContract = saved;
+    setVal('contract_id', saved.id);
+    $('contract-status').textContent = 'สถานะ: บันทึกแล้ว';
+    toast('บันทึกสัญญาเรียบร้อย 💛', 2000, 'success');
+  } catch (e) {
+    console.error(e);
+    toast('บันทึกไม่สำเร็จ', 2500, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = old;
+  }
 }
 
-// ------------- init -------------
+// ---------- preview / print ----------
+function makePreviewHTML() {
+  const p = collectPayload();
+  const fmt = (n) => (n ?? 0).toLocaleString('th-TH');
+
+  return `
+  <!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Contract Preview</title>
+    <style>
+      body{ font-family: sans-serif; padding:32px; line-height:1.6; color:#111; }
+      h1{ text-align:center; margin-bottom:8px; }
+      .row{ display:flex; gap:12px; }
+      .col{ flex:1; }
+      .box{ border:1px solid #ddd; padding:12px 14px; border-radius:8px; margin:10px 0; }
+      .muted{ color:#666; font-size:14px; }
+      .sign{ margin-top:28px; display:flex; justify-content:space-between; }
+    </style>
+  </head>
+  <body>
+    <h1>หนังสือสัญญาจะซื้อจะขาย</h1>
+    <p class="muted" style="text-align:center;">
+      Praweena Property — แบบฟอร์มสัญญาภายในระบบ
+    </p>
+
+    <div class="box">
+      <h3>ข้อมูลผู้ซื้อ</h3>
+      <div class="row">
+        <div class="col"><b>ชื่อ:</b> ${p.customer_name || '-'}</div>
+        <div class="col"><b>เบอร์:</b> ${p.customer_phone || '-'}</div>
+      </div>
+      <div class="row">
+        <div class="col"><b>อีเมล:</b> ${p.customer_email || '-'}</div>
+        <div class="col"><b>บัตรประชาชน:</b> ${p.customer_idcard || '-'}</div>
+      </div>
+      <div><b>ที่อยู่:</b> ${p.customer_address || '-'}</div>
+    </div>
+
+    <div class="box">
+      <h3>ข้อมูลบ้าน</h3>
+      <div><b>บ้าน:</b> ${p.property_title || '-'}</div>
+      <div><b>ที่อยู่บ้าน:</b> ${p.property_address || '-'}</div>
+      <div class="row">
+        <div class="col"><b>ราคาขาย:</b> ${fmt(p.property_price)} บาท</div>
+        <div class="col"><b>เงินมัดจำ:</b> ${fmt(p.deposit_amount)} บาท</div>
+      </div>
+      <div><b>คงเหลือ:</b> ${fmt(p.remaining_amount)} บาท</div>
+    </div>
+
+    <div class="box">
+      <h3>รายละเอียดสัญญา</h3>
+      <div><b>วันที่ทำสัญญา:</b> ${p.contract_date || '-'}</div>
+      <div><b>วันโอน/นัดหมาย:</b> ${p.transfer_date || '-'}</div>
+      <div><b>รูปแบบชำระ:</b> ${p.payment_method || '-'}</div>
+      <div style="margin-top:8px"><b>เงื่อนไข / หมายเหตุ:</b><br/>${(p.contract_terms||'-').replace(/\n/g,'<br/>')}</div>
+    </div>
+
+    <div class="sign">
+      <div>ลงชื่อผู้ซื้อ _____________________</div>
+      <div>ลงชื่อผู้ขาย _____________________</div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
+function openPreview() {
+  const overlay = $('contract-preview-overlay');
+  const iframe = $('contract-preview-iframe');
+  if (!overlay || !iframe) return;
+
+  iframe.srcdoc = makePreviewHTML();
+  overlay.classList.add('open');
+}
+
+function closePreview() {
+  $('contract-preview-overlay')?.classList.remove('open');
+}
+
+function printPreview() {
+  const iframe = $('contract-preview-iframe');
+  if (!iframe) return;
+  iframe.contentWindow?.focus();
+  iframe.contentWindow?.print();
+}
+
+function setupPreviewButtons() {
+  $('btn-preview-contract')?.addEventListener('click', openPreview);
+  $('btn-close-preview')?.addEventListener('click', closePreview);
+  $('btn-print-contract')?.addEventListener('click', printPreview);
+  $('contract-preview-overlay')?.addEventListener('click', (e)=>{
+    if (e.target.id === 'contract-preview-overlay') closePreview();
+  });
+}
+
+// ---------- init ----------
 document.addEventListener('DOMContentLoaded', async () => {
   await protectPage();
   setupNav();
   setupMobileNav();
   await signOutIfAny();
 
-  await loadLeadFromUrl();
+  // leads cache
+  try {
+    leadsCache = await listLeads();
+  } catch(e){
+    console.error(e);
+    toast('โหลดลูกค้าไม่สำเร็จ', 2500, 'error');
+  }
+  setupLeadAutocomplete();
 
-  const btnPdf = getEl('btn-generate-contract');
-  if (btnPdf) {
-    btnPdf.addEventListener('click', async () => {
-      // บันทึกลง Supabase ก่อน แล้วค่อยออก PDF
-      const ok = await saveContractOnly();
-      if (ok) {
-        generateContractPdf();
-      }
-    });
+  // properties
+  try {
+    await loadProperties();
+  } catch(e){
+    console.error(e);
+    toast('โหลดรายการบ้านไม่สำเร็จ', 2500, 'error');
   }
 
-  const btnBack = getEl('btn-back-to-leads');
-  if (btnBack) {
-    btnBack.addEventListener('click', () => {
-      window.location.href = '/leads.html';
-    });
+  setupRemainingCalc();
+  setupPreviewButtons();
+
+  $('btn-save-contract')?.addEventListener('click', saveContract);
+
+  $('btn-new-contract')?.addEventListener('click', ()=>{
+    location.href = '/contract-form.html';
+  });
+
+  // load by url ?id=...
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  if (id) {
+    try {
+      const c = await getContractById(id);
+      if (c) {
+        currentContract = c;
+        fillForm(c);
+        $('contract-status').textContent = 'สถานะ: โหลดสัญญาแล้ว';
+      }
+    } catch(e){
+      console.error(e);
+      toast('โหลดสัญญาไม่สำเร็จ', 2500, 'error');
+    }
   }
 });

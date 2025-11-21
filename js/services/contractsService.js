@@ -1,31 +1,57 @@
 // js/services/contractsService.js
 import { supabase } from '../utils/supabaseClient.js';
 
-// ดึงสัญญาจาก lead_id (1 lead : 1 contract)
-export async function getContractByLeadId(leadId) {
+export async function upsertContract(payload) {
   const { data, error } = await supabase
     .from('contracts')
-    .select('*')
-    .eq('lead_id', leadId)
-    .maybeSingle();
-
-  // PGRST116 = not found
-  if (error && error.code !== 'PGRST116') {
-    throw error;
-  }
-  return data || null;
-}
-
-// upsert ตาม lead_id (เพราะเราตั้ง unique index ไว้)
-export async function upsertContractForLead(payload) {
-  const { data, error } = await supabase
-    .from('contracts')
-    .upsert(payload, {
-      onConflict: 'lead_id'
-    })
+    .upsert(payload)
     .select()
     .maybeSingle();
 
   if (error) throw error;
   return data;
+}
+
+export async function getContractById(id) {
+  const { data, error } = await supabase
+    .from('contracts')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data || null;
+}
+
+export async function listContracts() {
+  const { data, error } = await supabase
+    .from('contracts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function deleteContract(id) {
+  const { error } = await supabase
+    .from('contracts')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return true;
+}
+
+/* ================================
+   Leads helper (ถ้าไม่มีในโปรเจกต์)
+   ================================ */
+export async function listLeads() {
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
 }
