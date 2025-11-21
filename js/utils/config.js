@@ -12,14 +12,6 @@ export async function setupNav() {
   const signOutBtn = $('#sign-out-btn');
   const navLinks = $$('.nav-links a');
 
-  // Active link styling
-  const currentPage = window.location.pathname;
-  navLinks.forEach(link => {
-    if (link.getAttribute('href') === `.${currentPage}`) {
-      link.classList.add('active');
-    }
-  });
-
   // Toggle Sign Out button
   if (session) {
     if (signOutBtn) signOutBtn.style.display = 'inline-block';
