@@ -780,6 +780,7 @@ async function loadProperties() {
 document.addEventListener('DOMContentLoaded', async () => {
   await protectPage();
   setupNav();
+  autoActiveNav();
   setupMobileNav();
   await signOutIfAny();
 

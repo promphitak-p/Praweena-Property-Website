@@ -1,374 +1,336 @@
 // js/pages/contract-form.page.js
 import { setupMobileNav } from '../ui/mobileNav.js';
-import { protectPage } from '../auth/guard.js';
-import { signOutIfAny } from '../auth/auth.js';
-import { setupNav } from '../utils/config.js';
 import { toast } from '../ui/toast.js';
-import { listAll } from '../services/propertiesService.js';
-import { listLeads } from '../services/leadsService.js'; 
-import { upsertContract, getContractById } from '../services/contractsService.js';
+import { protectPage } from '../auth/auth.js';
+import { setupNav } from '../utils/config.js';
+import { supabase } from '../utils/supabaseClient.js';
 
-const $ = (id) => document.getElementById(id);
+import { upsertContract, getContractById } from '../services/contractsService.js';
+import { listLeads } from '../services/leadsService.js';
+import { listAll as listAllProperties } from '../services/propertiesService.js';
+
+setupMobileNav();
+setupNav();
+protectPage(); // ไม่ login = เด้งออก
+
+// ---------- Helpers ----------
+const $ = (sel) => document.querySelector(sel);
+const fmt = (n) => {
+  const num = Number(n || 0);
+  return num.toLocaleString('th-TH');
+};
+const todayStr = () => new Date().toISOString().slice(0,10);
+
+function pick(obj, keys, fallback='') {
+  for (const k of keys) if (obj && obj[k] != null && obj[k] !== '') return obj[k];
+  return fallback;
+}
+
+// ---------- Elements ----------
+const leadSearch = $('#lead-search');
+const leadAc = $('#lead-ac');
+
+const lead_id = $('#lead_id');
+const lead_name = $('#lead_name');
+const lead_phone = $('#lead_phone');
+const lead_email = $('#lead_email');
+const lead_idcard = $('#lead_idcard');
+const lead_address = $('#lead_address');
+
+const property_id = $('#property_id');
+const property_name = $('#property_name');
+const property_price = $('#property_price');
+const property_address = $('#property_address');
+
+const contract_id = $('#contract_id');
+const contract_date = $('#contract_date');
+const contract_type = $('#contract_type');
+const deposit_amount = $('#deposit_amount');
+const paid_amount = $('#paid_amount');
+const remain_amount = $('#remain_amount');
+const transfer_date = $('#transfer_date');
+const contract_note = $('#contract_note');
+
+const saveBtn = $('#save-contract-btn');
+const previewBtn = $('#preview-contract-btn');
+
+const previewModal = $('#contract-preview-modal');
+const previewClose = $('#preview-close');
+const previewBox = $('#contract-preview');
+const printBtn = $('#print-btn');
 
 let leadsCache = [];
 let propertiesCache = [];
-let currentContract = null;
 
-// ---------- helpers ----------
-const val = (id) => {
-  const el = $(id);
-  return el ? el.value.trim() : '';
-};
-const num = (id) => {
-  const el = $(id);
-  if (!el) return null;
-  const n = Number(el.value);
-  return Number.isFinite(n) ? n : null;
-};
-const setVal = (id, v) => { const el = $(id); if (el) el.value = v ?? ''; };
+// ---------- Load initial data ----------
+(async function init(){
+  try{
+    contract_date.value = todayStr();
 
-// ---------- autocomplete ----------
-function renderLeadResults(items) {
-  const box = $('lead_results');
-  if (!box) return;
-  if (!items.length) {
-    box.style.display = 'none';
-    box.innerHTML = '';
-    return;
+    // 1) Leads cache for autocomplete
+    leadsCache = await listLeads();
+
+    // 2) Properties dropdown
+    propertiesCache = await listAllProperties();
+    renderProperties(propertiesCache);
+
+    // 3) If edit mode (?id=xxx)
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (id) await loadContract(id);
+
+  }catch(err){
+    console.error(err);
+    toast('โหลดข้อมูลไม่สำเร็จ');
   }
-  box.innerHTML = items.map(l => `
-    <div class="ac-item" data-id="${l.id}">
-      <strong>${l.name || '-'}</strong>
-      <small>${l.phone || ''} ${l.email ? '• ' + l.email : ''}</small>
-    </div>
-  `).join('');
-  box.style.display = 'block';
+})();
 
-  box.querySelectorAll('.ac-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.dataset.id;
-      const lead = leadsCache.find(x => String(x.id) === String(id));
-      if (!lead) return;
-      pickLead(lead);
-      box.style.display = 'none';
-    });
-  });
-}
-
-function setupLeadAutocomplete() {
-  const input = $('lead_search');
-  const box = $('lead_results');
-  if (!input || !box) return;
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if (!q) { renderLeadResults([]); return; }
-
-    const found = leadsCache
-      .filter(l =>
-        (l.name || '').toLowerCase().includes(q) ||
-        (l.phone || '').toLowerCase().includes(q) ||
-        (l.email || '').toLowerCase().includes(q)
-      )
-      .slice(0, 20);
-
-    renderLeadResults(found);
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!box.contains(e.target) && e.target !== input) {
-      box.style.display = 'none';
-    }
-  });
-}
-
-function pickLead(lead) {
-  setVal('lead_id', lead.id);
-  setVal('lead_search', `${lead.name || ''}`.trim());
-  setVal('customer_name', lead.name);
-  setVal('customer_phone', lead.phone);
-  setVal('customer_email', lead.email);
-  setVal('customer_idcard', lead.id_card);
-  setVal('customer_address', lead.address);
-}
-
-// ---------- properties ----------
-async function loadProperties() {
-  const select = $('property_select');
-  if (!select) return;
-
-  const { data, error } = await listAll();
-  if (error) throw error;
-  propertiesCache = data || [];
-
-  select.innerHTML = '<option value="">— เลือกบ้าน —</option>';
-  propertiesCache.forEach(p => {
+function renderProperties(list){
+  property_id.innerHTML = `<option value="">-- เลือกบ้าน --</option>`;
+  list.forEach(p=>{
+    const id = p.id;
+    const title = pick(p, ['title','name','project_name','slug'], 'บ้าน');
+    const price = pick(p, ['price','sell_price'], '');
+    const addr = pick(p, ['address','full_address','location'], '');
     const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.title || `ID ${p.id}`;
-    select.appendChild(opt);
-  });
-
-  select.addEventListener('change', () => {
-    const id = select.value;
-    const p = propertiesCache.find(x => String(x.id) === String(id));
-    if (!p) return;
-
-    setVal('property_id', p.id);
-    setVal('property_title', p.title);
-    setVal('property_address', [p.address,p.district,p.province].filter(Boolean).join(' '));
-    setVal('property_price', p.price ?? '');
-    recalcRemaining();
+    opt.value = id;
+    opt.textContent = `${title}${price?` • ${fmt(price)}฿`:''}`;
+    opt.dataset.title = title;
+    opt.dataset.price = price;
+    opt.dataset.address = addr;
+    property_id.appendChild(opt);
   });
 }
 
-// ---------- remaining ----------
-function recalcRemaining() {
-  const price = num('property_price') || 0;
-  const dep = num('deposit_amount') || 0;
-  setVal('remaining_amount', Math.max(price - dep, 0));
-}
-function setupRemainingCalc() {
-  $('property_price')?.addEventListener('input', recalcRemaining);
-  $('deposit_amount')?.addEventListener('input', recalcRemaining);
+async function loadContract(id){
+  const c = await getContractById(id);
+  contract_id.value = c.id;
+
+  // lead
+  lead_id.value = c.lead_id || '';
+  const lead = c.leads || leadsCache.find(x=>x.id===c.lead_id);
+  if (lead) fillLead(lead);
+
+  // property
+  property_id.value = c.property_id || '';
+  const prop = c.properties || propertiesCache.find(x=>x.id===c.property_id);
+  if (prop) fillProperty(prop);
+
+  // contract fields
+  contract_date.value = c.contract_date || todayStr();
+  contract_type.value = c.contract_type || 'reservation';
+
+  deposit_amount.value = c.deposit_amount ?? 0;
+  paid_amount.value = c.paid_amount ?? 0;
+  remain_amount.value = c.remain_amount ?? 0;
+
+  transfer_date.value = c.transfer_date || '';
+  contract_note.value = c.note || '';
 }
 
-// ---------- collect payload ----------
-function collectPayload() {
-  const lead_id = val('lead_id') || null;
-  const property_id = val('property_id') || null;
+// ---------- Autocomplete Leads ----------
+leadSearch.addEventListener('input', (e)=>{
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) return closeAc();
 
+  const hits = leadsCache.filter(l=>{
+    const name = pick(l, ['full_name','name'], '').toLowerCase();
+    const phone = pick(l, ['phone','tel'], '').toLowerCase();
+    const email = pick(l, ['email'], '').toLowerCase();
+    return name.includes(q) || phone.includes(q) || email.includes(q);
+  }).slice(0, 8);
+
+  if (!hits.length) return closeAc();
+  leadAc.innerHTML = '';
+  hits.forEach(l=>{
+    const name = pick(l, ['full_name','name'], '-');
+    const phone = pick(l, ['phone','tel'], '');
+    const email = pick(l, ['email'], '');
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    div.innerHTML = `
+      <div><strong>${name}</strong></div>
+      <small>${phone}${email?` • ${email}`:''}</small>
+    `;
+    div.addEventListener('click', ()=>{
+      fillLead(l);
+      leadSearch.value = name;
+      closeAc();
+    });
+    leadAc.appendChild(div);
+  });
+  leadAc.classList.add('open');
+});
+
+document.addEventListener('click', (e)=>{
+  if (!e.target.closest('.ac-wrap')) closeAc();
+});
+function closeAc(){
+  leadAc.classList.remove('open');
+}
+
+function fillLead(l){
+  lead_id.value = l.id || '';
+  lead_name.value = pick(l, ['full_name','name']);
+  lead_phone.value = pick(l, ['phone','tel']);
+  lead_email.value = pick(l, ['email']);
+  lead_idcard.value = pick(l, ['id_card','idcard','citizen_id']);
+  lead_address.value = pick(l, ['address','full_address','home_address']);
+}
+
+// ---------- Property selection ----------
+property_id.addEventListener('change', ()=>{
+  const id = property_id.value;
+  if (!id) return;
+  const p = propertiesCache.find(x=>x.id===id);
+  if (p) fillProperty(p);
+});
+
+function fillProperty(p){
+  property_name.value = pick(p, ['title','name','project_name']);
+  property_price.value = pick(p, ['price','sell_price'], 0);
+  property_address.value = pick(p, ['address','full_address','location']);
+  calcRemain();
+}
+
+// ---------- Auto calc remain ----------
+[property_price, deposit_amount, paid_amount].forEach(el=>{
+  el.addEventListener('input', calcRemain);
+});
+function calcRemain(){
+  const price = Number(property_price.value || 0);
+  const dep = Number(deposit_amount.value || 0);
+  const paid = Number(paid_amount.value || 0);
+  const remain = Math.max(price - dep - paid, 0);
+  remain_amount.value = remain;
+}
+
+// ---------- Save contract ----------
+saveBtn.addEventListener('click', async ()=>{
+  try{
+    const payload = collectPayload();
+    if (!payload.lead_id) return toast('กรุณาเลือกลูกค้าก่อน');
+    if (!payload.property_id) return toast('กรุณาเลือกบ้านก่อน');
+
+    const saved = await upsertContract(payload);
+    contract_id.value = saved.id;
+
+    toast('บันทึกสัญญาแล้ว ✅');
+    history.replaceState(null,'',`/contract-form.html?id=${saved.id}`);
+
+  }catch(err){
+    console.error(err);
+    toast('บันทึกไม่สำเร็จ');
+  }
+});
+
+function collectPayload(){
   return {
-    id: val('contract_id') || undefined,
-    lead_id,
-    property_id,
+    id: contract_id.value || undefined,
 
-    customer_name: val('customer_name') || null,
-    customer_phone: val('customer_phone') || null,
-    customer_email: val('customer_email') || null,
-    customer_idcard: val('customer_idcard') || null,
-    customer_address: val('customer_address') || null,
+    lead_id: lead_id.value || null,
+    property_id: property_id.value || null,
 
-    property_title: val('property_title') || null,
-    property_address: val('property_address') || null,
-    property_price: num('property_price'),
-    deposit_amount: num('deposit_amount'),
-    remaining_amount: num('remaining_amount'),
+    contract_date: contract_date.value || null,
+    contract_type: contract_type.value || 'reservation',
 
-    contract_date: val('contract_date') || null,
-    transfer_date: val('transfer_date') || null,
-    payment_method: val('payment_method') || null,
-    contract_terms: val('contract_terms') || null,
+    deposit_amount: Number(deposit_amount.value || 0),
+    paid_amount: Number(paid_amount.value || 0),
+    remain_amount: Number(remain_amount.value || 0),
+
+    transfer_date: transfer_date.value || null,
+    note: contract_note.value || null,
+
+    // snapshot text (กันข้อมูลเปลี่ยนทีหลัง)
+    lead_name: lead_name.value || null,
+    lead_phone: lead_phone.value || null,
+    lead_email: lead_email.value || null,
+    lead_address: lead_address.value || null,
+    lead_idcard: lead_idcard.value || null,
+
+    property_name: property_name.value || null,
+    property_address: property_address.value || null,
+    property_price: Number(property_price.value || 0),
   };
 }
 
-// ---------- fill ----------
-function fillForm(c) {
-  if (!c) return;
-
-  setVal('contract_id', c.id);
-  setVal('lead_id', c.lead_id);
-  setVal('property_id', c.property_id);
-
-  setVal('customer_name', c.customer_name);
-  setVal('customer_phone', c.customer_phone);
-  setVal('customer_email', c.customer_email);
-  setVal('customer_idcard', c.customer_idcard);
-  setVal('customer_address', c.customer_address);
-
-  setVal('property_title', c.property_title);
-  setVal('property_address', c.property_address);
-  setVal('property_price', c.property_price);
-  setVal('deposit_amount', c.deposit_amount);
-  setVal('remaining_amount', c.remaining_amount);
-
-  setVal('contract_date', c.contract_date ?? '');
-  setVal('transfer_date', c.transfer_date ?? '');
-  setVal('payment_method', c.payment_method ?? '');
-  setVal('contract_terms', c.contract_terms ?? '');
-
-  // reflect select
-  const ps = $('property_select');
-  if (ps && c.property_id) ps.value = c.property_id;
-}
-
-// ---------- save ----------
-async function saveContract() {
+// ---------- Preview / Export PDF ----------
+previewBtn.addEventListener('click', ()=>{
   const payload = collectPayload();
+  previewBox.innerHTML = renderPreview(payload);
+  previewModal.classList.add('open');
+});
 
-  if (!payload.customer_name) {
-    toast('กรุณาเลือกลูกค้าหรือกรอกชื่อลูกค้า', 2500, 'error');
-    return;
-  }
-  if (!payload.property_id) {
-    toast('กรุณาเลือกบ้านก่อน', 2500, 'error');
-    return;
-  }
+previewClose.addEventListener('click', ()=>previewModal.classList.remove('open'));
+previewModal.addEventListener('click', (e)=>{
+  if (e.target === previewModal) previewModal.classList.remove('open');
+});
 
-  const btn = $('btn-save-contract');
-  const old = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'กำลังบันทึก...';
+printBtn.addEventListener('click', ()=>{
+  window.print();
+});
 
-  try {
-    const saved = await upsertContract(payload);
-    currentContract = saved;
-    setVal('contract_id', saved.id);
-    $('contract-status').textContent = 'สถานะ: บันทึกแล้ว';
-    toast('บันทึกสัญญาเรียบร้อย 💛', 2000, 'success');
-  } catch (e) {
-    console.error(e);
-    toast('บันทึกไม่สำเร็จ', 2500, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = old;
-  }
-}
-
-// ---------- preview / print ----------
-function makePreviewHTML() {
-  const p = collectPayload();
-  const fmt = (n) => (n ?? 0).toLocaleString('th-TH');
+function renderPreview(p){
+  const typeLabel =
+    p.contract_type === 'sale' ? 'สัญญาซื้อขาย' :
+    p.contract_type === 'lease' ? 'สัญญาเช่า' : 'สัญญาจอง';
 
   return `
-  <!doctype html>
-  <html>
-  <head>
-    <meta charset="utf-8"/>
-    <title>Contract Preview</title>
-    <style>
-      body{ font-family: sans-serif; padding:32px; line-height:1.6; color:#111; }
-      h1{ text-align:center; margin-bottom:8px; }
-      .row{ display:flex; gap:12px; }
-      .col{ flex:1; }
-      .box{ border:1px solid #ddd; padding:12px 14px; border-radius:8px; margin:10px 0; }
-      .muted{ color:#666; font-size:14px; }
-      .sign{ margin-top:28px; display:flex; justify-content:space-between; }
-    </style>
-  </head>
-  <body>
-    <h1>หนังสือสัญญาจะซื้อจะขาย</h1>
-    <p class="muted" style="text-align:center;">
-      Praweena Property — แบบฟอร์มสัญญาภายในระบบ
-    </p>
-
-    <div class="box">
-      <h3>ข้อมูลผู้ซื้อ</h3>
-      <div class="row">
-        <div class="col"><b>ชื่อ:</b> ${p.customer_name || '-'}</div>
-        <div class="col"><b>เบอร์:</b> ${p.customer_phone || '-'}</div>
+    <div class="rbr-header" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem;">
+      <div>
+        <h2 style="margin:0;">${typeLabel}</h2>
+        <div class="text-muted">Praweena Property</div>
       </div>
-      <div class="row">
-        <div class="col"><b>อีเมล:</b> ${p.customer_email || '-'}</div>
-        <div class="col"><b>บัตรประชาชน:</b> ${p.customer_idcard || '-'}</div>
+      <div class="text-muted" style="text-align:right;">
+        วันที่ทำสัญญา: <strong>${p.contract_date || '-'}</strong><br>
+        เลขที่สัญญา: <strong>${p.id || '(ใหม่)'}</strong>
       </div>
-      <div><b>ที่อยู่:</b> ${p.customer_address || '-'}</div>
     </div>
 
-    <div class="box">
-      <h3>ข้อมูลบ้าน</h3>
-      <div><b>บ้าน:</b> ${p.property_title || '-'}</div>
-      <div><b>ที่อยู่บ้าน:</b> ${p.property_address || '-'}</div>
-      <div class="row">
-        <div class="col"><b>ราคาขาย:</b> ${fmt(p.property_price)} บาท</div>
-        <div class="col"><b>เงินมัดจำ:</b> ${fmt(p.deposit_amount)} บาท</div>
+    <h3>ข้อมูลลูกค้า</h3>
+    <div class="pv-grid">
+      <div class="pv-row"><div class="pv-label">ชื่อ</div><div class="pv-value">${p.lead_name||'-'}</div></div>
+      <div class="pv-row"><div class="pv-label">เบอร์โทร</div><div class="pv-value">${p.lead_phone||'-'}</div></div>
+      <div class="pv-row"><div class="pv-label">อีเมล</div><div class="pv-value">${p.lead_email||'-'}</div></div>
+      <div class="pv-row"><div class="pv-label">เลขบัตร</div><div class="pv-value">${p.lead_idcard||'-'}</div></div>
+      <div class="pv-row" style="grid-column: span 2;">
+        <div class="pv-label">ที่อยู่</div>
+        <div class="pv-value">${p.lead_address||'-'}</div>
       </div>
-      <div><b>คงเหลือ:</b> ${fmt(p.remaining_amount)} บาท</div>
     </div>
 
-    <div class="box">
-      <h3>รายละเอียดสัญญา</h3>
-      <div><b>วันที่ทำสัญญา:</b> ${p.contract_date || '-'}</div>
-      <div><b>วันโอน/นัดหมาย:</b> ${p.transfer_date || '-'}</div>
-      <div><b>รูปแบบชำระ:</b> ${p.payment_method || '-'}</div>
-      <div style="margin-top:8px"><b>เงื่อนไข / หมายเหตุ:</b><br/>${(p.contract_terms||'-').replace(/\n/g,'<br/>')}</div>
+    <h3 style="margin-top:1rem;">ข้อมูลบ้าน</h3>
+    <div class="pv-grid">
+      <div class="pv-row"><div class="pv-label">ชื่อบ้าน</div><div class="pv-value">${p.property_name||'-'}</div></div>
+      <div class="pv-row"><div class="pv-label">ราคาขาย</div><div class="pv-value">${fmt(p.property_price)} บาท</div></div>
+      <div class="pv-row" style="grid-column: span 2;">
+        <div class="pv-label">ที่อยู่บ้าน</div>
+        <div class="pv-value">${p.property_address||'-'}</div>
+      </div>
     </div>
 
-    <div class="sign">
-      <div>ลงชื่อผู้ซื้อ _____________________</div>
-      <div>ลงชื่อผู้ขาย _____________________</div>
+    <h3 style="margin-top:1rem;">รายการเงิน</h3>
+    <div class="pv-grid">
+      <div class="pv-row"><div class="pv-label">เงินจอง/มัดจำ</div><div class="pv-value">${fmt(p.deposit_amount)} บาท</div></div>
+      <div class="pv-row"><div class="pv-label">ชำระแล้ว</div><div class="pv-value">${fmt(p.paid_amount)} บาท</div></div>
+      <div class="pv-row"><div class="pv-label">คงเหลือ</div><div class="pv-value">${fmt(p.remain_amount)} บาท</div></div>
+      <div class="pv-row"><div class="pv-label">กำหนดโอน/นัดใหญ่</div><div class="pv-value">${p.transfer_date||'-'}</div></div>
     </div>
-  </body>
-  </html>
+
+    <h3 style="margin-top:1rem;">เงื่อนไขเพิ่มเติม</h3>
+    <div style="white-space:pre-wrap;border:1px solid #eee;border-radius:12px;padding:.75rem;min-height:60px;">
+      ${p.note || '-'}
+    </div>
+
+    <div style="margin-top:1.25rem;display:flex;justify-content:space-between;gap:1rem;">
+      <div style="text-align:center;flex:1;">
+        ___________________________<br>
+        ผู้ซื้อ/ผู้เช่า
+      </div>
+      <div style="text-align:center;flex:1;">
+        ___________________________<br>
+        ผู้ขาย/ผู้ให้เช่า
+      </div>
+    </div>
   `;
 }
-
-function openPreview() {
-  const overlay = $('contract-preview-overlay');
-  const iframe = $('contract-preview-iframe');
-  if (!overlay || !iframe) return;
-
-  iframe.srcdoc = makePreviewHTML();
-  overlay.classList.add('open');
-}
-
-function closePreview() {
-  $('contract-preview-overlay')?.classList.remove('open');
-}
-
-function printPreview() {
-  const iframe = $('contract-preview-iframe');
-  if (!iframe) return;
-  iframe.contentWindow?.focus();
-  iframe.contentWindow?.print();
-}
-
-function setupPreviewButtons() {
-  $('btn-preview-contract')?.addEventListener('click', openPreview);
-  $('btn-close-preview')?.addEventListener('click', closePreview);
-  $('btn-print-contract')?.addEventListener('click', printPreview);
-  $('contract-preview-overlay')?.addEventListener('click', (e)=>{
-    if (e.target.id === 'contract-preview-overlay') closePreview();
-  });
-}
-
-// ---------- init ----------
-document.addEventListener('DOMContentLoaded', async () => {
-  await protectPage();
-  setupNav();
-  setupMobileNav();
-  await signOutIfAny();
-
-  // leads cache
-  try {
-    leadsCache = await listLeads();
-  } catch(e){
-    console.error(e);
-    toast('โหลดลูกค้าไม่สำเร็จ', 2500, 'error');
-  }
-  setupLeadAutocomplete();
-
-  // properties
-  try {
-    await loadProperties();
-  } catch(e){
-    console.error(e);
-    toast('โหลดรายการบ้านไม่สำเร็จ', 2500, 'error');
-  }
-
-  setupRemainingCalc();
-  setupPreviewButtons();
-
-  $('btn-save-contract')?.addEventListener('click', saveContract);
-
-  $('btn-new-contract')?.addEventListener('click', ()=>{
-    location.href = '/contract-form.html';
-  });
-
-  // load by url ?id=...
-  const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  if (id) {
-    try {
-      const c = await getContractById(id);
-      if (c) {
-        currentContract = c;
-        fillForm(c);
-        $('contract-status').textContent = 'สถานะ: โหลดสัญญาแล้ว';
-      }
-    } catch(e){
-      console.error(e);
-      toast('โหลดสัญญาไม่สำเร็จ', 2500, 'error');
-    }
-  }
-});

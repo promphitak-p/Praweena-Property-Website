@@ -1,49 +1,48 @@
+// js/services/contractsService.js
 import { supabase } from '../utils/supabaseClient.js';
 
-// list ทั้งหมด พร้อม join lead + property
-export async function listContracts() {
-  return await supabase
-    .from('contracts')
-    .select(`
-      *,
-      lead:leads(id, full_name, name, phone, email, id_card, address),
-      property:properties(id, title, address, district, province, price, slug)
-    `)
-    .order('contract_date', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false });
-}
-
-export async function getContractById(id) {
-  const { data, error } = await supabase
-    .from('contracts')
-    .select(`
-      *,
-      lead:leads(*),
-      property:properties(*)
-    `)
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error && error.code !== 'PGRST116') throw error;
-  return data || null;
-}
+const TABLE = 'contracts';
 
 export async function upsertContract(payload) {
   const { data, error } = await supabase
-    .from('contracts')
-    .upsert(payload, { onConflict: 'id' })
+    .from(TABLE)
+    .upsert(payload)
     .select()
-    .maybeSingle();
+    .single();
 
   if (error) throw error;
   return data;
 }
 
-export async function deleteContract(id) {
-  const { error } = await supabase
-    .from('contracts')
-    .delete()
-    .eq('id', id);
+export async function getContractById(id) {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function listContracts() {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(`
+      *,
+      leads:lead_id ( id, full_name, name, phone, email ),
+      properties:property_id ( id, title, name, address, price )
+    `)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
+  return data || [];
+}
+
+export async function deleteContract(id) {
+  const { error } = await supabase
+    .from(TABLE)
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+  return true;
 }

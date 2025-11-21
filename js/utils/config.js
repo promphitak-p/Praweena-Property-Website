@@ -27,3 +27,20 @@ export async function setupNav() {
     if (signOutBtn) signOutBtn.style.display = 'none';
   }
 }
+
+// js/utils/config.js
+export function autoActiveNav() {
+  const path = location.pathname.replace(/\/+$/, '');
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    const href = (a.getAttribute('href') || '').replace(/\/+$/, '');
+    if (!href) return;
+
+    const hrefNoHtml = href.replace('.html','');
+    const pathNoHtml = path.replace('.html','');
+
+    if (pathNoHtml.endsWith(hrefNoHtml)) {
+      a.classList.add('active');
+      a.setAttribute('aria-current','page');
+    }
+  });
+}

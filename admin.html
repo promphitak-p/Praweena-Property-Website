@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>หลังบ้าน - Praweena Property</title>
+
+  <link rel="stylesheet" href="/assets/css/base.css"/>
+  <link rel="stylesheet" href="/assets/css/layout.css"/>
+  <link rel="stylesheet" href="/assets/css/components.css"/>
+  <link rel="stylesheet" href="/assets/css/style.css"/>
+</head>
+
+<body>
+  <header class="header">
+    <div class="container">
+      <nav class="nav">
+        <a href="/index.html" class="logo">
+          <img src="/assets/img/logo.png" class="logo-img" />
+          <span class="logo-text">Praweena Property</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="/admin.html" aria-current="page">หลังบ้าน</a></li>
+          <li><a href="#" id="sign-out-btn" style="display:none;">ออกจากระบบ</a></li>
+        </ul>
+        <button id="mobile-nav-toggle" class="mobile-nav-toggle">☰</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page page-admin">
+    <div class="container">
+      <header class="page-header">
+        <h1>หลังบ้าน</h1>
+        <p>ศูนย์รวมการจัดการทุกอย่างของ Praweena Property</p>
+      </header>
+
+      <section class="admin-grid">
+        <a class="admin-card" href="/dashboard.html">
+          <h3>แดชบอร์ด</h3>
+          <p>ภาพรวมธุรกิจ & สถานะบ้าน</p>
+        </a>
+
+        <a class="admin-card" href="/leads.html">
+          <h3>ผู้สนใจ</h3>
+          <p>รายชื่อคนทัก-เช็คกู้-ติดตาม</p>
+        </a>
+
+        <a class="admin-card" href="/renovation-book-list.html">
+          <h3>สมุดรีโนเวท</h3>
+          <p>เลือกบ้าน + จัดการแผนรีโนเวท</p>
+        </a>
+
+        <a class="admin-card" href="/properties-admin.html">
+          <h3>รายการบ้าน</h3>
+          <p>เพิ่ม/แก้ไขประกาศ + รูป + แผนที่</p>
+        </a>
+
+        <a class="admin-card" href="/contract-list.html">
+          <h3>สัญญา</h3>
+          <p>สร้าง/บันทึก/พิมพ์สัญญาเป็น PDF</p>
+        </a>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/js/pages/admin.page.js"></script>
+</body>
+</html>

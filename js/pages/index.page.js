@@ -105,29 +105,29 @@ async function loadProperties() {
 
 // --- Main execution ---
 document.addEventListener('DOMContentLoaded', () => {
-  setupNav();
-  signOutIfAny();
-  setupMobileNav();
-  
-  loadProperties(); // โหลดครั้งแรก
+  setupNav();
+  autoActiveNav();
+  signOutIfAny();
+  setupMobileNav();
+  loadProperties(); // โหลดครั้งแรก
 
-  // 1. NEW: เพิ่ม event listener ให้ปุ่ม "กรองข้อมูล" (ID: advanced-filter-btn)
-  const advancedFilterBtn = $('#advanced-filter-btn'); 
-  if (advancedFilterBtn) { 
-    advancedFilterBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      loadProperties(); // โหลดข้อมูลเมื่อกดปุ่มกรองเท่านั้น
-    });
-  }
+// 1. NEW: เพิ่ม event listener ให้ปุ่ม "กรองข้อมูล" (ID: advanced-filter-btn)
+const advancedFilterBtn = $('#advanced-filter-btn'); 
+ if (advancedFilterBtn) { 
+ advancedFilterBtn.addEventListener('click', (e) => {
+ e.preventDefault();
+ loadProperties(); // โหลดข้อมูลเมื่อกดปุ่มกรองเท่านั้น
+ });
+}
     
-  // 2. Hero Form (เมื่อกด Submit) - คงโค้ดเดิม
-  const heroFormElement = $('#hero-filter-form');
-  if (heroFormElement) { 
-    heroFormElement.addEventListener('submit', (e) => {
-      e.preventDefault(); 
-      loadProperties(); 
-    });
-  }
+ // 2. Hero Form (เมื่อกด Submit) - คงโค้ดเดิม
+ const heroFormElement = $('#hero-filter-form');
+ if (heroFormElement) { 
+ heroFormElement.addEventListener('submit', (e) => {
+ e.preventDefault(); 
+ loadProperties(); 
+ });
+ }
 });
 
 function renderSkeletonCard() {

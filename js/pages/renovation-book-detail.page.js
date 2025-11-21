@@ -766,6 +766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!ok) return;
 
   setupNav();
+  autoActiveNav();
   signOutIfAny();
   setupMobileNav();
 
