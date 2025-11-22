@@ -550,6 +550,56 @@ body.rb-report-open {
   margin-top: 1rem;
 }
 
+/* list view (desktop) */
+.rb-property-list-table-wrapper {
+  margin-top: 1rem;
+  overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+.rb-property-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.rb-property-table th,
+.rb-property-table td {
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rb-property-table thead th {
+  font-weight: 600;
+  color: #b45309;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  background: #f9fafb;
+  border-bottom: 2px solid #fbbf24;
+}
+
+.rb-property-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rb-property-table td:last-child {
+  white-space: nowrap;
+}
+
+.rb-property-table .btn + .btn {
+  margin-left: 0.5rem;
+}
+
+.rb-empty-state {
+  color: #9ca3af;
+  padding: 1rem 0;
+  text-align: center;
+}
+
 /* ใช้ร่วมกับ rb-property-card เดิม ถ้ายังไม่มีให้แนบแบบนี้ */
 .rb-property-card {
   background: #ffffff;

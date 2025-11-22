@@ -10,6 +10,10 @@ import { toast } from '../ui/toast.js';
 
 let allProperties = [];
 let filteredProperties = [];
+const isMobileDevice = () => {
+  const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+};
 
 function getEl(id) {
   return document.getElementById(id);
@@ -21,61 +25,114 @@ function renderPropertyList(items) {
   if (!container) return;
 
   clear(container);
+  const mobileView = isMobileDevice();
+  container.classList.toggle('rb-property-list-grid', mobileView);
+  container.classList.toggle('rb-property-list-table-wrapper', !mobileView);
 
   if (!items || !items.length) {
     container.innerHTML = `
-      <div style="grid-column:1/-1;color:#9ca3af;padding:1rem 0;">
+      <div class="rb-empty-state">
         ไม่พบบ้านตามเงื่อนไขที่ค้นหา
       </div>
     `;
     return;
   }
 
-  items.forEach((p) => {
-    const card = document.createElement('div');
-    card.className = 'rb-property-card';
+  if (mobileView) {
+    items.forEach((p) => {
+      const card = document.createElement('div');
+      card.className = 'rb-property-card';
 
-    const statusText = p.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
-    const statusColor = p.published ? '#16a34a' : '#6b7280';
+      const statusText = p.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
+      const statusColor = p.published ? '#16a34a' : '#6b7280';
 
-    const detailUrl = p.slug
-      ? `/property-detail.html?slug=${encodeURIComponent(p.slug)}`
-      : '#';
+      const detailUrl = p.slug
+        ? `/property-detail.html?slug=${encodeURIComponent(p.slug)}`
+        : '#';
 
-    card.innerHTML = `
-      <div class="rb-property-card-header">
-        <div>
-          <h3 class="rb-property-title">${p.title || '-'}</h3>
-          <p class="rb-property-location">
-            ${p.address || ''} ${p.district || ''} ${p.province || ''}
-          </p>
+      card.innerHTML = `
+        <div class="rb-property-card-header">
+          <div>
+            <h3 class="rb-property-title">${p.title || '-'}</h3>
+            <p class="rb-property-location">
+              ${p.address || ''} ${p.district || ''} ${p.province || ''}
+            </p>
+          </div>
+          <div class="rb-property-meta">
+            <div class="rb-property-price">${formatPrice(Number(p.price) || 0)}</div>
+            <div class="rb-property-status" style="color:${statusColor};">${statusText}</div>
+          </div>
         </div>
-        <div class="rb-property-meta">
-          <div class="rb-property-price">${formatPrice(Number(p.price) || 0)}</div>
-          <div class="rb-property-status" style="color:${statusColor};">${statusText}</div>
+
+        <p class="rb-property-brief">
+          ขนาด: ${p.size_text || '-'} • ${p.beds ?? '-'} นอน • ${p.baths ?? '-'} น้ำ • ที่จอดรถ ${p.parking ?? '-'}
+        </p>
+
+        <div class="rb-property-card-footer">
+          <button class="btn btn-sm btn-primary rb-open-book-btn" data-id="${p.id}">
+            เปิดสมุดรีโนเวท
+          </button>
+          ${
+            detailUrl !== '#'
+              ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">
+                   ดูหน้าเว็บลูกค้า
+                 </a>`
+              : ''
+          }
         </div>
-      </div>
+      `;
 
-      <p class="rb-property-brief">
-        ขนาด: ${p.size_text || '-'} • ${p.beds ?? '-'} นอน • ${p.baths ?? '-'} น้ำ • ที่จอดรถ ${p.parking ?? '-'}
-      </p>
-
-      <div class="rb-property-card-footer">
-        <button class="btn btn-sm btn-primary rb-open-book-btn" data-id="${p.id}">
-          เปิดสมุดรีโนเวท
-        </button>
-        ${
-          detailUrl !== '#'
-            ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">
-                 ดูหน้าเว็บลูกค้า
-               </a>`
-            : ''
-        }
-      </div>
+      container.appendChild(card);
+    });
+  } else {
+    const table = document.createElement('table');
+    table.className = 'rb-property-table';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>หัวข้อ</th>
+          <th>ราคา</th>
+          <th>สถานะ</th>
+          <th>อัปเดตล่าสุด</th>
+          <th>จัดการ</th>
+        </tr>
+      </thead>
     `;
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
 
-    container.appendChild(card);
-  });
+    items.forEach((p) => {
+      const tr = document.createElement('tr');
+      const statusText = p.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
+      const statusColor = p.published ? '#16a34a' : '#9ca3af';
+      const detailUrl = p.slug
+        ? `/property-detail.html?slug=${encodeURIComponent(p.slug)}`
+        : '#';
+      const updatedText = p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-';
+
+      tr.innerHTML = `
+        <td>${p.title || '-'}</td>
+        <td>${formatPrice(Number(p.price) || 0)}</td>
+        <td style="color:${statusColor};font-weight:600;">${statusText}</td>
+        <td>${updatedText}</td>
+        <td>
+          <button class="btn btn-sm btn-primary rb-open-book-btn" data-id="${p.id}">
+            เปิดสมุดรีโนเวท
+          </button>
+          ${
+            detailUrl !== '#'
+              ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">
+                   ดูหน้าเว็บลูกค้า
+                 </a>`
+              : ''
+          }
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    container.appendChild(table);
+  }
 
   // bind click
   container.querySelectorAll('.rb-open-book-btn').forEach((btn) => {
