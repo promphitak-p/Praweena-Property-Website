@@ -20,8 +20,8 @@ export async function signOutIfAny() {
       toast('เกิดข้อผิดพลาดในการออกจากระบบ', 3000, 'error');
     } else {
       toast('ออกจากระบบสำเร็จ');
-      // หลังจากออกจากระบบ ให้กลับไปที่หน้าแรก
-      window.location.href = '/index.html';
+      // หลังจากออกจากระบบ ให้กลับไปหน้าล็อกอินหลังบ้าน
+      window.location.href = '/admin/auth.html';
     }
   });
 }
@@ -32,6 +32,6 @@ import { getSession } from '../lib/supabaseClient.js';
 export async function protectPage() {
   const session = await getSession();
   if (!session) {
-    location.href = '/auth.html'; // หรือหน้า login ของกุ้ง
+    location.href = '/admin/auth.html'; // หรือหน้า login ของกุ้ง
   }
 }

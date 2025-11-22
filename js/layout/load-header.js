@@ -44,6 +44,14 @@ export async function loadHeader() {
 
     // ⭐ ใส่ active ให้เมนูตาม data-page
     markActiveNav();
+
+    // หน้า home เอาเมนูออก เหลือแค่โลโก้
+    if (document.body?.dataset?.page === 'home') {
+      const links = container.querySelector('.nav-links');
+      const mobileToggle = container.querySelector('.mobile-nav-toggle');
+      links?.remove();
+      mobileToggle?.remove();
+    }
   } catch (err) {
     console.error('โหลด header ล้มเหลว:', err);
     container.innerHTML = `

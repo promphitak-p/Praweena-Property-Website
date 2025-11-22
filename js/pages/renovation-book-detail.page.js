@@ -706,7 +706,7 @@ function setupButtons() {
   if (backBtn) {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.href = '/renovation-book.html';
+      window.location.href = '/admin/renovation-book.html';
     });
   }
 

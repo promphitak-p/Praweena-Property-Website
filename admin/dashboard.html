@@ -31,16 +31,25 @@
   <div id="app-header"></div>
 
   <main class="container">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
-      <h1>จัดการประกาศ</h1>
-      <div id="role-indicator" style="margin:.5rem 0 0 0;"></div>
-      <button class="btn" id="add-property-btn">เพิ่มประกาศใหม่</button>
+    <div class="page-header">
+      <div class="page-header-left">
+        <a href="/admin.html" class="btn btn-secondary">← กลับเมนูหลัก</a>
+        <div>
+          <h1>จัดการประกาศ</h1>
+          <div id="role-indicator"></div>
+        </div>
+      </div>
     </div>
 
-    <!-- Search Bar -->
-    <div style="margin-bottom: 1.5rem;">
-      <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ..."
-        style="max-width: 300px;">
+    <!-- Search + Add -->
+    <div class="page-header" style="align-items:center;margin-bottom:1.5rem;">
+      <div class="page-header-left" style="gap:0.5rem;">
+        <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ..."
+          style="max-width: 320px;">
+      </div>
+      <div class="page-header-actions">
+        <button class="btn" id="add-property-btn">เพิ่มประกาศใหม่</button>
+      </div>
     </div>
 
     <div class="table-wrapper">

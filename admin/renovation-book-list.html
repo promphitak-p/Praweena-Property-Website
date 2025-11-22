@@ -19,36 +19,36 @@
         <div class="container">
 
             <!-- หัวหน้าเพจ -->
-            <header class="page-header">
-                <div>
-                    <h1>รายการบ้านสำหรับสมุดรีโนเวท</h1>
-                    <p>เลือกบ้านที่จะทำสมุดรีโนเวท หรือเพิ่มบ้านหลังใหม่เข้าระบบ</p>
-                </div>
+      <header class="page-header">
+        <div class="page-header-left">
+          <a href="/admin.html" class="btn btn-secondary">← กลับเมนูหลัก</a>
+          <div>
+            <h1>รายการบ้านสำหรับสมุดรีโนเวท</h1>
+            <p>เลือกบ้านที่จะทำสมุดรีโนเวท หรือเพิ่มบ้านหลังใหม่เข้าระบบ</p>
+          </div>
+        </div>
 
-                <div class="page-header-actions">
-                    <a href="/admin/dashboard.html" class="btn btn-primary">
-                        + เพิ่มบ้านหลังใหม่
-                    </a>
-                </div>
-            </header>
+        <div class="page-header-actions">
+          <a href="/admin/dashboard.html" class="btn btn-primary">
+            + เพิ่มบ้านหลังใหม่
+          </a>
+        </div>
+      </header>
 
             <!-- แถบค้นหา + auto-complete -->
-            <section class="card">
-                <div class="card-body">
-                    <div class="property-search-bar">
-                        <div class="property-search-input-wrap">
-                            <input id="property-search" type="search"
-                                placeholder="ค้นหาจาก ชื่อบ้าน, ซอย, โค้ดบ้าน, อำเภอ..." autocomplete="off" />
-                            <ul id="property-search-suggestions" class="property-search-suggestions"></ul>
-                        </div>
-
-                        <div class="property-search-extra">
-                            <select id="property-filter-status">
-                                <option value="">ทุกสถานะ</option>
-                                <option value="published">เผยแพร่แล้ว</option>
-                                <option value="draft">ยังไม่เผยแพร่</option>
-                            </select>
-                        </div>
+            <section>
+                <div class="property-search-bar search-row-inline">
+                    <div class="property-search-input-wrap">
+                        <input id="property-search" type="search" class="form-control"
+                            placeholder="ค้นหาจาก ชื่อบ้าน, ซอย, โค้ดบ้าน, อำเภอ..." autocomplete="off" />
+                        <ul id="property-search-suggestions" class="property-search-suggestions"></ul>
+                    </div>
+                    <div class="property-search-extra">
+                        <select id="property-filter-status" class="form-control">
+                            <option value="">ทุกสถานะ</option>
+                            <option value="published">เผยแพร่แล้ว</option>
+                            <option value="draft">ยังไม่เผยแพร่</option>
+                        </select>
                     </div>
                 </div>
             </section>

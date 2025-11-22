@@ -6,7 +6,7 @@ import { supabase } from '../utils/supabaseClient.js';
 
   // ถ้าไม่มี user และอยู่ในโซน admin → เด้งออก
   if (!user && window.location.pathname.startsWith('/admin')) {
-    window.location.href = '/auth.html';
+    window.location.href = '/admin/auth.html';
     return;
   }
 

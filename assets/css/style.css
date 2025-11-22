@@ -472,7 +472,22 @@ body.rb-report-open {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  align-items: flex-start;
+  align-items: center;
+}
+
+.search-row-inline {
+  background: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+}
+
+.search-row-inline .property-search-extra {
+  flex: 0 0 220px;
+}
+
+.property-search-row {
+  display: flex;
+  flex-direction: column;
 }
 
 .property-search-input-wrap {
@@ -482,16 +497,17 @@ body.rb-report-open {
 
 .property-search-input-wrap input[type="search"] {
   width: 100%;
-  padding: 0.55rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 1rem;
+  height: 44px;
 }
 
 .property-search-input-wrap input[type="search"]:focus {
   outline: none;
-  border-color: #fbbf24;
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.3);
+  border-color: var(--gold-3);
+  box-shadow: 0 0 0 3px rgba(169, 139, 87, .2);
 }
 
 .property-search-suggestions {
@@ -535,11 +551,21 @@ body.rb-report-open {
   color: #6b7280;
 }
 
+.property-filter-row {
+  margin-top: 0.6rem;
+  max-width: 240px;
+}
+
 .property-search-extra select {
-  padding: 0.45rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 1rem;
+  background: #fff;
+  min-width: 150px;
+  width: 100%;
+  max-width: 220px;
+  height: 44px;
 }
 
 /* grid การ์ดบ้าน */
@@ -598,6 +624,25 @@ body.rb-report-open {
   color: #9ca3af;
   padding: 1rem 0;
   text-align: center;
+}
+
+.rb-save-status {
+  display: inline-block;
+  margin-left: 1rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.rb-save-status[data-state="saving"] {
+  color: #b45309;
+}
+
+.rb-save-status[data-state="saved"] {
+  color: #16a34a;
+}
+
+.rb-save-status[data-state="error"] {
+  color: #b91c1c;
 }
 
 /* ใช้ร่วมกับ rb-property-card เดิม ถ้ายังไม่มีให้แนบแบบนี้ */

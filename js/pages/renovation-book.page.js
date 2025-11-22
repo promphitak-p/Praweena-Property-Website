@@ -24,6 +24,10 @@ import { toast } from '../ui/toast.js';
 
 let currentProperty = null;
 let currentPropertyId = null;
+let autosaveTimer = null;
+let isSaving = false;
+let dirtySinceSave = false;
+let saveStatusEl = null;
 
 // --- modal state ---
 let rbModal = null;
@@ -47,6 +51,24 @@ function getNumberValue(id) {
   const n = Number(raw);
   if (Number.isNaN(n)) return null;
   return n;
+}
+
+function setSaveStatus(message = '', type = 'idle') {
+  if (!saveStatusEl) return;
+  saveStatusEl.textContent = message;
+  saveStatusEl.dataset.state = type;
+}
+
+function markDirty() {
+  dirtySinceSave = true;
+}
+
+function setupAutosave() {
+  if (autosaveTimer) clearInterval(autosaveTimer);
+  autosaveTimer = setInterval(async () => {
+    if (!dirtySinceSave || isSaving || !currentPropertyId) return;
+    await saveRenovationBook({ autosave: true });
+  }, 10000);
 }
 
 // -------------------- หน้าจอ list/detail (เผื่อยังใช้อยู่) --------------------
@@ -519,7 +541,7 @@ function setupReportOverlay() {
       return;
     }
 
-    const url = `/renovation-book-report.html?property_id=${encodeURIComponent(
+    const url = `/admin/renovation-book-report.html?property_id=${encodeURIComponent(
       currentPropertyId
     )}`;
     iframe.src = url;
@@ -547,6 +569,29 @@ function setupReportOverlay() {
 // -------------------- ฟอร์มสมุดรีโนเวท: map <-> payload --------------------
 function collectRenovationFormData() {
   if (!currentPropertyId) return null;
+
+  const budgetCategories = [
+    'demolition',
+    'structure',
+    'plumbing',
+    'electric',
+    'bathroom',
+    'kitchen',
+    'finishing'
+  ];
+  const getBudgetInput = (cat, field) =>
+    document.querySelector(`input[name="budget[${cat}][${field}]"]`);
+
+  const budget = {};
+  budgetCategories.forEach((cat) => {
+    const planVal = getBudgetInput(cat, 'plan')?.value ?? '';
+    const actualVal = getBudgetInput(cat, 'actual')?.value ?? '';
+    const plan = planVal === '' ? null : Number(planVal);
+    const actual = actualVal === '' ? null : Number(actualVal);
+    const diff = plan !== null && actual !== null ? actual - plan : null;
+    const note = getBudgetInput(cat, 'note')?.value?.trim() || null;
+    budget[cat] = { plan: Number.isNaN(plan) ? null : plan, actual: Number.isNaN(actual) ? null : actual, diff, note };
+  });
 
   return {
     property_id: currentPropertyId,
@@ -596,7 +641,10 @@ function collectRenovationFormData() {
     kitchen_plan: getInputValue('kitchen_plan') || null,
 
     // CARD 7
-    summary_notes: getInputValue('summary_notes') || null
+    summary_notes: getInputValue('summary_notes') || null,
+
+    // Budget (json)
+    budget
   };
 }
 
@@ -606,6 +654,19 @@ function fillRenovationForm(data) {
     const el = getEl(id);
     if (!el) return;
     el.value = value ?? '';
+  };
+  const budgetCategories = [
+    'demolition',
+    'structure',
+    'plumbing',
+    'electric',
+    'bathroom',
+    'kitchen',
+    'finishing'
+  ];
+  const setBudgetVal = (cat, field, value) => {
+    const input = document.querySelector(`input[name="budget[${cat}][${field}]"]`);
+    if (input) input.value = value ?? '';
   };
 
   if (!data) {
@@ -620,6 +681,14 @@ function fillRenovationForm(data) {
       'bathroom_plan', 'kitchen_plan',
       'summary_notes'
     ].forEach((id) => setVal(id, ''));
+    budgetCategories.forEach((cat) => {
+      setBudgetVal(cat, 'plan', '');
+      setBudgetVal(cat, 'actual', '');
+      setBudgetVal(cat, 'diff', '');
+      setBudgetVal(cat, 'note', '');
+    });
+    dirtySinceSave = false;
+    setSaveStatus('', 'idle');
     return;
   }
 
@@ -662,6 +731,28 @@ function fillRenovationForm(data) {
   setVal('kitchen_plan', data.kitchen_plan);
 
   setVal('summary_notes', data.summary_notes);
+
+  // budget
+  let budget = {};
+  if (data.budget && typeof data.budget === 'object') {
+    budget = data.budget;
+  } else if (typeof data.budget === 'string') {
+    try {
+      budget = JSON.parse(data.budget);
+    } catch {
+      budget = {};
+    }
+  }
+  budgetCategories.forEach((cat) => {
+    const row = budget[cat] || {};
+    setBudgetVal(cat, 'plan', row.plan ?? '');
+    setBudgetVal(cat, 'actual', row.actual ?? '');
+    setBudgetVal(cat, 'diff', row.diff ?? '');
+    setBudgetVal(cat, 'note', row.note ?? '');
+  });
+  updateBudgetDiffs();
+  dirtySinceSave = false;
+  setSaveStatus('', 'idle');
 }
 
 // โหลดสมุดรีโนเวทของบ้านหนึ่งหลังแล้วเติมฟอร์ม
@@ -748,6 +839,95 @@ async function onPropertySelected(propertyId) {
   await loadContractorsForProperty(propertyId);
 }
 
+function updateBudgetDiffs() {
+  const planInputs = document.querySelectorAll('input[name^="budget"][name$="[plan]"]');
+  planInputs.forEach((planInput) => {
+    const name = planInput.getAttribute('name') || '';
+    const match = name.match(/budget\[(.+?)\]\[plan\]/);
+    const cat = match?.[1];
+    if (!cat) return;
+    const actualInput = document.querySelector(`input[name="budget[${cat}][actual]"]`);
+    const diffInput = document.querySelector(`input[name="budget[${cat}][diff]"]`);
+    if (!actualInput || !diffInput) return;
+    const plan = Number(planInput.value || '');
+    const actual = Number(actualInput.value || '');
+    if (!Number.isNaN(plan) && !Number.isNaN(actual)) {
+      diffInput.value = actual - plan;
+    } else {
+      diffInput.value = '';
+    }
+  });
+}
+
+async function saveRenovationBook({ autosave = false } = {}) {
+  if (!currentPropertyId) return false;
+  const btn = getEl('save-renovation-book');
+  const prevLabel = btn ? btn.textContent : '';
+  const statusPrefix = autosave ? 'บันทึกอัตโนมัติ' : 'บันทึก';
+
+  const payload = collectRenovationFormData();
+  if (!payload) return false;
+
+  isSaving = true;
+  if (btn && !autosave) {
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+  }
+  setSaveStatus(`${statusPrefix}…`, 'saving');
+
+  try {
+    await upsertRenovationBookForProperty(payload);
+    dirtySinceSave = false;
+    setSaveStatus(`${statusPrefix}สำเร็จ`, 'saved');
+    if (!autosave) {
+      toast('บันทึกสมุดรีโนเวทเรียบร้อย', 2000, 'success');
+    }
+    return true;
+  } catch (err) {
+    console.error(err);
+    setSaveStatus('บันทึกไม่สำเร็จ', 'error');
+    if (!autosave) {
+      toast('บันทึกสมุดรีโนเวทไม่สำเร็จ: ' + (err.message || err), 3000, 'error');
+    }
+    return false;
+  } finally {
+    isSaving = false;
+    if (btn && !autosave) {
+      btn.disabled = false;
+      btn.textContent = prevLabel;
+    }
+  }
+}
+
+function setupBudgetListeners() {
+  const table = document.querySelector('.rb-budget-table') || document;
+  table.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (!target.name?.startsWith('budget[')) return;
+    if (target.name.includes('[plan]') || target.name.includes('[actual]')) {
+      updateBudgetDiffs();
+    }
+    markDirty();
+  });
+}
+
+function setupFormDirtyTracking() {
+  const container = document.querySelector('.page-renovation-book');
+  if (!container) return;
+  container.addEventListener('input', (e) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      markDirty();
+    }
+  });
+  container.addEventListener('change', (e) => {
+    if (e.target instanceof HTMLSelectElement) {
+      if (e.target.id === 'property-select') return;
+      markDirty();
+    }
+  });
+}
+
 // -------------------- ปุ่มบันทึกสมุดรีโนเวท --------------------
 function setupSaveButton() {
   const btn = getEl('save-renovation-book');
@@ -759,34 +939,26 @@ function setupSaveButton() {
       return;
     }
 
-    const payload = collectRenovationFormData();
-    if (!payload) return;
-
-    const oldLabel = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'กำลังบันทึก...';
-
-    try {
-      await upsertRenovationBookForProperty(payload);
-      toast('บันทึกสมุดรีโนเวทเรียบร้อย', 2500, 'success');
-    } catch (err) {
-      console.error(err);
-      toast('บันทึกสมุดรีโนเวทไม่สำเร็จ: ' + (err.message || err), 3000, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = oldLabel;
-    }
+    await saveRenovationBook({ autosave: false });
   });
 }
 
 // -------------------- init --------------------
 document.addEventListener('DOMContentLoaded', async () => {
   await protectPage();
+  setupNav();
+  setupMobileNav();
+  await signOutIfAny();
+
+  saveStatusEl = getEl('rb-save-status');
 
   setupRbModal();
   setupAddButtons();
   setupReportOverlay();
   setupSaveButton();
+  setupBudgetListeners();
+  setupFormDirtyTracking();
+  setupAutosave();
 
   const params = new URLSearchParams(window.location.search);
   const propertyIdParam = params.get('property_id');

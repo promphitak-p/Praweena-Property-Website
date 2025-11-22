@@ -139,7 +139,7 @@ function renderPropertyList(items) {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       if (!id) return;
-      const url = `/renovation-book.html?property_id=${encodeURIComponent(id)}`;
+      const url = `/admin/renovation-book.html?property_id=${encodeURIComponent(id)}`;
       window.location.href = url;
     });
   });
@@ -236,7 +236,7 @@ function renderSuggestions(query) {
       e.preventDefault();
       const id = li.dataset.id;
       if (!id) return;
-      const url = `/renovation-book.html?property_id=${encodeURIComponent(id)}`;
+      const url = `/admin/renovation-book.html?property_id=${encodeURIComponent(id)}`;
       window.location.href = url;
     });
 

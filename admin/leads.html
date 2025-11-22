@@ -23,8 +23,18 @@
   <div id="app-header"></div>
 
   <main class="container">
-    <h1 style="margin-bottom:2rem">รายชื่อผู้สนใจ (Leads)</h1>
-    <div id="role-indicator"></div>
+    <div class="page-header">
+      <div class="page-header-left">
+        <a href="/admin.html" class="btn btn-secondary">← กลับเมนูหลัก</a>
+        <div>
+          <h1>รายชื่อผู้สนใจ (Leads)</h1>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <div id="role-indicator"></div>
+        <button id="btn-add-lead" class="btn btn-primary">+ เพิ่มผู้สนใจ</button>
+      </div>
+    </div>
 
     <!-- controls (สวิตช์เรียงล่าสุดก่อน จะถูกเติมโดย JS) -->
     <div id="leads-controls"></div>

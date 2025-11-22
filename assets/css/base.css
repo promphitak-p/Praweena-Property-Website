@@ -115,36 +115,22 @@ img { max-width: 100%; display: block; }
 
 /* Mobile icon */
 .mobile-nav-toggle {
-  display:none;
-  background: #fff;
-  border:1px solid var(--silver-1);
-  border-radius:999px;
-  padding:.3rem .6rem;
-  font-size:1.4rem;
-  color:#4b5563;
-}
-
-.mobile-nav-toggle:hover {
-  background:#f2f2f2;
+  display:none !important;
 }
 
 @media (max-width:768px) {
-  .mobile-nav-toggle { display:inline-flex; }
-
   .nav-links {
-    display:none;
-    position:absolute;
-    left:0; right:0; top:64px;
+    display:flex;
+    position:static;
     flex-direction:column;
-    background:rgba(255,255,255,.97);
-    backdrop-filter:blur(12px);
-    padding:1rem 0;
-    box-shadow:0 8px 24px rgba(0,0,0,.12);
+    gap:0.25rem;
+    background:transparent;
+    backdrop-filter:none;
+    padding:0.5rem 0 0;
+    box-shadow:none;
   }
 
-  .nav-links a { width:100%; border-radius:0; }
-
-  .nav-open .nav-links { display:flex; }
+  .nav-links a { width:100%; border-radius:6px; }
 }
 
 /* ===============================
