@@ -34,6 +34,10 @@ let currentGallery = [];          // เก็บ URL รูปทั้งห�
 let poiCandidatesInline = [];     // รายการ POI ที่ขึ้นในฟอร์ม
 let currentYoutube = [];          // เก็บ YouTube IDs/URLs
 let searchTimeout = null;         // Debounce timer for search
+const isMobileDevice = () => {
+  const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+};
 
 // ====================== Utility ======================
 function kmDistance(lat1, lon1, lat2, lon2) {
@@ -780,6 +784,7 @@ async function loadProperties(query = '') {
 }
 // ================== Init ==================
 document.addEventListener('DOMContentLoaded', async () => {
+    document.body?.classList.toggle('mobile-card-view', isMobileDevice());
     await protectPage();
     setupNav();
     setupMobileNav();

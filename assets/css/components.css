@@ -146,51 +146,49 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-/* Responsive Table (Card View) */
-@media (max-width: 768px) {
-  #properties-table thead {
-    display: none;
-  }
+/* Responsive Table (Card View on mobile devices only) */
+body.mobile-card-view #properties-table thead {
+  display: none;
+}
 
-  #properties-table,
-  #properties-table tbody,
-  #properties-table tr,
-  #properties-table td {
-    display: block;
-    width: 100%;
-  }
+body.mobile-card-view #properties-table,
+body.mobile-card-view #properties-table tbody,
+body.mobile-card-view #properties-table tr,
+body.mobile-card-view #properties-table td {
+  display: block;
+  width: 100%;
+}
 
-  #properties-table tr {
-    margin-bottom: 1rem;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e5e7eb;
-    padding: 1rem;
-  }
+body.mobile-card-view #properties-table tr {
+  margin-bottom: 1rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+}
 
-  #properties-table td {
-    text-align: right;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #f3f4f6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+body.mobile-card-view #properties-table td {
+  text-align: right;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  #properties-table td:last-child {
-    border-bottom: none;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    padding-top: 1rem;
-  }
+body.mobile-card-view #properties-table td:last-child {
+  border-bottom: none;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 1rem;
+}
 
-  #properties-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: var(--text-light);
-    text-align: left;
-  }
+body.mobile-card-view #properties-table td::before {
+  content: attr(data-label);
+  font-weight: 600;
+  color: var(--text-light);
+  text-align: left;
 }
 
 /* ======= Role / Admin helpers ======= */
