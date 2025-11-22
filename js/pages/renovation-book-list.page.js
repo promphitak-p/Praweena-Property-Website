@@ -14,6 +14,9 @@ const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
   return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
 };
+let rbViewerModal = null;
+let rbViewerFrame = null;
+let rbViewerClose = null;
 
 function getEl(id) {
   return document.getElementById(id);
@@ -139,8 +142,8 @@ function renderPropertyList(items) {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       if (!id) return;
-      const url = `/admin/renovation-book.html?property_id=${encodeURIComponent(id)}`;
-      window.location.href = url;
+      const url = `/admin/renovation-book.html?property_id=${encodeURIComponent(id)}&embed=1`;
+      openRbViewer(url);
     });
   });
 }
@@ -284,6 +287,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMobileNav();
   await signOutIfAny();
 
+  rbViewerModal = getEl('rb-viewer-modal');
+  rbViewerFrame = getEl('rb-viewer-frame');
+  rbViewerClose = getEl('rb-viewer-close');
+
+  if (rbViewerClose && rbViewerModal) {
+    rbViewerClose.addEventListener('click', closeRbViewer);
+    rbViewerModal.addEventListener('click', (e) => {
+      if (e.target === rbViewerModal) closeRbViewer();
+    });
+  }
+
   await loadProperties();
 
   const searchInput = getEl('property-search');
@@ -331,3 +345,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 });
+
+function openRbViewer(url) {
+  if (!rbViewerModal || !rbViewerFrame) {
+    window.location.href = url;
+    return;
+  }
+  rbViewerFrame.src = url;
+  rbViewerModal.classList.add('open');
+  document.body.classList.add('no-scroll');
+}
+
+function closeRbViewer() {
+  if (!rbViewerModal || !rbViewerFrame) return;
+  rbViewerModal.classList.remove('open');
+  document.body.classList.remove('no-scroll');
+  rbViewerFrame.src = 'about:blank';
+}

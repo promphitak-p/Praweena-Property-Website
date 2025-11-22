@@ -69,18 +69,22 @@
       </div>
     </div>
 
-    <div class="contracts-toolbar" style="margin-bottom:1rem;">
-      <div class="search-wrap">
+    <div class="filter-bar" style="justify-content:flex-start;">
+      <div class="filter-input search-wrap">
         <span class="search-ic">🔎</span>
         <input id="contract-search" class="form-control" placeholder="ค้นชื่อ ลูกค้า บ้าน เบอร์ วันที่…">
       </div>
-      <select id="contract-filter-type" class="form-control" style="min-width:160px;">
-        <option value="">ทุกประเภท</option>
-        <option value="reservation">สัญญาจอง</option>
-        <option value="sale">สัญญาซื้อขาย</option>
-        <option value="lease">สัญญาเช่า</option>
-      </select>
-      <a href="/admin/contract-form.html" class="btn">+ ออกสัญญาใหม่</a>
+      <div class="filter-select">
+        <select id="contract-filter-type" class="form-control minw-160">
+          <option value="">ทุกประเภท</option>
+          <option value="reservation">สัญญาจอง</option>
+          <option value="sale">สัญญาซื้อขาย</option>
+          <option value="lease">สัญญาเช่า</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <a href="/admin/contract-form.html" class="btn">+ ออกสัญญาใหม่</a>
+      </div>
     </div>
 
     <section id="contracts-grid" class="contracts-grid">

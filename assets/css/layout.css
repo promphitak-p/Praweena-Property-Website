@@ -104,10 +104,10 @@ main {
   gap: 10px;
   max-width: 680px;
   margin: 1.5rem auto 0 auto;
-  background-color: var(--surface);
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: var(--shadow-md);
+  background-color: #fff;
+  padding: 10px 12px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
 .search-input-group {
@@ -127,7 +127,7 @@ main {
 /* ปุ่มค้นหาใน hero */
 .search-btn {
   padding: 10px 25px;
-  background: var(--grad);
+  background: var(--brand);
   color: #ffffff;
   font-weight: 600;
 }

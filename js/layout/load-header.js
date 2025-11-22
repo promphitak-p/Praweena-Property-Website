@@ -18,6 +18,12 @@ function markActiveNav() {
       a.removeAttribute('aria-current');
     }
   });
+
+  // focus-visible style hook
+  links.forEach((a) => {
+    a.addEventListener('focus', () => a.classList.add('focus-visible'));
+    a.addEventListener('blur', () => a.classList.remove('focus-visible'));
+  });
 }
 
 // โหลด header จาก /partials/header.html แล้ว inject เข้า #app-header
@@ -51,6 +57,13 @@ export async function loadHeader() {
       const mobileToggle = container.querySelector('.mobile-nav-toggle');
       links?.remove();
       mobileToggle?.remove();
+    }
+
+    // ถ้าเป็นโหมดฝังใน iframe (เช่น embed=1) ซ่อนปุ่มออกจากระบบ
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('embed') === '1') {
+      const signOut = container.querySelector('#sign-out-btn');
+      signOut?.remove();
     }
   } catch (err) {
     console.error('โหลด header ล้มเหลว:', err);

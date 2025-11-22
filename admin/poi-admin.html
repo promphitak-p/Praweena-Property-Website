@@ -1,14 +1,14 @@
-<section class="card" id="poi-admin-section" style="margin-top:16px;">
+<section class="card mt-4" id="poi-admin-section">
   <h2 class="card-title">สถานที่ใกล้เคียง (ผู้ดูแล)</h2>
 
-  <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin:6px 0 10px;">
+  <div class="flex gap-2 items-center flex-wrap" style="margin:6px 0 10px;">
     <button id="poi-add-btn" class="btn">＋ เพิ่มสถานที่ใกล้เคียง</button>
-    <span style="color:#6b7280">คลิกปุ่ม แล้วไปคลิกตำแหน่งบนแผนที่ เพื่อเลือกพิกัด</span>
+    <span class="text-muted">คลิกปุ่ม แล้วไปคลิกตำแหน่งบนแผนที่ เพื่อเลือกพิกัด</span>
   </div>
 
   <div id="poi-admin-map" style="height:320px; border-radius:12px; overflow:hidden; background:#f3f4f6;"></div>
 
-  <div id="poi-admin-form" style="display:none; background:#F8FAFC; border:1px solid #E5E7EB; border-radius:12px; padding:12px; margin-top:10px;">
+  <div id="poi-admin-form" class="mt-3" style="display:none; background:#F8FAFC; border:1px solid #E5E7EB; border-radius:12px; padding:12px;">
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
       <label style="grid-column:1 / -1;">
         ชื่อสถานที่
@@ -26,10 +26,10 @@
       <label>Latitude <input id="poi-admin-lat" class="form-control" type="number" step="any" required></label>
       <label>Longitude <input id="poi-admin-lng" class="form-control" type="number" step="any" required></label>
     </div>
-    <div style="margin-top:8px; display:flex; gap:8px;">
+    <div class="flex gap-2 mt-2">
       <button id="poi-admin-save" class="btn">บันทึก</button>
       <button id="poi-admin-cancel" class="btn btn-secondary" type="button">ยกเลิก</button>
-      <span style="color:#6b7280">ระบบคำนวณระยะทางให้อัตโนมัติ</span>
+      <span class="text-muted">ระบบคำนวณระยะทางให้อัตโนมัติ</span>
     </div>
   </div>
 

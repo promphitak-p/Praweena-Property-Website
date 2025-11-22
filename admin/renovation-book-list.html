@@ -37,13 +37,13 @@
 
             <!-- แถบค้นหา + auto-complete -->
             <section>
-                <div class="property-search-bar search-row-inline">
-                    <div class="property-search-input-wrap">
+                <div class="filter-bar">
+                    <div class="filter-input property-search-input-wrap">
                         <input id="property-search" type="search" class="form-control"
                             placeholder="ค้นหาจาก ชื่อบ้าน, ซอย, โค้ดบ้าน, อำเภอ..." autocomplete="off" />
                         <ul id="property-search-suggestions" class="property-search-suggestions"></ul>
                     </div>
-                    <div class="property-search-extra">
+                    <div class="filter-select">
                         <select id="property-filter-status" class="form-control">
                             <option value="">ทุกสถานะ</option>
                             <option value="published">เผยแพร่แล้ว</option>
@@ -59,6 +59,14 @@
                     <!-- เติมด้วย JS -->
                 </div>
             </section>
+        </div>
+
+        <!-- Modal: Renovation Book -->
+        <div id="rb-viewer-modal" class="modal">
+            <div class="modal-content" style="width:95vw;height:90vh;display:flex;flex-direction:column;max-width:1400px;">
+                <span class="modal-close" id="rb-viewer-close">&times;</span>
+                <iframe id="rb-viewer-frame" title="Renovation Book" style="flex:1;border:none;border-radius:12px;background:#fff;"></iframe>
+            </div>
         </div>
 
         <!-- ปุ่มเลื่อนไปบนสุด -->

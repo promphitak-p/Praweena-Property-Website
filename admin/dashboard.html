@@ -42,12 +42,11 @@
     </div>
 
     <!-- Search + Add -->
-    <div class="page-header" style="align-items:center;margin-bottom:1.5rem;">
-      <div class="page-header-left" style="gap:0.5rem;">
-        <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ..."
-          style="max-width: 320px;">
+    <div class="filter-bar">
+      <div class="filter-input">
+        <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ...">
       </div>
-      <div class="page-header-actions">
+      <div class="filter-actions">
         <button class="btn" id="add-property-btn">เพิ่มประกาศใหม่</button>
       </div>
     </div>
@@ -148,7 +147,7 @@
             <input type="number" step="any" name="longitude" class="form-control">
           </div>
 
-          <div id="modal-map" style="height:300px;margin:1rem 0;border-radius:8px;z-index:10;"></div>
+          <div id="modal-map" class="mt-4" style="height:300px;border-radius:8px;z-index:10;"></div>
 
           <!-- ใต้ div id="modal-map" ... -->
           <div class="form-group col-span-2">
@@ -159,8 +158,9 @@
 
             <!-- ✅ ฟอร์มเพิ่มสถานที่ใกล้เคียงด้วยตัวเอง -->
             <div id="poi-manual-box"
-              style="margin-top:1rem;padding:0.75rem 1rem;border-radius:12px;border:1px solid #e5e7eb;background:#f9fafb;">
-              <p style="font-weight:600;margin-bottom:.5rem;font-size:.9rem;">
+              class="mt-4 px-4 py-3"
+              style="border-radius:12px;border:1px solid #e5e7eb;background:#f9fafb;">
+              <p class="mb-2" style="font-weight:600;font-size:.9rem;">
                 เพิ่มสถานที่ใกล้เคียงด้วยตัวเอง
               </p>
 
@@ -196,37 +196,37 @@
                 </div>
               </div>
 
-              <small style="color:#6b7280;font-size:.8rem;">
-                ถ้าไม่กรอก Latitude / Longitude ระบบจะใช้พิกัดบ้านคำนวณระยะทางให้อัตโนมัติ
-              </small>
+            <small class="text-muted" style="font-size:.8rem;">
+              ถ้าไม่กรอก Latitude / Longitude ระบบจะใช้พิกัดบ้านคำนวณระยะทางให้อัตโนมัติ
+            </small>
 
-              <div style="text-align:right;margin-top:.75rem;">
-                <button id="poi-add-manual-btn" class="btn btn-sm btn-secondary">
-                  + เพิ่มสถานที่นี้เข้าในรายการ
-                </button>
-              </div>
+            <div class="mt-3 text-right">
+              <button id="poi-add-manual-btn" class="btn btn-sm btn-secondary">
+                + เพิ่มสถานที่นี้เข้าในรายการ
+              </button>
             </div>
-
-            <small style="color:#6b7280;">*ติ๊กออกได้ถ้าไม่ต้องการแสดงบางแห่ง</small>
           </div>
+
+          <small class="text-muted">*ติ๊กออกได้ถ้าไม่ต้องการแสดงบางแห่ง</small>
+        </div>
 
           <label>รูปภาพหน้าปก</label>
           <input type="file" id="cover-upload" accept="image/*">
 
           <label>รูปภาพแกลลอรี่ (เลือกได้หลายรูป)</label>
           <input type="file" id="gallery-upload" accept="image/*" multiple>
-          <div id="gallery-preview" style="margin-top:.5rem;"></div>
+          <div id="gallery-preview" class="mt-2"></div>
 
           <label>YouTube Video IDs / URLs</label>
-          <div style="display:flex;gap:.5rem;align-items:center;">
+          <div class="flex gap-2 items-center">
             <input type="text" id="youtube-input" class="form-control" placeholder="เช่น https://youtu.be/..." />
             <button id="youtube-add-btn" class="btn btn-secondary" type="button">+ เพิ่ม</button>
           </div>
-          <ul id="youtube-list" style="margin-top:.5rem;"></ul>
+          <ul id="youtube-list" class="mt-2"></ul>
 
 
           <div class="form-group">
-            <label><input type="checkbox" name="published" style="margin-right:8px;">เผยแพร่ทันที</label>
+            <label><input type="checkbox" name="published" class="mr-2">เผยแพร่ทันที</label>
           </div>
 
           <div style="text-align:right;">

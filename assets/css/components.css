@@ -57,7 +57,7 @@
   align-items: flex-start;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 .page-header-left {
@@ -137,10 +137,21 @@
   font-weight: 700;
   color: var(--text-light);
   cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
 }
 
 .modal-close:hover {
   color: var(--text);
+  box-shadow: var(--shadow-md);
 }
 
 body.no-scroll {
@@ -1318,6 +1329,7 @@ body.mobile-card-view #properties-table td::before {
 .card-header {
   display: flex;
   border-bottom: 1px solid #e5e7eb;
+  background: transparent;
 }
 
 .tab-button {
@@ -1560,7 +1572,7 @@ body.mobile-card-view #properties-table td::before {
 
 .page-renovation-book .card-header {
   padding: 0.9rem 1.5rem 0.4rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .page-renovation-book .card-header h2 {
@@ -1587,9 +1599,18 @@ body.mobile-card-view #properties-table td::before {
 
 /* ปุ่มบันทึกล่างสุด */
 .page-renovation-book .page-actions {
+  position: sticky;
+  bottom: var(--space-4);
   margin-top: 1.75rem;
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
   display: flex;
   justify-content: flex-end;
+  gap: var(--space-3);
+  z-index: 20;
 }
 
 .page-renovation-book #save-renovation-book {
