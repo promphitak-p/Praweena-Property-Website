@@ -191,7 +191,8 @@ main {
 /* Filters: 4 responsive columns */
 .advanced-filters {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)); /* 4 ฟิลด์ + ปุ่ม */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* 4 ฟิลด์ + ปุ่ม */
   gap: 1rem;
   align-items: flex-end;
   margin: 2rem 0;
@@ -225,21 +226,10 @@ main {
 }
 
 /* Property cards grid: nice responsive layout */
+/* Property cards grid: nice responsive layout */
 .property-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
   align-items: stretch;
-}
-
-@media (max-width: 1024px) {
-  .property-grid {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .property-grid {
-    grid-template-columns: 1fr;
-  }
 }

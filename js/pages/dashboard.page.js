@@ -23,9 +23,9 @@ const CLOUDINARY_UNSIGNED_PRESET = 'praweena_property_preset'; // <- ใส่ u
 // ============================================================================
 
 // DOM หลัก
-const propertyModal   = document.getElementById('property-modal');
-const propertyForm    = document.getElementById('property-form');
-const addPropertyBtn  = document.getElementById('add-property-btn');
+const propertyModal = document.getElementById('property-modal');
+const propertyForm = document.getElementById('property-form');
+const addPropertyBtn = document.getElementById('add-property-btn');
 
 // State
 let modalMap = null;
@@ -33,6 +33,7 @@ let draggableMarker = null;
 let currentGallery = [];          // เก็บ URL รูปทั้งหมด
 let poiCandidatesInline = [];     // รายการ POI ที่ขึ้นในฟอร์ม
 let currentYoutube = [];          // เก็บ YouTube IDs/URLs
+let searchTimeout = null;         // Debounce timer for search
 
 // ====================== Utility ======================
 function kmDistance(lat1, lon1, lat2, lon2) {
@@ -40,8 +41,8 @@ function kmDistance(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) ** 2;
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -373,8 +374,8 @@ function mergePoiLists(savedList = [], suggestedList = []) {
   const keySet = new Set();
   const makeKey = (p) => {
     const name = (p.name || '').trim().toLowerCase();
-    const lat  = Number(p.lat || 0).toFixed(6);
-    const lng  = Number(p.lng || 0).toFixed(6);
+    const lat = Number(p.lat || 0).toFixed(6);
+    const lng = Number(p.lng || 0).toFixed(6);
     return `${name}|${lat}|${lng}`;
   };
 
@@ -480,9 +481,9 @@ function setupPoiManualForm() {
   const nameInput = document.getElementById('poi-name-input');
   const typeInput = document.getElementById('poi-type-input');
   const distInput = document.getElementById('poi-distance-input');
-  const latInput  = document.getElementById('poi-lat-input');
-  const lngInput  = document.getElementById('poi-lng-input');
-  const addBtn    = document.getElementById('poi-add-manual-btn');
+  const latInput = document.getElementById('poi-lat-input');
+  const lngInput = document.getElementById('poi-lng-input');
+  const addBtn = document.getElementById('poi-add-manual-btn');
 
   if (!addBtn) return;
 
@@ -533,8 +534,8 @@ function setupPoiManualForm() {
     if (nameInput) nameInput.value = '';
     if (typeInput) typeInput.value = '';
     if (distInput) distInput.value = '';
-    if (latInput)  latInput.value = '';
-    if (lngInput)  lngInput.value = '';
+    if (latInput) latInput.value = '';
+    if (lngInput) lngInput.value = '';
 
     toast('เพิ่มสถานที่ใกล้เคียงแล้ว (อย่าลืมกดบันทึกบ้าน)', 2500, 'success');
   });
@@ -658,13 +659,13 @@ function closeModal() {
   const nameInput = document.getElementById('poi-name-input');
   const typeInput = document.getElementById('poi-type-input');
   const distInput = document.getElementById('poi-distance-input');
-  const latInput  = document.getElementById('poi-lat-input');
-  const lngInput  = document.getElementById('poi-lng-input');
+  const latInput = document.getElementById('poi-lat-input');
+  const lngInput = document.getElementById('poi-lng-input');
   if (nameInput) nameInput.value = '';
   if (typeInput) typeInput.value = '';
   if (distInput) distInput.value = '';
-  if (latInput)  latInput.value = '';
-  if (lngInput)  lngInput.value = '';
+  if (latInput) latInput.value = '';
+  if (lngInput) lngInput.value = '';
 }
 
 function installModalCloseHandlers() {
@@ -709,9 +710,9 @@ function fillFormFromProperty(p = {}) {
   currentGallery = Array.isArray(p.gallery)
     ? p.gallery
     : (typeof p.gallery === 'string' && p.gallery.startsWith('[')
-        ? JSON.parse(p.gallery)
-        : (p.cover_url ? [p.cover_url] : [])
-      );
+      ? JSON.parse(p.gallery)
+      : (p.cover_url ? [p.cover_url] : [])
+    );
   renderGalleryPreview();
 
   // ✅ ถ้ามี youtube เก่า โหลดมาให้
@@ -730,13 +731,15 @@ function fillFormFromProperty(p = {}) {
 }
 
 // ================== โหลดรายการประกาศ ==================
-async function loadProperties() {
+async function loadProperties(query = '') {
   const tbody = document.querySelector('#properties-table tbody');
   clear(tbody);
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>';
 
   try {
-    const { data, error } = await listAll();
+    const filters = {};
+    if (query) filters.q = query;
+    const { data, error } = await listAll(filters);
     if (error) throw error;
 
     clear(tbody);
@@ -749,11 +752,11 @@ async function loadProperties() {
       const tr = document.createElement('tr');
 
       tr.innerHTML = `
-        <td>${p.title || '-'}</td>
-        <td>${formatPrice(Number(p.price) || 0)}</td>
-        <td>${p.published ? '✅' : '❌'}</td>
-        <td>${p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-'}</td>
-        <td>
+        <td data-label="หัวข้อ">${p.title || '-'}</td>
+        <td data-label="ราคา">${formatPrice(Number(p.price) || 0)}</td>
+        <td data-label="สถานะ">${p.published ? '✅' : '❌'}</td>
+        <td data-label="อัปเดตล่าสุด">${p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-'}</td>
+        <td data-label="จัดการ">
           <button class="btn btn-secondary btn-sm edit-btn">แก้ไข</button>
           <button class="btn btn-danger btn-sm delete-btn">ลบ</button>
         </td>
@@ -785,79 +788,257 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   installModalCloseHandlers();
   setupPoiManualForm();   // ✅ ผูกฟอร์มเพิ่มสถานที่ใกล้เคียง
+  try {
+    const { error } = await removeProperty(id);
+    if (error) throw error;
+    toast('ลบสำเร็จ', 2000, 'success');
+    loadProperties();
+  } catch (err) {
+    toast(err.message, 3000, 'error');
+  }
+}
 
-  // ปุ่มเพิ่มบ้าน
-  addPropertyBtn?.addEventListener('click', () => {
-    propertyForm?.reset();
-    if (propertyForm?.elements.id) propertyForm.elements.id.value = '';
-    poiCandidatesInline = [];
-    renderPOIInlineList();
+// ================== Modal ==================
+function openModal() {
+    if (!propertyModal) return;
+    propertyModal.classList.add('open');
+  }
+function closeModal() {
+    if (!propertyModal) return;
+    propertyModal.classList.remove('open');
+
+    if (propertyForm) {
+      propertyForm.reset();
+      if (propertyForm.elements.id) propertyForm.elements.id.value = '';
+    }
+
+    const poiList = document.getElementById('poi-candidate-list');
+    if (poiList) poiList.innerHTML = '';
+
+    // reset รูป / youtube ทุกครั้งที่ปิด
     currentGallery = [];
     renderGalleryPreview();
     currentYoutube = [];
     renderYoutubeList();
-    openModal();
-    setTimeout(() => setupModalMap(), 80);
-  });
 
-  // ฟอร์มบันทึก
-  propertyForm?.addEventListener('submit', handleSubmit);
+    // เคลียร์ฟอร์ม manual POI
+    const nameInput = document.getElementById('poi-name-input');
+    const typeInput = document.getElementById('poi-type-input');
+    const distInput = document.getElementById('poi-distance-input');
+    const latInput = document.getElementById('poi-lat-input');
+    const lngInput = document.getElementById('poi-lng-input');
+    if (nameInput) nameInput.value = '';
+    if (typeInput) typeInput.value = '';
+    if (distInput) distInput.value = '';
+    if (latInput) latInput.value = '';
+    if (lngInput) lngInput.value = '';
+  }
 
-  // === อัปโหลดรูปหน้าปก / แกลลอรี่ ===
-  const coverInput = document.getElementById('cover-upload');
-  if (coverInput) {
-    coverInput.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        toast('กำลังอัปโหลดรูปหน้าปก...', 2000, 'info');
-        const url = await uploadToCloudinary(file);
-        currentGallery = [url, ...currentGallery];
-        renderGalleryPreview();
-        toast('อัปโหลดรูปหน้าปกสำเร็จ', 2000, 'success');
-      } catch (err) {
-        console.error(err);
-        toast(err.message, 3000, 'error');
-      } finally {
-        coverInput.value = '';
+function installModalCloseHandlers() {
+    document.querySelectorAll('#property-modal .modal-close').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeModal();
+      });
+    });
+    document.querySelectorAll('#property-modal .modal-cancel, #property-modal .btn-cancel').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      });
+    });
+    window.addEventListener('click', (e) => {
+      if (e.target === propertyModal) {
+        closeModal();
       }
     });
   }
 
-  const galleryInput = document.getElementById('gallery-upload');
-  if (galleryInput) {
-    galleryInput.addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files || []);
-      if (!files.length) return;
-      for (const file of files) {
+// ================== เติมฟอร์มตอนแก้ไข ==================
+function fillFormFromProperty(p = {}) {
+    if (!propertyForm) return;
+    const keys = [
+      'id', 'title', 'slug', 'price', 'size_text', 'beds', 'baths',
+      'parking', 'district', 'province', 'status', 'address',
+      'latitude', 'longitude'
+    ];
+    keys.forEach(k => {
+      if (propertyForm.elements[k] !== undefined) {
+        propertyForm.elements[k].value = p[k] ?? '';
+      }
+    });
+    if (propertyForm.elements.published) {
+      propertyForm.elements.published.checked = !!p.published;
+    }
+
+    // ✅ ถ้ามีรูปเก่า โหลดมาให้
+    currentGallery = Array.isArray(p.gallery)
+      ? p.gallery
+      : (typeof p.gallery === 'string' && p.gallery.startsWith('[')
+        ? JSON.parse(p.gallery)
+        : (p.cover_url ? [p.cover_url] : [])
+      );
+    renderGalleryPreview();
+
+    // ✅ ถ้ามี youtube เก่า โหลดมาให้
+    if (Array.isArray(p.youtube_video_ids)) {
+      currentYoutube = p.youtube_video_ids;
+    } else if (typeof p.youtube_video_ids === 'string' && p.youtube_video_ids.startsWith('[')) {
+      try {
+        currentYoutube = JSON.parse(p.youtube_video_ids);
+      } catch {
+        currentYoutube = [];
+      }
+    } else {
+      currentYoutube = [];
+    }
+    renderYoutubeList();
+  }
+
+// ================== โหลดรายการประกาศ ==================
+async function loadProperties(query = '') {
+    const tbody = document.querySelector('#properties-table tbody');
+    clear(tbody);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>';
+
+    try {
+      const filters = {};
+      if (query) filters.q = query;
+      const { data, error } = await listAll(filters);
+      if (error) throw error;
+
+      clear(tbody);
+      if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ไม่มีข้อมูล</td></tr>';
+        return;
+      }
+
+      data.forEach(p => {
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+        <td data-label="หัวข้อ">${p.title || '-'}</td>
+        <td data-label="ราคา">${formatPrice(Number(p.price) || 0)}</td>
+        <td data-label="สถานะ">${p.published ? '✅' : '❌'}</td>
+        <td data-label="อัปเดตล่าสุด">${p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-'}</td>
+        <td data-label="จัดการ">
+          <button class="btn btn-secondary btn-sm edit-btn">แก้ไข</button>
+          <button class="btn btn-danger btn-sm delete-btn">ลบ</button>
+        </td>
+      `;
+
+        tr.querySelector('.edit-btn').addEventListener('click', async () => {
+          openModal();
+          fillFormFromProperty(p);
+          setTimeout(() => setupModalMap(p.latitude, p.longitude), 80);
+          await loadPoisForProperty(p.id, p.latitude, p.longitude);
+        });
+
+        tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(p.id, p.title));
+
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error(err);
+      tbody.innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">โหลดไม่สำเร็จ</td></tr>';
+    }
+  }
+
+// ================== Init ==================
+document.addEventListener('DOMContentLoaded', async () => {
+    await protectPage();
+    setupNav();
+    setupMobileNav();
+    await signOutIfAny();
+
+    installModalCloseHandlers();
+    setupPoiManualForm();   // ✅ ผูกฟอร์มเพิ่มสถานที่ใกล้เคียง
+
+    // ปุ่มเพิ่มบ้าน
+    addPropertyBtn?.addEventListener('click', () => {
+      propertyForm?.reset();
+      if (propertyForm?.elements.id) propertyForm.elements.id.value = '';
+      poiCandidatesInline = [];
+      renderPOIInlineList();
+      currentGallery = [];
+      renderGalleryPreview();
+      currentYoutube = [];
+      renderYoutubeList();
+      openModal();
+      setTimeout(() => setupModalMap(), 80);
+    });
+
+    // ฟอร์มบันทึก
+    propertyForm?.addEventListener('submit', handleSubmit);
+
+    // === อัปโหลดรูปหน้าปก / แกลลอรี่ ===
+    const coverInput = document.getElementById('cover-upload');
+    if (coverInput) {
+      coverInput.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
         try {
-          toast(`กำลังอัปโหลด ${file.name} ...`, 1500, 'info');
+          toast('กำลังอัปโหลดรูปหน้าปก...', 2000, 'info');
           const url = await uploadToCloudinary(file);
-          currentGallery.push(url);
+          currentGallery = [url, ...currentGallery];
           renderGalleryPreview();
+          toast('อัปโหลดรูปหน้าปกสำเร็จ', 2000, 'success');
         } catch (err) {
           console.error(err);
-          toast('อัปโหลดบางไฟล์ไม่สำเร็จ: ' + err.message, 3000, 'error');
+          toast(err.message, 3000, 'error');
+        } finally {
+          coverInput.value = '';
         }
-      }
-      galleryInput.value = '';
-      toast('อัปโหลดรูปแกลลอรี่สำเร็จ', 2000, 'success');
-    });
-  }
+      });
+    }
 
-  // === YouTube ===
-  const ytInput = document.getElementById('youtube-input');
-  const ytAddBtn = document.getElementById('youtube-add-btn');
-  if (ytAddBtn && ytInput) {
-    ytAddBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const val = normalizeYoutubeIdOrUrl(ytInput.value);
-      if (!val) return;
-      currentYoutube.push(val);
-      ytInput.value = '';
-      renderYoutubeList();
-    });
-  }
+    const galleryInput = document.getElementById('gallery-upload');
+    if (galleryInput) {
+      galleryInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        for (const file of files) {
+          try {
+            toast(`กำลังอัปโหลด ${file.name} ...`, 1500, 'info');
+            const url = await uploadToCloudinary(file);
+            currentGallery.push(url);
+            renderGalleryPreview();
+          } catch (err) {
+            console.error(err);
+            toast('อัปโหลดบางไฟล์ไม่สำเร็จ: ' + err.message, 3000, 'error');
+          }
+        }
+        galleryInput.value = '';
+        toast('อัปโหลดรูปแกลลอรี่สำเร็จ', 2000, 'success');
+      });
+    }
 
-  await loadProperties();
-});
+    // === YouTube ===
+    const ytInput = document.getElementById('youtube-input');
+    const ytAddBtn = document.getElementById('youtube-add-btn');
+    if (ytAddBtn && ytInput) {
+      ytAddBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const val = normalizeYoutubeIdOrUrl(ytInput.value);
+        if (!val) return;
+        currentYoutube.push(val);
+        ytInput.value = '';
+        renderYoutubeList();
+      });
+    }
+
+    // Search listener
+    const searchInput = document.getElementById('property-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          loadProperties(val);
+        }, 400);
+      });
+    }
+
+    await loadProperties();
+  });

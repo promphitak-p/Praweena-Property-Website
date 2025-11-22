@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <title>รายการบ้านสำหรับสมุดรีโนเวท - Praweena Property</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- CSS หลักที่ใช้อยู่แล้ว -->
-  <link rel="stylesheet" href="/assets/css/base.css" />
-  <link rel="stylesheet" href="/assets/css/layout.css" />
-  <link rel="stylesheet" href="/assets/css/components.css" />
-  <link rel="stylesheet" href="/assets/css/style.css" />
+<head>
+    <meta charset="UTF-8">
+    <title>รายการบ้านสำหรับสมุดรีโนเวท - Praweena Property</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- CSS หลักที่ใช้อยู่แล้ว -->
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
 
 <body data-page="renovation-book">
@@ -20,14 +21,14 @@
             <!-- หัวหน้าเพจ -->
             <header class="page-header">
                 <div>
-                <h1>รายการบ้านสำหรับสมุดรีโนเวท</h1>
-                <p>เลือกบ้านที่จะทำสมุดรีโนเวท หรือเพิ่มบ้านหลังใหม่เข้าระบบ</p>
+                    <h1>รายการบ้านสำหรับสมุดรีโนเวท</h1>
+                    <p>เลือกบ้านที่จะทำสมุดรีโนเวท หรือเพิ่มบ้านหลังใหม่เข้าระบบ</p>
                 </div>
 
                 <div class="page-header-actions">
-                <a href="/dashboard.html" class="btn btn-primary">
-                    + เพิ่มบ้านหลังใหม่
-                </a>
+                    <a href="/admin/dashboard.html" class="btn btn-primary">
+                        + เพิ่มบ้านหลังใหม่
+                    </a>
                 </div>
             </header>
 
@@ -36,12 +37,8 @@
                 <div class="card-body">
                     <div class="property-search-bar">
                         <div class="property-search-input-wrap">
-                            <input
-                                id="property-search"
-                                type="search"
-                                placeholder="ค้นหาจาก ชื่อบ้าน, ซอย, โค้ดบ้าน, อำเภอ..."
-                                autocomplete="off"
-                            />
+                            <input id="property-search" type="search"
+                                placeholder="ค้นหาจาก ชื่อบ้าน, ซอย, โค้ดบ้าน, อำเภอ..." autocomplete="off" />
                             <ul id="property-search-suggestions" class="property-search-suggestions"></ul>
                         </div>
 
@@ -59,21 +56,22 @@
             <!-- รายการบ้าน -->
             <section class="rb-property-list-section">
                 <div id="rb-property-list" class="rb-property-list-grid">
-                <!-- เติมด้วย JS -->
+                    <!-- เติมด้วย JS -->
                 </div>
             </section>
         </div>
 
         <!-- ปุ่มเลื่อนไปบนสุด -->
         <button id="scroll-to-top" class="scroll-to-top" type="button" aria-label="เลื่อนขึ้นด้านบน">
-        ↑
+            ↑
         </button>
     </main>
 
-  <!-- โหลด header -->
-  <script type="module" src="/js/layout/load-header.js"></script>
+    <!-- โหลด header -->
+    <script type="module" src="/js/layout/load-header.js"></script>
 
-  <!-- JS -->
-  <script type="module" src="/js/pages/renovation-book-list.page.js"></script>
+    <!-- JS -->
+    <script type="module" src="/js/pages/renovation-book-list.page.js"></script>
 </body>
+
 </html>

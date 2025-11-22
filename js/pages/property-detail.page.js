@@ -77,7 +77,7 @@ function setupLightbox(imageUrls) {
   function closeLightbox() { overlay.classList.remove('show'); }
 
   prevBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' }); });
-  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left:  gallery.offsetWidth, behavior: 'smooth' }); });
+  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: gallery.offsetWidth, behavior: 'smooth' }); });
   $('.lightbox-close').addEventListener('click', closeLightbox);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
 
@@ -97,7 +97,7 @@ function parseYouTubeId(input) {
     if (m1) return m1[1];
     const m2 = u.pathname.match(/^\/shorts\/([a-zA-Z0-9_-]{11})/);
     if (m2) return m2[1];
-  } catch {}
+  } catch { }
   return '';
 }
 function collectYoutubeValues(p) {
@@ -173,8 +173,8 @@ async function handleLeadSubmit(e) {
   leadSubmitting = true;
 
   const form = e.target;
-  const btn  = form.querySelector('button[type=submit]');
-  const old  = btn.textContent;
+  const btn = form.querySelector('button[type=submit]');
+  const old = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'กำลังส่ง...';
 
@@ -244,13 +244,13 @@ async function renderPropertyDetails(property) {
   const grid = el('div', { className: 'grid grid-cols-3', style: 'gap:2rem;align-items:flex-start;' });
   if (window.innerWidth < 1024) grid.style.display = 'block';
 
-  const leftCol  = el('div', { className: 'col-span-2' });
+  const leftCol = el('div', { className: 'col-span-2' });
   const rightCol = el('div', { className: 'col-span-1' });
 
   // ===== Gallery =====
-  const galleryWrapper    = el('div', { className: 'gallery-wrapper' });
-  const galleryContainer  = el('div', { className: 'image-gallery' });
-  const thumbnailContainer= el('div', { className: 'thumbnail-container' });
+  const galleryWrapper = el('div', { className: 'gallery-wrapper' });
+  const galleryContainer = el('div', { className: 'image-gallery' });
+  const thumbnailContainer = el('div', { className: 'thumbnail-container' });
 
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
   if (!allImages.length) allImages.push('/assets/img/placeholder.jpg');
@@ -276,16 +276,16 @@ async function renderPropertyDetails(property) {
     const prevBtn = el('button', { className: 'gallery-nav prev', textContent: '‹' });
     const nextBtn = el('button', { className: 'gallery-nav next', textContent: '›' });
     prevBtn.addEventListener('click', () => galleryContainer.scrollBy({ left: -galleryContainer.offsetWidth, behavior: 'smooth' }));
-    nextBtn.addEventListener('click', () => galleryContainer.scrollBy({ left:  galleryContainer.offsetWidth, behavior: 'smooth' }));
+    nextBtn.addEventListener('click', () => galleryContainer.scrollBy({ left: galleryContainer.offsetWidth, behavior: 'smooth' }));
     galleryWrapper.append(prevBtn, nextBtn);
   }
   galleryWrapper.prepend(galleryContainer);
 
   // Text
-  const title   = el('h1', { textContent: property.title, style: 'margin-top:1.5rem;' });
-  const price   = el('h2', { textContent: formatPrice(property.price), style: 'color:var(--brand);margin-bottom:1rem;' });
-  const address = el('p',  { textContent: `ที่อยู่: ${property.address || 'N/A'}, ${property.district}, ${property.province}` });
-  const details = el('p',  { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
+  const title = el('h1', { textContent: property.title, style: 'margin-top:1.5rem;' });
+  const price = el('h2', { textContent: formatPrice(property.price), style: 'color:var(--brand);margin-bottom:1rem;' });
+  const address = el('p', { textContent: `ที่อยู่: ${property.address || 'N/A'}, ${property.district}, ${property.province}` });
+  const details = el('p', { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
 
   leftCol.append(galleryWrapper, thumbnailContainer, title, price, address, details);
 
@@ -300,7 +300,7 @@ async function renderPropertyDetails(property) {
   const lat = Number(latRaw);
   const lng = Number(lngRaw);
 
-  const mapWrap  = el('section', { style: 'margin-top:1.5rem;' });
+  const mapWrap = el('section', { style: 'margin-top:1.5rem;' });
   const mapTitle = el('h3', { textContent: 'ตำแหน่งแผนที่และสถานที่ใกล้เคียง', style: 'margin-bottom:.75rem;' });
   leftCol.append(mapWrap);
   mapWrap.append(mapTitle);
@@ -317,9 +317,9 @@ async function renderPropertyDetails(property) {
 
     // ลิงก์เปิด Google Maps
     const openInGmaps = el('a', {
-      attributes:{ href:`https://www.google.com/maps?q=${lat},${lng}`, target:'_blank', rel:'noopener' },
-      textContent:'🗺️ เปิดใน Google Maps',
-      style:'display:inline-block;margin-top:.5rem;color:#2563eb;'
+      attributes: { href: `https://www.google.com/maps?q=${lat},${lng}`, target: '_blank', rel: 'noopener' },
+      textContent: '🗺️ เปิดใน Google Maps',
+      style: 'display:inline-block;margin-top:.5rem;color:#2563eb;'
     });
     mapWrap.append(openInGmaps);
 
@@ -386,7 +386,7 @@ async function renderPropertyDetails(property) {
 
           const maxShow = 6;
           const first = pois.slice(0, maxShow);
-          const rest  = pois.slice(maxShow);
+          const rest = pois.slice(maxShow);
           const ul = document.createElement('ul');
           ul.style.cssText = 'list-style:none;padding:0;margin:0';
 
@@ -469,15 +469,15 @@ async function renderPropertyDetails(property) {
   shareBox.innerHTML = `<p style="font-weight:600;margin-bottom:.5rem;">แชร์ประกาศนี้</p>`;
 
   const currentUrl = window.location.href;
-  const headline   = `บ้านสวยทำเลดี : ${property.title}`;
-  const shareText  = `${headline}\nราคา ${formatPrice(property.price)}\n${currentUrl}`;
-  const isMobile   = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const headline = `บ้านสวยทำเลดี : ${property.title}`;
+  const shareText = `${headline}\nราคา ${formatPrice(property.price)}\n${currentUrl}`;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   const messengerAppUrl = `fb-messenger://share?link=${encodeURIComponent(currentUrl)}`;
   const messengerWebUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(currentUrl)}&app_id=YOUR_APP_ID&redirect_uri=${encodeURIComponent(currentUrl)}`;
-  const lineUrl     = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
+  const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
-  const twitterUrl  = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(headline)}`;
+  const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(headline)}`;
 
   function makeShareBtn({ href, label, svg, extraStyle = '' }) {
     const a = el('a', {
@@ -495,10 +495,10 @@ async function renderPropertyDetails(property) {
     href: lineUrl, label: 'LINE',
     svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#06C755" xmlns="http://www.w3.org/2000/svg"><path d="M20.666 10.08c0-3.63-3.46-6.58-7.733-6.58-4.273 0-7.733 2.95-7.733 6.58 0 3.25 2.934 5.96 6.836 6.5.267.058.630.178.720.408.082.213.054.545.026.758l-.115.7c-.035.213-.17.84.74.458 3.512-1.46 5.68-3.997 5.68-7.824z"/></svg>`
   }));
-shareBox.appendChild(makeShareBtn({
-  href: facebookUrl, label: 'Facebook',
-  svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
-}));
+  shareBox.appendChild(makeShareBtn({
+    href: facebookUrl, label: 'Facebook',
+    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
+  }));
 
   shareBox.appendChild(makeShareBtn({
     href: twitterUrl, label: 'X / Twitter',
@@ -537,8 +537,8 @@ shareBox.appendChild(makeShareBtn({
   formCard.append(formHd, form);
 
   // mount share widget + custom share
-  rightCol.append(shareWrap);
-  renderShareBar(shareWrap, { title: `${property.title} | ราคา ${formatPrice(property.price)} บาท`, url: window.location.href, image: property.cover_url });
+  // rightCol.append(shareWrap); // Removed duplicate share bar
+  // renderShareBar(shareWrap, { title: `${property.title} | ราคา ${formatPrice(property.price)} บาท`, url: window.location.href, image: property.cover_url });
   rightCol.append(shareBox);
 
   // ผ่อนประมาณ

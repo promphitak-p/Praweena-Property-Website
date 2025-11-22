@@ -25,7 +25,7 @@ loginForm.addEventListener('submit', async (e) => {
     loginError.style.display = 'block';
   } else {
     toast('เข้าสู่ระบบสำเร็จ!', 2000, 'success');
-    window.location.href = '/dashboard.html';
+    window.location.href = '/admin.html';
   }
 });
 
@@ -46,19 +46,19 @@ registerForm.addEventListener('submit', async (e) => {
 
 // จัดการการรีเซ็ตรหัสผ่าน
 resetForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const { email } = getFormData(resetForm);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin, // URL ที่จะกลับมาหลังรีเซ็ตรหัสผ่าน
-    });
+  e.preventDefault();
+  const { email } = getFormData(resetForm);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin, // URL ที่จะกลับมาหลังรีเซ็ตรหัสผ่าน
+  });
 
-    if (error) {
-        resetError.textContent = error.message;
-        resetError.style.display = 'block';
-    } else {
-        toast('ส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปที่อีเมลแล้ว', 5000, 'success');
-        resetForm.reset();
-    }
+  if (error) {
+    resetError.textContent = error.message;
+    resetError.style.display = 'block';
+  } else {
+    toast('ส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปที่อีเมลแล้ว', 5000, 'success');
+    resetForm.reset();
+  }
 });
 
 // --- UI Toggling ---
