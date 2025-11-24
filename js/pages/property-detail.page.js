@@ -249,6 +249,14 @@ async function renderPropertyDetails(property) {
   const galleryWrapper = el('div', { className: 'detail-card detail-hero' });
   const galleryContainer = el('div', { className: 'image-gallery detail-hero-main' });
   const thumbnailContainer = el('div', { className: 'thumbnail-container detail-thumbs' });
+  const heroOverlay = el('div', { className: 'hero-overlay' });
+  heroOverlay.innerHTML = `
+    <div class="hero-overlay-text">
+      <strong>Praweena Property</strong><br>
+      <span>บ้านรีโนเวททำเลดี คุ้มค่าเกินราคา</span>
+    </div>
+  `;
+  galleryWrapper.append(heroOverlay);
 
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
   if (!allImages.length) allImages.push('/assets/img/placeholder.jpg');
