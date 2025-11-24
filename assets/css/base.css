@@ -39,9 +39,9 @@
   --text: #1f1f1f;
   --text-light: #666;
 
-  --radius: 16px;
-  --radius-sm: 8px;
-  --radius-lg: 20px;
+  --radius: 6px;
+  --radius-sm: 6px;
+  --radius-lg: 6px;
 
   --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
   --shadow-md: 0 6px 12px rgba(0,0,0,0.08);
@@ -255,6 +255,11 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--shadow-md);
 }
 
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.95rem;
+}
+
 .btn-secondary {
   background: #fff;
   color: var(--gold-3);
@@ -272,25 +277,55 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 0 0 3px rgba(169,139,87,.2);
 }
 
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  background: #f4f1ea;
+  color: #7a6233;
+  border-radius: 999px;
+  font-weight: 600;
+  border: 1px solid rgba(169,139,87,0.25);
+  font-size: 0.95rem;
+}
+
+.pill-outline {
+  background: transparent;
+  border-style: dashed;
+}
+
+.eyebrow {
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: #8b6c31;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 /* ===============================
    Forms
    =============================== */
-.form-group { margin-bottom:1.25rem; }
+.form-group { margin-bottom:0; }
+.lead-form .form-group { margin-bottom: 0; }
 
 .form-group label { color:var(--text-light); margin-bottom:.4rem; display:block; }
 
 .form-control {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
+  width: 95%;
+  padding: 0.5rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
   font-size: 1rem;
+  background: #f8fafc;
+  margin: .5rem;
 }
 
 .form-control:focus {
   outline: none;
   border-color: var(--gold-3);
-  box-shadow: 0 0 0 3px rgba(169,139,87,.2);
+  box-shadow: 0 0 0 2px rgba(169,139,87,.2);
+  background: #fff;
 }
 
 /* ===============================
@@ -298,10 +333,12 @@ img { max-width: 100%; display: block; }
    =============================== */
 
 .card {
-  background:var(--surface);
-  border-radius:var(--radius);
-  border:1px solid var(--silver-1);
+  background:#fffff7;
+  border-radius:6px;
+  border:1px solid #fff;
+  overflow:hidden;
   box-shadow:var(--shadow-sm);
+  margin-top:1rem;
 }
 
 .card-header h2 {

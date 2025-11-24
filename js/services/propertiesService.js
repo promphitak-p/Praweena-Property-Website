@@ -19,6 +19,19 @@ export async function listPublic(filters = {}) {
 
   if (filters.q) query = query.ilike('title', `%${filters.q}%`);
   if (filters.district) query = query.eq('district', filters.district);
+
+  const minRaw = filters.price_min;
+  const maxRaw = filters.price_max;
+
+  if (minRaw !== undefined && minRaw !== null && minRaw !== '') {
+    const min = Number(minRaw);
+    if (Number.isFinite(min)) query = query.gte('price', min);
+  }
+
+  if (maxRaw !== undefined && maxRaw !== null && maxRaw !== '') {
+    const max = Number(maxRaw);
+    if (Number.isFinite(max)) query = query.lte('price', max);
+  }
   return await query;
 }
 

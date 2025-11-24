@@ -116,26 +116,26 @@ function collectYoutubeValues(p) {
 }
 function renderYouTubeGallery(videoIds = []) {
   if (!videoIds.length) return null;
-  const wrap = el('section', { style: 'margin-top:1.5rem;' });
-  const heading = el('h3', { textContent: 'วิดีโอแนะนำ', style: 'margin-bottom:.75rem;' });
-  const list = el('div', { id: 'youtube-gallery' });
+  const wrap = el('section', { className: 'detail-card', style: 'padding:1rem;' });
+  const heading = el('h3', { textContent: 'วิดีโอแนะนำ', style: 'margin:0 0 .75rem 0;' });
+  const list = el('div', { id: 'youtube-gallery', className: 'youtube-grid' });
 
   videoIds.forEach((id) => {
     const thumbUrl = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-    const card = el('div', { style: 'position:relative;margin-bottom:1rem;border-radius:12px;overflow:hidden;cursor:pointer;' });
-    const img = el('img', { attributes: { src: thumbUrl, alt: `YouTube: ${id}`, loading: 'lazy' }, style: 'width:100%;display:block;' });
-    const play = el('div', { style: 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);' });
-    play.innerHTML = `<svg width="72" height="72" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
+    const card = el('div', { className: 'youtube-card' });
+    const img = el('img', { attributes: { src: thumbUrl, alt: `YouTube: ${id}`, loading: 'lazy' } });
+    const play = el('div', { className: 'youtube-play' });
+    play.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>`;
     card.append(img, play);
     card.addEventListener('click', () => {
       const iframe = el('iframe', {
         attributes: {
           src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`,
-          width: '100%', height: '400', frameborder: '0',
           allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
-          allowfullscreen: true, title: `YouTube video ${id}`
+          allowfullscreen: true,
+          title: `YouTube video ${id}`
         },
-        style: 'width:100%;height:400px;border:0;border-radius:12px;'
+        className: 'youtube-embed'
       });
       card.replaceWith(iframe);
     }, { once: true });
@@ -241,16 +241,14 @@ async function renderPropertyDetails(property) {
   clear(container);
 
   // layout
-  const grid = el('div', { className: 'grid grid-cols-3', style: 'gap:2rem;align-items:flex-start;' });
-  if (window.innerWidth < 1024) grid.style.display = 'block';
-
-  const leftCol = el('div', { className: 'col-span-2' });
-  const rightCol = el('div', { className: 'col-span-1' });
+  const grid = el('div', { className: 'detail-layout' });
+  const leftCol = el('div', { className: 'detail-main' });
+  const rightCol = el('aside', { className: 'detail-sidebar' });
 
   // ===== Gallery =====
-  const galleryWrapper = el('div', { className: 'gallery-wrapper' });
-  const galleryContainer = el('div', { className: 'image-gallery' });
-  const thumbnailContainer = el('div', { className: 'thumbnail-container' });
+  const galleryWrapper = el('div', { className: 'detail-card detail-hero' });
+  const galleryContainer = el('div', { className: 'image-gallery detail-hero-main' });
+  const thumbnailContainer = el('div', { className: 'thumbnail-container detail-thumbs' });
 
   const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
   if (!allImages.length) allImages.push('/assets/img/placeholder.jpg');
@@ -281,13 +279,23 @@ async function renderPropertyDetails(property) {
   }
   galleryWrapper.prepend(galleryContainer);
 
-  // Text
-  const title = el('h1', { textContent: property.title, style: 'margin-top:1.5rem;' });
-  const price = el('h2', { textContent: formatPrice(property.price), style: 'color:var(--brand);margin-bottom:1rem;' });
-  const address = el('p', { textContent: `ที่อยู่: ${property.address || 'N/A'}, ${property.district}, ${property.province}` });
-  const details = el('p', { textContent: `ขนาด: ${property.size_text || 'N/A'} | ${property.beds} ห้องนอน | ${property.baths} ห้องน้ำ | ${property.parking} ที่จอดรถ` });
+  // Text/info card
+  const infoCard = el('div', { className: 'detail-card detail-hero-info' });
+  const title = el('h1', { className: 'detail-title', textContent: property.title, });
+  const price = el('h2', { className: 'detail-price', textContent: formatPrice(property.price) });
+  const address = el('p', { className: 'detail-address', textContent: `${property.address || ''} ${property.district || ''} ${property.province || ''}`.trim() });
 
-  leftCol.append(galleryWrapper, thumbnailContainer, title, price, address, details);
+  const specsRow = el('div', { className: 'detail-meta-row' });
+  const specs = [
+    property.size_text || '',
+    property.beds ? `${property.beds} ห้องนอน` : '',
+    property.baths ? `${property.baths} ห้องน้ำ` : '',
+    property.parking ? `${property.parking} ที่จอดรถ` : ''
+  ].filter(Boolean);
+  specs.forEach(txt => specsRow.append(el('span', { className: 'meta-chip', textContent: txt })));
+
+  infoCard.append(title, address, price, specsRow);
+  leftCol.append(infoCard, galleryWrapper, thumbnailContainer);
 
   // YouTube
   const ytIds = collectYoutubeValues(property).map(parseYouTubeId).filter(Boolean);
@@ -300,8 +308,8 @@ async function renderPropertyDetails(property) {
   const lat = Number(latRaw);
   const lng = Number(lngRaw);
 
-  const mapWrap = el('section', { style: 'margin-top:1.5rem;' });
-  const mapTitle = el('h3', { textContent: 'ตำแหน่งแผนที่และสถานที่ใกล้เคียง', style: 'margin-bottom:.75rem;' });
+  const mapWrap = el('section', { className: 'detail-card' });
+  const mapTitle = el('h3', { className: 'detail-section-title', textContent: 'ตำแหน่งแผนที่และสถานที่ใกล้เคียง' });
   leftCol.append(mapWrap);
   mapWrap.append(mapTitle);
 
@@ -312,7 +320,7 @@ async function renderPropertyDetails(property) {
     }));
   } else {
     const mapId = 'map-' + (property.id || 'detail');
-    const mapEl = el('div', { attributes: { id: mapId }, style: `width:100%;height:${getResponsiveMapHeight()}px;border-radius:12px;overflow:hidden;background:#f3f4f6;` });
+    const mapEl = el('div', { attributes: { id: mapId }, className: 'detail-map' });
     mapWrap.append(mapEl);
 
     // ลิงก์เปิด Google Maps
@@ -466,7 +474,6 @@ async function renderPropertyDetails(property) {
 
   // ===== SHARE + FORM + PAYCALC =====
   const shareBox = el('div', { className: 'share-buttons' });
-  shareBox.innerHTML = `<p style="font-weight:600;margin-bottom:.5rem;">แชร์ประกาศนี้</p>`;
 
   const currentUrl = window.location.href;
   const headline = `บ้านสวยทำเลดี : ${property.title}`;
@@ -481,10 +488,10 @@ async function renderPropertyDetails(property) {
 
   function makeShareBtn({ href, label, svg, extraStyle = '' }) {
     const a = el('a', {
-      attributes: { href, target: '_blank', rel: 'noopener' },
-      style: `display:inline-flex;align-items:center;gap:.4rem;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:9999px;padding:.35rem .8rem;font-size:.8rem;text-decoration:none;color:#111827;margin-right:.4rem;${extraStyle}`
+      attributes: { href, target: '_blank', rel: 'noopener', title: label },
+      style: `display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#f3f4f6;border:1px solid #e5e7eb;text-decoration:none;color:#111827;${extraStyle}`
     });
-    a.innerHTML = `${svg}<span>${label}</span>`;
+    a.innerHTML = `${svg}`;
     return a;
   }
   shareBox.appendChild(makeShareBtn({
@@ -516,10 +523,8 @@ async function renderPropertyDetails(property) {
   });
   shareBox.appendChild(copyBtn);
 
-  const shareWrap = el('div', { id: 'share-bar' });
-
   // ===== Lead form =====
-  const formCard = el('div', { style: 'background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 5px 20px rgba(15,23,42,0.08);margin-top:1.5rem;' });
+  const formCard = el('div', { className: 'detail-card' });
   const formHd = el('h3', { textContent: 'สนใจนัดชม / สอบถามข้อมูล' });
   const form = el('form', { attributes: { id: 'lead-form' } });
   form.innerHTML = `
@@ -537,12 +542,15 @@ async function renderPropertyDetails(property) {
   formCard.append(formHd, form);
 
   // mount share widget + custom share
-  // rightCol.append(shareWrap); // Removed duplicate share bar
-  // renderShareBar(shareWrap, { title: `${property.title} | ราคา ${formatPrice(property.price)} บาท`, url: window.location.href, image: property.cover_url });
-  rightCol.append(shareBox);
+  const shareCard = el('div', { className: 'detail-card share-card' });
+  shareCard.append(
+    el('h4', { className: 'share-title', textContent: 'แชร์ประกาศนี้' }),
+    shareBox
+  );
+  rightCol.append(shareCard);
 
   // ผ่อนประมาณ
-  const calcWrap = el('div', { id: 'paycalc', style: 'margin-top:1rem;' });
+  const calcWrap = el('div', { id: 'paycalc', className: 'detail-card' });
   rightCol.append(calcWrap);
   mountPayCalc(calcWrap, { price: Number(property.price) || 0 });
 

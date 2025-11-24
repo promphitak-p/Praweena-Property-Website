@@ -1,133 +1,319 @@
 // js/pages/index.page.js
-import { setupMobileNav } from '../ui/mobileNav.js'; // <-- 1. Import เข้ามา
+import { setupMobileNav } from '../ui/mobileNav.js';
 import { listPublic } from '../services/propertiesService.js';
+import { createLead } from '../services/leadsService.js';
 import { el, $, clear } from '../ui/dom.js';
 import { formatPrice } from '../utils/format.js';
 import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
+import { getFormData } from '../ui/forms.js';
+import { toast } from '../ui/toast.js';
+
+let heroTimer = null;
+let heroSlides = [];
+let heroActiveIndex = 0;
 
 /**
- * สร้างการ์ดแสดงข้อมูลอสังหาฯ (Property Card)
- * @param {object} property - ข้อมูลอสังหาฯ
- * @returns {HTMLElement} - Element ของการ์ด
+ * สร้าง badge สถานะรีโนเวท
  */
-function renderPropertyCard(property) {
-  const cardLink = el('a', {
-    className: 'property-card',
-    attributes: { href: `/property-detail.html?slug=${property.slug}` }
-  });
+function getStatusBadge(property = {}) {
+  const status = (property.status || '').toLowerCase();
+  if (status === 'sold') return { label: 'ขายแล้ว', className: 'status-sold' };
+  if (status === 'renovating' || status === 'progress') return { label: 'กำลังรีโนเวท', className: 'status-progress' };
+  return { label: 'รีโนเวทพร้อมขาย', className: 'status-renovated' };
+}
 
+/**
+ * ดึง highlights หลักของบ้าน
+ */
+function buildHighlights(property = {}) {
+  const highlights = [];
+  if (property.beds) highlights.push(`${property.beds} ห้องนอน`);
+  if (property.baths) highlights.push(`${property.baths} ห้องน้ำ`);
+  if (property.parking) highlights.push(`${property.parking} ที่จอด`);
+  if (property.size_text) highlights.push(property.size_text);
+  return highlights;
+}
+
+/**
+ * การ์ดแสดงข้อมูลอสังหาฯ
+ */
+function renderPropertyCard(property, opts = {}) {
+  const { variant = 'default', isNew = false } = opts;
+  const link = `/property-detail.html?slug=${property.slug}`;
+  const card = el('article', { className: `property-card ${variant === 'featured' ? 'property-card--featured' : ''}` });
+
+  const media = el('a', {
+    className: 'property-card__media',
+    attributes: { href: link }
+  });
   const image = el('img', {
     className: 'property-card__image',
     attributes: {
       src: property.cover_url || '/assets/img/placeholder.jpg',
       alt: property.title,
-      loading: 'lazy' // Lazy loading for performance
+      loading: 'lazy'
     }
   });
-
-  const body = el('div', { className: 'property-card__body' });
-  const title = el('h3', { className: 'property-card__title', textContent: property.title });
-  const address = el('p', { className: 'property-card__address', textContent: `${property.district}, ${property.province}` });
-  const price = el('div', { className: 'property-card__price', textContent: formatPrice(property.price) });
-
-// *** เพิ่มโค้ดส่วนนี้เข้าไป ***
-  // ถ้าสถานะเป็น 'sold' ให้สร้างป้ายแล้วแปะทับ
-  if (property.status === 'sold') {
-    const soldBadge = el('div', { className: 'sold-badge', textContent: 'ขายแล้ว' });
-    cardLink.append(soldBadge);
-
-    // (ทางเลือก) ทำให้การ์ดดูจางลงเล็กน้อย
-    cardLink.style.opacity = '0.7';
+  const badge = getStatusBadge(property);
+  media.append(image, el('div', { className: `property-badge ${badge.className}`, textContent: badge.label }));
+  if (isNew) {
+    media.append(el('div', { className: 'property-badge property-badge--new', textContent: 'เข้าใหม่' }));
   }
 
-  body.append(title, address, price);
-  cardLink.append(image, body);
+  const body = el('div', { className: 'property-card__body' });
+  const title = el('a', { className: 'property-card__title', textContent: property.title, attributes: { href: link } });
+  const locationText = [property.district, property.province].filter(Boolean).join(', ') || 'สุราษฎร์ธานี';
+  const address = el('p', { className: 'property-card__address', textContent: locationText });
+  const price = el('div', { className: 'property-card__price', textContent: formatPrice(property.price) });
 
-  return cardLink;
+  const metaRow = el('div', { className: 'property-card__meta-row' });
+  buildHighlights(property).forEach(txt => metaRow.append(el('span', { className: 'meta-chip', textContent: txt })));
+
+  const actionBar = el('div', { className: 'property-card__actions' });
+  const detailBtn = el('a', {
+    className: 'btn btn-primary btn-sm',
+    textContent: 'ดูรายละเอียด',
+    attributes: { href: link }
+  });
+  const reportBtn = el('button', {
+    className: 'btn btn-secondary btn-sm',
+    textContent: 'ขอดูรีพอร์ต',
+    attributes: {
+      type: 'button',
+      'data-interest': `ขอดูรีพอร์ตรีโนเวท: ${property.title}`,
+      'data-slug': property.slug
+    }
+  });
+  actionBar.append(detailBtn, reportBtn);
+
+  body.append(title, address, price, metaRow, actionBar);
+
+  card.append(media, body);
+  return card;
 }
 
 /**
  * โหลดและแสดงรายการอสังหาฯ
  */
 async function loadProperties() {
-  const grid = $('#property-grid');
+  const grid = $('#property-grid');
+  const featuredGrid = $('#featured-grid');
+  const featuredList = $('#featured-list');
+  if (!grid) {
+    console.error('Property grid container (#property-grid) not found. Check HTML ID.');
+    return;
+  }
 
-// NEW: เพิ่มการตรวจสอบความปลอดภัย: หากหา Container ไม่พบ ให้หยุดทำงาน
-  if (!grid) {
-    console.error('Property grid container (#property-grid) not found. Check HTML ID.');
-    return;
-  }
-  
-  // NEW: อ้างอิงถึง ID ฟอร์มใหม่
-  const heroForm = $('#hero-filter-form'); // ฟอร์มค้นหาหลัก
-  const advancedForm = $('#filter-form-advanced'); // ฟอร์มกรองละเอียด
+  const heroForm = $('#hero-filter-form');
+  const advancedForm = $('#filter-form-advanced');
 
-  clear(grid);
-  // --- แสดง Skeleton ก่อนโหลด ---
-  for (let i = 0; i < 6; i++) {
-    grid.append(renderSkeletonCard());
-  }
-  // ----------------------------
+  clear(grid);
+  if (featuredGrid) clear(featuredGrid);
+  if (featuredList) clear(featuredList);
+  for (let i = 0; i < 6; i++) grid.append(renderSkeletonCard());
+  if (featuredGrid) for (let i = 0; i < 3; i++) featuredGrid.append(renderSkeletonCard());
 
-  // [ชุดตัวกรองที่ถูกต้อง: ใช้ชุดนี้ชุดเดียว]
-  const filters = {
-    // Keyword (q) ดึงมาจากฟอร์มหลัก (heroForm)
-    q: heroForm?.elements.q.value || null,
-    
-    // NEW: ดึงค่าจากฟอร์มกรองละเอียด (advancedForm)
-    district: advancedForm?.elements.district.value || null,
-    type: advancedForm?.elements.type.value || null, // NEW!
-    price_min: advancedForm?.elements.price_min.value || null, // NEW!
-    price_max: advancedForm?.elements.price_max.value || null, // NEW!
-  };
+  const filters = {
+    q: heroForm?.elements.q.value || null,
+    district: advancedForm?.elements.district.value || null,
+    type: advancedForm?.elements.type.value || null,
+    price_min: advancedForm?.elements.price_min.value || null,
+    price_max: advancedForm?.elements.price_max.value || null,
+  };
 
   const { data, error } = await listPublic(filters);
 
   clear(grid);
+  if (featuredGrid) clear(featuredGrid);
   if (error) {
     console.error('Failed to load properties:', error);
     grid.append(el('p', { textContent: 'เกิดข้อผิดพลาดในการโหลดข้อมูล' }));
     return;
   }
 
-  if (data.length === 0) {
+  if (!data.length) {
     grid.append(el('p', { textContent: 'ไม่พบรายการที่ตรงกับเงื่อนไข' }));
     return;
   }
 
-  data.forEach(property => {
-    const card = renderPropertyCard(property);
-    grid.append(card);
+  renderHeroSlides(data.slice(0, 3));
+  renderFeaturedList(data.slice(0, 3));
+
+  const newCount = 4;
+  const newArrivals = data.slice(0, newCount);
+
+  // Featured/new arrivals (top 3-4)
+  if (featuredGrid) {
+    const featured = newArrivals.slice(0, 3);
+    if (!featured.length) {
+      featuredGrid.append(el('p', { textContent: 'กำลังเตรียมบ้านแนะนำ...' }));
+    } else {
+      featured.forEach(p => featuredGrid.append(renderPropertyCard(p, { variant: 'featured', isNew: true })));
+    }
+  }
+
+  data.forEach((property, idx) => {
+    grid.append(renderPropertyCard(property, { isNew: idx < newCount }));
   });
-  
 }
 
-// --- Main execution ---
-document.addEventListener('DOMContentLoaded', () => {
-  setupNav();
-  signOutIfAny();
-  setupMobileNav();
-  loadProperties(); // โหลดครั้งแรก
+function setupLeadForm() {
+  const form = $('#lead-callback-form');
+  if (!form) return;
 
-// 1. NEW: เพิ่ม event listener ให้ปุ่ม "กรองข้อมูล" (ID: advanced-filter-btn)
-const advancedFilterBtn = $('#advanced-filter-btn'); 
- if (advancedFilterBtn) { 
- advancedFilterBtn.addEventListener('click', (e) => {
- e.preventDefault();
- loadProperties(); // โหลดข้อมูลเมื่อกดปุ่มกรองเท่านั้น
- });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = form.querySelector('button[type=submit]');
+    const originalText = submitBtn?.textContent;
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'กำลังส่ง...'; }
+
+    try {
+      const payload = getFormData(form);
+      const noteParts = [];
+      if (payload.interest) noteParts.push(`สนใจ: ${payload.interest}`);
+      if (payload.budget) noteParts.push(`งบประมาณ: ${payload.budget}`);
+      const insert = {
+        name: payload.name || '',
+        phone: payload.phone || '',
+        note: noteParts.join(' | ') || 'ขอคำปรึกษารีโนเวท',
+        property_slug: payload.property_slug || ''
+      };
+
+      const { error } = await createLead(insert);
+      if (error) throw error;
+      toast('รับข้อมูลแล้ว ทีมจะติดต่อกลับ', 2800, 'success');
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      toast('ส่งข้อมูลไม่สำเร็จ ลองอีกครั้ง', 2600, 'error');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
+    }
+  });
 }
-    
- // 2. Hero Form (เมื่อกด Submit) - คงโค้ดเดิม
- const heroFormElement = $('#hero-filter-form');
- if (heroFormElement) { 
- heroFormElement.addEventListener('submit', (e) => {
- e.preventDefault(); 
- loadProperties(); 
- });
- }
-});
+
+function setupInterestPrefill() {
+  document.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-interest]');
+    if (!target) return;
+    const interest = target.getAttribute('data-interest') || '';
+    const slug = target.getAttribute('data-slug') || '';
+    const interestInput = $('#lead-property');
+    const slugInput = $('#lead-property-slug');
+    if (interestInput) interestInput.value = interest;
+    if (slugInput) slugInput.value = slug;
+
+    const leadSection = document.getElementById('lead-form');
+    if (leadSection) {
+      leadSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
+function renderHeroSlides(properties = []) {
+  const slider = document.getElementById('hero-slider');
+  const dotsWrap = document.getElementById('hero-slider-dots');
+  if (!slider || !dotsWrap) return;
+
+  clear(slider);
+  clear(dotsWrap);
+  heroSlides = properties.length ? properties : [{
+    title: 'บ้านรีโนเวททำเลดี',
+    district: 'สุราษฎร์ธานี',
+    province: 'สุราษฎร์ธานี',
+    price: 0,
+    cover_url: '/assets/img/hero-background.jpg',
+    slug: ''
+  }];
+
+  heroSlides.forEach((p, index) => {
+    const slide = el('div', { className: `hero-slide${index === 0 ? ' is-active' : ''}`, attributes: { 'data-index': index } });
+    const img = el('img', {
+      attributes: {
+        src: p.cover_url || '/assets/img/hero-background.jpg',
+        alt: p.title || 'บ้านรีโนเวท',
+        loading: 'lazy'
+      }
+    });
+    const caption = el('div', { className: 'hero-slide-caption' });
+    const loc = [p.district, p.province].filter(Boolean).join(', ');
+    caption.append(
+      el('p', { className: 'eyebrow', textContent: 'บ้านเข้าใหม่' }),
+      el('h1', { textContent: p.title || 'บ้านรีโนเวททำเลดี' }),
+      el('p', { className: 'hero-subtext', textContent: loc || 'สุราษฎร์ธานี' })
+    );
+    const metaRow = el('div', { className: 'hero-slide-meta' });
+    metaRow.append(el('span', { className: 'pill', textContent: formatPrice(p.price || 0) }));
+    caption.append(metaRow);
+    const ctas = el('div', { className: 'hero-ctas' });
+    ctas.append(
+      el('a', { className: 'btn btn-secondary btn-sm', textContent: 'ดูรายละเอียด', attributes: { href: p.slug ? `/property-detail.html?slug=${p.slug}` : '#listings' } }),
+      el('a', {
+        className: 'btn btn-primary btn-sm',
+        textContent: 'ขอรีพอร์ตรีโนเวท',
+        attributes: { href: '#lead-form', 'data-interest': `ขอดูรีพอร์ตรีโนเวท: ${p.title || ''}`, 'data-slug': p.slug || '' }
+      })
+    );
+    caption.append(ctas);
+    slide.append(img, caption);
+    slider.append(slide);
+
+    const dot = el('button', { className: `hero-dot${index === 0 ? ' is-active' : ''}`, attributes: { type: 'button', 'data-index': index } });
+    dot.addEventListener('click', () => setHeroSlide(index));
+    dotsWrap.append(dot);
+  });
+
+  heroActiveIndex = 0;
+  restartHeroTimer();
+}
+
+function renderFeaturedList(properties = []) {
+  const wrap = $('#featured-list');
+  if (!wrap) return;
+  clear(wrap);
+  if (!properties.length) {
+    wrap.append(el('p', { textContent: 'ยังไม่มีรายการ' }));
+    return;
+  }
+  properties.forEach((p) => {
+    const item = el('div', { className: 'featured-item' });
+    const thumb = el('img', {
+      className: 'featured-thumb',
+      attributes: { src: p.cover_url || '/assets/img/placeholder.jpg', alt: p.title || 'featured' }
+    });
+    const meta = el('div', { className: 'featured-meta' });
+    meta.append(
+      el('h4', { textContent: p.title || '-' }),
+      el('p', { textContent: formatPrice(p.price || 0) }),
+      el('p', { textContent: [p.district, p.province].filter(Boolean).join(', ') })
+    );
+    item.append(thumb, meta);
+    wrap.append(item);
+  });
+}
+
+function setHeroSlide(index) {
+  heroActiveIndex = index % heroSlides.length;
+  const slides = Array.from(document.querySelectorAll('.hero-slide'));
+  const dots = Array.from(document.querySelectorAll('.hero-dot'));
+  slides.forEach((s, i) => {
+    if (i === heroActiveIndex) s.classList.add('is-active'); else s.classList.remove('is-active');
+  });
+  dots.forEach((d, i) => {
+    if (i === heroActiveIndex) d.classList.add('is-active'); else d.classList.remove('is-active');
+  });
+  restartHeroTimer();
+}
+
+function restartHeroTimer() {
+  if (heroTimer) clearInterval(heroTimer);
+  if (heroSlides.length <= 1) return;
+  heroTimer = setInterval(() => {
+    heroActiveIndex = (heroActiveIndex + 1) % heroSlides.length;
+    setHeroSlide(heroActiveIndex);
+  }, 5000);
+}
 
 function renderSkeletonCard() {
   const card = el('div', { className: 'property-card' });
@@ -140,3 +326,42 @@ function renderSkeletonCard() {
   card.append(image, body);
   return card;
 }
+
+// --- Main execution ---
+document.addEventListener('DOMContentLoaded', () => {
+  setupNav();
+  signOutIfAny();
+  setupMobileNav();
+  setupLeadForm();
+  setupInterestPrefill();
+  loadProperties(); // โหลดครั้งแรก
+
+  const advancedFilterBtn = $('#advanced-filter-btn');
+  if (advancedFilterBtn) {
+    advancedFilterBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadProperties();
+    });
+  }
+
+  const heroFormElement = $('#hero-filter-form');
+  if (heroFormElement) {
+    heroFormElement.addEventListener('submit', (e) => {
+      e.preventDefault();
+      loadProperties();
+    });
+  }
+
+  // Sidebar quick type filter
+  document.querySelectorAll('.sidebar-list a').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const val = link.getAttribute('data-value') || '';
+      const typeSelect = $('#filter-type');
+      if (typeSelect) {
+        typeSelect.value = val;
+        loadProperties();
+      }
+    });
+  });
+});
