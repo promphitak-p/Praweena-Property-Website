@@ -386,12 +386,20 @@ async function renderPropertyDetails(property) {
     const poiListWrap = el('div', { id: 'poi-list-main', style: 'margin-top:1rem;' });
     mapWrap.append(poiListWrap);
 
-    const { data: pois = [] } = await supabase
-      .from('property_poi')
-      .select('name,type,distance_km,lat,lng')
-      .eq('property_id', property.id)
-      .order('distance_km', { ascending: true })
-      .limit(100);
+    let pois = [];
+    try {
+      const { data, error } = await supabase
+        .from('property_poi')
+        .select('name,type,distance_km,lat,lng')
+        .eq('property_id', property.id)
+        .order('distance_km', { ascending: true })
+        .limit(100);
+      if (error) throw error;
+      pois = data || [];
+    } catch (err) {
+      console.warn('Load POI failed, continue without POI', err);
+      pois = [];
+    }
 
     setTimeout(() => {
       try {
