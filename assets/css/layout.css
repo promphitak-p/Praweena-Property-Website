@@ -48,8 +48,9 @@ main {
 .property-grid {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
   align-items: stretch;
+  padding: 1rem 0;
 }
 
 /* Search strip under nav */
@@ -818,7 +819,7 @@ main {
 
 @media (max-width: 640px) {
   .hero {
-    padding: 2.5rem 0;
+    padding: 1rem 0;
   }
 
   .hero-copy h1 {
