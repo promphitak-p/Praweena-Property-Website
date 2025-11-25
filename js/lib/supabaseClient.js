@@ -1,12 +1,10 @@
-// ดึงค่า SUPABASE_URL และ SUPABASE_ANON_KEY จาก Environment Variables
-// ในตัวอย่างนี้ เราจะตั้งค่าให้มันอ่านจาก window object เพื่อความง่ายในการ deploy
-// บน Netlify/Vercel คุณต้องไปตั้งค่า Environment Variables ในหน้าตั้งค่าของเว็บ
 // js/lib/supabaseClient.js
+// อ่านค่า Supabase จาก config (ต้องตั้ง window.__SUPABASE = { url, anonKey } ก่อนโหลดสคริปต์)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js'; // <-- นำเข้าจากไฟล์ config
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error("Supabase URL and Anon Key are missing. Make sure to set them in your environment.");
+  throw new Error('Supabase URL and Anon Key are missing. Set window.__SUPABASE = { url, anonKey } before loading scripts.');
 }
 
 // สร้างและ export Supabase client

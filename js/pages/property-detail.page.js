@@ -30,6 +30,28 @@ let leadSubmitting = false;                // กันกดซ้ำขณะ�
 let __lastLeadSig = { sig: null, at: 0 };  // กันยิง LINE ซ้ำ 45s
 
 const container = $('#property-detail-container');
+const LEAD_TOKEN_KEY = 'lead_token_v1';
+const LEAD_LAST_TS_KEY = 'lead_last_ts';
+
+// Escape helper สำหรับ innerHTML
+function escapeHtml(input) {
+  return String(input ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Token helper สำหรับฟอร์ม lead
+function getLeadToken() {
+  let token = sessionStorage.getItem(LEAD_TOKEN_KEY);
+  if (!token) {
+    token = (crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
+    sessionStorage.setItem(LEAD_TOKEN_KEY, token);
+  }
+  return token;
+}
 
 // ============================ Utils ============================
 function getResponsiveMapHeight() {
@@ -170,6 +192,25 @@ function colorOf(t = '') {
 async function handleLeadSubmit(e) {
   e.preventDefault();
   if (leadSubmitting) return; // กันดับเบิลคลิก/ผูกซ้ำ
+  const now = Date.now();
+  const lastTs = Number(sessionStorage.getItem(LEAD_LAST_TS_KEY) || 0);
+  if (now - lastTs < 30000) {
+    toast('โปรดลองใหม่หลัง 30 วินาที', 2000, 'error');
+    return;
+  }
+
+  const hp = e.target.querySelector('input[name="website"]');
+  if (hp && hp.value.trim()) {
+    toast('ไม่สามารถส่งได้', 1500, 'error');
+    return;
+  }
+
+  const tokenVal = e.target.lead_token?.value || '';
+  if (tokenVal !== getLeadToken()) {
+    toast('เซสชันไม่ถูกต้อง กรุณารีเฟรชหน้า', 2500, 'error');
+    return;
+  }
+
   leadSubmitting = true;
 
   const form = e.target;
@@ -217,6 +258,9 @@ async function handleLeadSubmit(e) {
     console.error(err);
     toast('ส่งข้อมูลไม่สำเร็จ', 2500, 'error');
   } finally {
+    sessionStorage.setItem(LEAD_LAST_TS_KEY, String(now));
+    const tokenInput = form.querySelector('input[name="lead_token"]');
+    if (tokenInput) tokenInput.value = getLeadToken();
     leadSubmitting = false;
     btn.disabled = false;
     btn.textContent = old;
@@ -264,11 +308,11 @@ async function renderPropertyDetails(property) {
   const openLightbox = setupLightbox(allImages);
   const thumbEls = [];
   allImages.forEach((url, index) => {
-    const img = el('img', { className: 'gallery-image', attributes: { src: url, alt: 'Property image', loading: 'lazy' } });
+    const img = el('img', { className: 'gallery-image', attributes: { src: url, alt: 'Property image', loading: index === 0 ? 'eager' : 'lazy', fetchpriority: index === 0 ? 'high' : 'auto' } });
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
 
-    const thumb = el('img', { className: 'thumbnail-image', attributes: { src: url, alt: `Thumbnail ${index + 1}` } });
+    const thumb = el('img', { className: 'thumbnail-image', attributes: { src: url, alt: `Thumbnail ${index + 1}`, loading: 'lazy' } });
     thumb.addEventListener('click', () => galleryContainer.scrollTo({ left: galleryContainer.offsetWidth * index, behavior: 'smooth' }));
     thumbnailContainer.append(thumb);
     thumbEls.push(thumb);
@@ -414,8 +458,8 @@ async function renderPropertyDetails(property) {
             li.innerHTML = `
               <span style="font-size:1.1rem;">${iconOf(p.type)}</span>
               <span>
-                <strong>${p.name}</strong> — ${km} กม.
-                <span style="color:#6b7280;">(${p.type || 'poi'})</span>
+                <strong>${escapeHtml(p.name || '')}</strong> — ${escapeHtml(km)}
+                <span style="color:#6b7280;">(${escapeHtml(p.type || 'poi')})</span>
                 <button class="poi-nav-btn" data-i="${i}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
               </span>`;
             return li;
@@ -475,7 +519,9 @@ async function renderPropertyDetails(property) {
         });
       } catch (err) {
         console.warn('Leaflet fallback', err);
-        mapEl.innerHTML = `<iframe src="https://www.google.com/maps?q=${lat},${lng}&output=embed&z=15" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
+        const latSafe = encodeURIComponent(lat);
+        const lngSafe = encodeURIComponent(lng);
+        mapEl.innerHTML = `<iframe src="https://www.google.com/maps?q=${latSafe},${lngSafe}&output=embed&z=15" style="width:100%;height:100%;border:0;border-radius:12px;" loading="lazy"></iframe>`;
       }
     }, 0);
   }
@@ -536,8 +582,13 @@ async function renderPropertyDetails(property) {
   const formHd = el('h3', { textContent: 'สนใจนัดชม / สอบถามข้อมูล' });
   const form = el('form', { attributes: { id: 'lead-form' } });
   form.innerHTML = `
-    <input type="hidden" name="property_id" value="${property.id}">
-    <input type="hidden" name="property_slug" value="${property.slug || ''}">
+    <input type="hidden" name="property_id" value="${escapeHtml(property.id || '')}">
+    <input type="hidden" name="property_slug" value="${escapeHtml(property.slug || '')}">
+    <input type="hidden" name="lead_token" value="${escapeHtml(getLeadToken())}">
+    <div style="display:none;" aria-hidden="true">
+      <label>เว็บไซต์</label>
+      <input type="text" name="website" tabindex="-1" autocomplete="off">
+    </div>
     <div class="form-group"><label>ชื่อ</label><input name="name" required class="form-control"></div>
     <div class="form-group"><label>เบอร์โทร</label><input name="phone" required class="form-control" pattern="^0\\d{8,9}$"></div>
     <div class="form-group"><label>ข้อความเพิ่มเติม</label><textarea name="note" rows="3" class="form-control"></textarea></div>
@@ -660,10 +711,10 @@ async function loadRenovationBook(propertyId) {
             .join(' / ');
 
           tr.innerHTML = `
-            <td>${s.zone || ''}</td>
-            <td>${s.item_type || ''}</td>
-            <td>${material || '-'}</td>
-            <td>${s.note || ''}</td>
+            <td>${escapeHtml(s.zone || '')}</td>
+            <td>${escapeHtml(s.item_type || '')}</td>
+            <td>${escapeHtml(material || '-')}</td>
+            <td>${escapeHtml(s.note || '')}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -711,14 +762,14 @@ async function loadRenovationBook(propertyId) {
 
         links.forEach((link) => {
           const c = link.contractor || {};
-          const name = c.name || 'ทีมช่าง';
-          const trade = c.trade || '';
+          const name = escapeHtml(c.name || 'ทีมช่าง');
+          const trade = escapeHtml(c.trade || '');
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${name}</td>
             <td>${trade}</td>
-            <td>${link.scope || ''}</td>
+            <td>${escapeHtml(link.scope || '')}</td>
           `;
           tbody.appendChild(tr);
         });

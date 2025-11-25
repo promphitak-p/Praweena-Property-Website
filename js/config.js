@@ -1,6 +1,18 @@
 // js/config.js
+// อ่านค่า Supabase URL/Anon จาก window.__SUPABASE (กำหนดผ่านสคริปต์หรือ env ระหว่าง deploy)
+// ตัวแปรที่รองรับ: window.__SUPABASE = { url: '...', anonKey: '...' }
+const w = typeof window !== 'undefined' ? window : {};
+const globalSupabase = w.__SUPABASE || {};
+const localUrl = (() => {
+  try { return w.localStorage?.getItem('SUPABASE_URL') || ''; } catch { return ''; }
+})();
+const localAnon = (() => {
+  try { return w.localStorage?.getItem('SUPABASE_ANON_KEY') || ''; } catch { return ''; }
+})();
 
-// ใส่ Supabase URL และ Public Anon Key ของคุณตรงนี้
-// คีย์นี้ปลอดภัยที่จะเปิดเผยในโค้ดฝั่งเบราว์เซอร์
-export const SUPABASE_URL = "https://sihvgfnvleoloyhzcgll.supabase.co";
-export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpaHZnZm52bGVvbG95aHpjZ2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NTEzNzAsImV4cCI6MjA3NjMyNzM3MH0.QVGsCHFmmzytiwtF90KNCIsHjCw4r15omI9RMTmCFxw"; // << ใส้คีย์ ANON KEY เต็มๆ ของคุณที่นี่
+export const SUPABASE_URL = globalSupabase.url || globalSupabase.SUPABASE_URL || localUrl || '';
+export const SUPABASE_ANON_KEY = globalSupabase.anonKey || globalSupabase.SUPABASE_ANON_KEY || localAnon || '';
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('Supabase URL/Anon key is missing. Set window.__SUPABASE = { url, anonKey } (or localStorage SUPABASE_URL / SUPABASE_ANON_KEY) before loading scripts.');
+}

@@ -9,6 +9,18 @@ import { signOutIfAny } from '../auth/auth.js';
 import { getFormData } from '../ui/forms.js';
 import { toast } from '../ui/toast.js';
 
+const LEAD_TOKEN_KEY = 'lead_token_v1';
+const LEAD_LAST_TS_KEY = 'lead_last_ts';
+
+function getLeadToken() {
+  let token = sessionStorage.getItem(LEAD_TOKEN_KEY);
+  if (!token) {
+    token = crypto.randomUUID();
+    sessionStorage.setItem(LEAD_TOKEN_KEY, token);
+  }
+  return token;
+}
+
 let heroTimer = null;
 let heroSlides = [];
 let heroActiveIndex = 0;
@@ -162,8 +174,28 @@ function setupLeadForm() {
   const form = $('#lead-callback-form');
   if (!form) return;
 
+  const tokenInput = form.querySelector('input[name="lead_token"]');
+  if (tokenInput) tokenInput.value = getLeadToken();
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const now = Date.now();
+    const last = Number(sessionStorage.getItem(LEAD_LAST_TS_KEY) || 0);
+    if (now - last < 30000) {
+      toast('โปรดลองใหม่อีกครั้งหลัง 30 วินาที', 2500, 'error');
+      return;
+    }
+    const hp = form.querySelector('input[name="website"]');
+    if (hp && hp.value.trim()) {
+      toast('ไม่สามารถส่งได้', 1500, 'error');
+      return;
+    }
+    const tokenVal = form.lead_token?.value || '';
+    if (tokenVal !== getLeadToken()) {
+      toast('เซสชันไม่ถูกต้อง กรุณารีเฟรชหน้า', 2500, 'error');
+      return;
+    }
+
     const submitBtn = form.querySelector('button[type=submit]');
     const originalText = submitBtn?.textContent;
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'กำลังส่ง...'; }
@@ -184,6 +216,8 @@ function setupLeadForm() {
       if (error) throw error;
       toast('รับข้อมูลแล้ว ทีมจะติดต่อกลับ', 2800, 'success');
       form.reset();
+      sessionStorage.setItem(LEAD_LAST_TS_KEY, String(now));
+      if (tokenInput) tokenInput.value = getLeadToken();
     } catch (err) {
       console.error(err);
       toast('ส่งข้อมูลไม่สำเร็จ ลองอีกครั้ง', 2600, 'error');
@@ -233,7 +267,8 @@ function renderHeroSlides(properties = []) {
       attributes: {
         src: p.cover_url || '/assets/img/hero-background.jpg',
         alt: p.title || 'บ้านรีโนเวท',
-        loading: 'lazy'
+        loading: 'lazy',
+        fetchpriority: index === 0 ? 'high' : 'auto'
       }
     });
     const caption = el('div', { className: 'hero-slide-caption' });

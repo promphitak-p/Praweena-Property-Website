@@ -16,6 +16,8 @@
   <meta property="og:locale" content="th_TH">
   <meta name="author" content="Praweena Property">
   
+  <link rel="preload" href="/assets/css/app.bundle.min.css" as="style">
+  <script src="/api/env.js"></script>
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
@@ -171,6 +173,11 @@
         </div>
       </div>
       <form id="lead-callback-form" class="card lead-form">
+        <input type="hidden" name="lead_token" id="lead-token" value="">
+        <div style="display:none;" aria-hidden="true">
+          <label for="lead-website">เว็บไซต์ (อย่าเติม)</label>
+          <input type="text" id="lead-website" name="website" tabindex="-1" autocomplete="off">
+        </div>
         <div class="form-group">
           <label for="lead-property">สนใจบ้าน/ทำเล</label>
           <input type="text" id="lead-property" name="interest" class="form-control" placeholder="เช่น บ้านเดี่ยว เมืองสุราษฎร์ฯ หรือชื่อโครงการ" required>
