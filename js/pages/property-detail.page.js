@@ -389,7 +389,7 @@ async function renderPropertyDetails(property) {
     let pois = [];
     try {
       const { data, error } = await supabase
-        .from('property_poi')
+        .from('property_poi_public') // view สำหรับ public
         .select('name,type,distance_km,lat,lng')
         .eq('property_id', property.id)
         .order('distance_km', { ascending: true })
