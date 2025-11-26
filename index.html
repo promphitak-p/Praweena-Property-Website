@@ -1,23 +1,26 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Praweena Property | บ้านรีโนเวทพร้อมขาย สุราษฎร์ธานี</title>
+  <title>Praweena Property | บ้านรีโนเวททำเลดี ราคาคุ้มค่า</title>
 
   <meta name="description" content="บ้านรีโนเวททำเลดี ราคาคุ้มค่า สุราษฎร์ธานี ตรวจโครงสร้าง-ระบบครบ ทีมสินเชื่อดูแลให้ ติดต่อ Praweena Property เพื่อขอดูรีพอร์ตรีโนเวทหรือประเมินวงเงินกู้">
   <meta name="keywords" content="บ้านรีโนเวท สุราษฎร์ธานี, บ้านรีโนเวทพร้อมขาย, บ้านรีโนเวทพร้อมอยู่, สินเชื่อบ้านรีโนเวท, รายงานรีโนเวท">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="บ้านรีโนเวทพร้อมขาย สุราษฎร์ธานี | Praweena Property">
+  <meta property="og:title" content="บ้านรีโนเวททำเลดี ราคาคุ้มค่า | Praweena Property">
   <meta property="og:description" content="บ้านรีโนเวทพร้อมอยู่ ตรวจโครงสร้าง-ระบบครบ พร้อมรายงานรีโนเวทและที่ปรึกษาสินเชื่อในสุราษฎร์ธานี">
   <meta property="og:image" content="https://praweena-property-website.vercel.app/assets/img/og-image.jpg">
   <meta property="og:url" content="https://praweena-property-website.vercel.app/">
   <meta property="og:locale" content="th_TH">
   <meta name="author" content="Praweena Property">
   
-  <link rel="preload" href="/assets/css/app.bundle.min.css" as="style">
-  <script src="/api/env.js"></script>
+   <link rel="preload" href="/assets/css/app.bundle.min.css" as="style">
+  <!-- Local fallback: define __SUPABASE to avoid script errors when /api/env.js is unavailable (e.g., static localhost) -->
+  <script>
+    window.__SUPABASE = window.__SUPABASE || {};
+  </script>
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
@@ -25,7 +28,7 @@
   
   <link rel="stylesheet" href="/assets/css/app.bundle.min.css">
 
-  <script type="application/ld+json">
+    <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -64,7 +67,7 @@
   </head>
 
   <body data-page="home">
-  <!-- 🔹 ให้ load-header.js มาแทน header ตายตัว -->
+  <!-- ๐”น เนเธซเน load-header.js เธกเธฒเนเธ—เธ header เธ•เธฒเธขเธ•เธฑเธง -->
   <div id="app-header"></div>
 
 <main>
@@ -80,7 +83,7 @@
   <section class="section" id="listings">
     <div class="container">
       <div class="listings-layout">
-        <aside class="sidebar-stack">
+                <aside class="sidebar-stack">
           <div class="card sidebar-card">
             <h3>ประเภททรัพย์</h3>
             <ul class="sidebar-list">
@@ -98,7 +101,7 @@
           </div>
         </aside>
 
-        <div class="listings-main">
+                <div class="listings-main">
           <div class="section-header">
             <div>
               <p class="eyebrow">รายการบ้านรีโนเวท</p>
@@ -106,7 +109,7 @@
               <p class="text-muted">เรียงจากอัปเดตล่าสุดในสุราษฎร์ธานี</p>
             </div>
             <div class="section-actions">
-              <a class="btn btn-outline btn-sm" href="#lead-form" data-interest="ต้องการให้ช่วยหารีโนเวทพร้อมขาย">ให้เราช่วยหา</a>
+              <a class="btn btn-outline btn-sm" href="#lead-form" data-interest="ขอให้ช่วยหาบ้านรีโนเวท">ให้เราช่วยหา</a>
             </div>
           </div>
 
@@ -120,7 +123,6 @@
                   <option value="เกาะสมุย">เกาะสมุย</option>
                 </select>
               </div>
-
               <div class="form-group">
                 <label for="filter-type">ประเภททรัพย์</label>
                 <select name="type" id="filter-type" class="form-control">
@@ -131,80 +133,71 @@
                   <option value="ที่ดิน">ที่ดิน</option>
                 </select>
               </div>
-
               <div class="form-group">
                 <label for="filter-price-min">ราคาต่ำสุด</label>
                 <input type="number" name="price_min" id="filter-price-min" class="form-control" placeholder="ราคาต่ำสุด (บาท)">
               </div>
-
               <div class="form-group">
                 <label for="filter-price-max">ราคาสูงสุด</label>
                 <input type="number" name="price_max" id="filter-price-max" class="form-control" placeholder="ราคาสูงสุด (บาท)">
               </div>
-
               <div class="form-group form-group--button">
-                <button id="advanced-filter-btn" class="btn" type="submit">
-                  กรองข้อมูล
-                </button>
+                <button type="submit" class="btn btn-primary" id="advanced-filter-btn">กรองข้อมูล</button>
               </div>
             </form>
           </div>
 
-          <div id="property-grid" class="property-grid grid list-view">
-            <!-- JS จะ inject การ์ดบ้านเข้ามาตรงนี้ -->
+          <div id="property-grid" class="property-grid"></div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+        <section class="section section-alt" id="lead-form">
+      <div class="container lead-grid">
+        <div>
+          <p class="eyebrow">ให้เราติดต่อกลับ</p>
+          <h2>อยากดูรีพอร์ตหรือเช็ควงเงิน? ฝากข้อมูลไว้เลย</h2>
+          <p class="text-muted">ระบุบ้านที่สนใจหรือทำเล เราส่งรีพอร์ตรีโนเวทเบื้องต้นให้ พร้อมเจ้าหน้าที่สินเชื่อโทรกลับภายในวันทำการ</p>
+          <div class="lead-points">
+            <span class="pill">ส่งรีพอร์ต PDF</span>
+            <span class="pill">ประเมินสินเชื่อ</span>
+            <span class="pill">นัดดูบ้าน</span>
           </div>
         </div>
+        <form id="lead-callback-form" class="card lead-form">
+          <input type="hidden" name="lead_token" id="lead-token" value="">
+          <div style="display:none;" aria-hidden="true">
+            <label for="lead-website">เว็บไซต์ (อย่าเติม)</label>
+            <input type="text" id="lead-website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="lead-property">สนใจบ้าน/ทำเล</label>
+            <input type="text" id="lead-property" name="interest" class="form-control" placeholder="เช่น บ้านเดี่ยว เมืองสุราษฎร์ฯ หรือชื่อโครงการ" required>
+          </div>
+          <div class="form-group">
+            <label for="lead-name">ชื่อ-นามสกุล</label>
+            <input type="text" id="lead-name" name="name" class="form-control" placeholder="ชื่อผู้ติดต่อ" required>
+          </div>
+          <div class="form-group">
+            <label for="lead-phone">เบอร์โทร</label>
+            <input type="tel" id="lead-phone" name="phone" class="form-control" placeholder="08x-xxx-xxxx" required>
+          </div>
+          <div class="form-group">
+            <label for="lead-budget">งบประมาณ (ถ้ามี)</label>
+            <input type="text" id="lead-budget" name="budget" class="form-control" placeholder="เช่น 3-4 ล้านบาท">
+          </div>
+          <input type="hidden" id="lead-property-slug" name="property_slug" value="">
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">ส่งให้ที่ปรึกษาโทรกลับ</button>
+            <p class="text-muted">หรือโทร 08x-xxx-xxxx / ไลน์ @praweena</p>
+          </div>
+        </form>
       </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
-  <!-- sections trust-strip, featured, why-us removed -->
-
-  <section class="section section-alt" id="lead-form">
-    <div class="container lead-grid">
-      <div class="lead-copy">
-        <p class="eyebrow">ให้เราติดต่อกลับ</p>
-        <h2>อยากดูรีพอร์ตหรือเช็ควงเงิน? ฝากข้อมูลไว้เลย</h2>
-        <p class="text-muted">ระบุบ้านที่สนใจหรือทำเล เราส่งรีพอร์ตรีโนเวทเบื้องต้นให้ พร้อมเจ้าหน้าที่สินเชื่อโทรกลับภายในวันทำการ</p>
-        <div class="lead-points">
-          <span class="pill">ส่งรีพอร์ต PDF</span>
-          <span class="pill">ประเมินสินเชื่อ</span>
-          <span class="pill">นัดดูบ้าน</span>
-        </div>
-      </div>
-      <form id="lead-callback-form" class="card lead-form">
-        <input type="hidden" name="lead_token" id="lead-token" value="">
-        <div style="display:none;" aria-hidden="true">
-          <label for="lead-website">เว็บไซต์ (อย่าเติม)</label>
-          <input type="text" id="lead-website" name="website" tabindex="-1" autocomplete="off">
-        </div>
-        <div class="form-group">
-          <label for="lead-property">สนใจบ้าน/ทำเล</label>
-          <input type="text" id="lead-property" name="interest" class="form-control" placeholder="เช่น บ้านเดี่ยว เมืองสุราษฎร์ฯ หรือชื่อโครงการ" required>
-        </div>
-        <div class="form-group">
-          <label for="lead-name">ชื่อ-นามสกุล</label>
-          <input type="text" id="lead-name" name="name" class="form-control" placeholder="ชื่อผู้ติดต่อ" required>
-        </div>
-        <div class="form-group">
-          <label for="lead-phone">เบอร์โทร</label>
-          <input type="tel" id="lead-phone" name="phone" class="form-control" placeholder="08x-xxx-xxxx" required>
-        </div>
-        <div class="form-group">
-          <label for="lead-budget">งบประมาณ (ถ้ามี)</label>
-          <input type="text" id="lead-budget" name="budget" class="form-control" placeholder="เช่น 3-4 ล้านบาท">
-        </div>
-        <input type="hidden" id="lead-property-slug" name="property_slug" value="">
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">ส่งให้ที่ปรึกษาโทรกลับ</button>
-          <p class="text-muted">หรือโทร 08x-xxx-xxxx / ไลน์ @praweena</p>
-        </div>
-      </form>
-    </div>
-  </section>
-</main>
-
-  <footer class="site-footer">
+    <footer class="site-footer">
     <div class="container footer-grid">
       <div>
         <h3>Praweena Property</h3>
@@ -227,8 +220,19 @@
     <div class="footer-bottom">&copy; 2025 Praweena Property. All rights reserved.</div>
   </footer>
 
-    <!-- โหลด header -->
+        <!-- load header -->
   <script type="module" src="/js/layout/load-header.js"></script>
   <script type="module" src="/js/pages/index.page.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+

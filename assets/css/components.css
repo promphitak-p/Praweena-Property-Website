@@ -660,8 +660,8 @@ body.mobile-card-view #properties-table td::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   border: none;
   text-decoration: none;
@@ -669,8 +669,8 @@ body.mobile-card-view #properties-table td::before {
 }
 
 .share-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 40px;
   fill: #fff;
 }
 
