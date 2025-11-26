@@ -26,7 +26,11 @@ export function mountPayCalc(target, { price=0 }) {
   wrap.append(
     heading,
     el('div',{textContent:`ราคาบ้าน: ${(+price||0).toLocaleString()} บ.`}),
-    inputDown, inputRate, inputYears, btn, result
+    inputDown,
+    inputRate,
+    inputAge,
+    btn,
+    result
   );
   target.innerHTML=''; target.append(wrap);
 }
