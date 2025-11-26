@@ -11,8 +11,13 @@ export function mountPayCalc(target, { price=0 }) {
   });
   const heading = el('h3',{textContent:'คำนวณเงินกู้เบื้องต้น',style:'margin:0;font-size:1.05rem;font-weight:700;color:#1f2937;'});
   const inputDown = el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'เงินดาวน์ (บาท)'}});
-  const inputRate = el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'ดอกเบี้ย (% ต่อปี)', step:'0.01', value:'5.75'}});
-  const inputAge = el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'อายุ (ปี)', value:'30', min:'18', max:'69'}});
+  const rateLabel = el('label',{style:'display:block;font-weight:600;color:#374151;margin-bottom:.35rem;'});
+  rateLabel.textContent = 'ดอกเบี้ย (% ต่อปี)';
+  const inputRate = el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'เช่น 5.75', step:'0.01', value:'5.75', min:'0'}});
+
+  const ageLabel = el('label',{style:'display:block;font-weight:600;color:#374151;margin-bottom:.35rem;'});
+  ageLabel.textContent = 'อายุผู้กู้ (ปี)';
+  const inputAge = el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'เช่น 30', value:'30', min:'20', max:'69'}});
   const result = el('div',{style:'margin-top:.25rem;color:#111827;'});
   const btn = el('button',{className:'btn',style:'margin-top:0;margin-bottom:1rem;',textContent:'คำนวณค่างวด'});
   btn.onclick = ()=>{
@@ -27,7 +32,9 @@ export function mountPayCalc(target, { price=0 }) {
     heading,
     el('div',{textContent:`ราคาบ้าน: ${(+price||0).toLocaleString()} บ.`}),
     inputDown,
+    rateLabel,
     inputRate,
+    ageLabel,
     inputAge,
     btn,
     result
