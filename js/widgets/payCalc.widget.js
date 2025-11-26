@@ -10,11 +10,11 @@ export function mountPayCalc(target, { price=0 }) {
     style:'padding:1rem;border-radius:12px;border:1px solid #eee;display:flex;flex-direction:column;gap:1rem;'
   });
   const heading = el('h3',{textContent:'คำนวณเงินกู้เบื้องต้น',style:'margin:0;font-size:1.05rem;font-weight:700;color:#1f2937;'});
-  const inputDown = el('input',{className:'form-control',attributes:{type:'number',placeholder:'เงินดาวน์ (บาท)'}});
-  const inputRate = el('input',{className:'form-control',attributes:{type:'number',placeholder:'ดอกเบี้ยต่อปี (%)', step:'0.01', value:'5.75'}});
-  const inputYears= el('input',{className:'form-control',attributes:{type:'number',placeholder:'ระยะเวลากู้ (ปี)', value:'30'}});
+  const inputDown = el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'เงินดาวน์ (บาท)'}});
+  const inputRate = el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'ดอกเบี้ยต่อปี (%)', step:'0.01', value:'5.75'}});
+  const inputYears= el('input',{className:'form-control',style:'margin:0 0 1rem 0;',attributes:{type:'number',placeholder:'ระยะเวลากู้ (ปี)', value:'30'}});
   const result = el('div',{style:'margin-top:.25rem;color:#111827;'});
-  const btn = el('button',{className:'btn',textContent:'คำนวณค่างวด'});
+  const btn = el('button',{className:'btn',style:'margin-top:0;margin-bottom:1rem;',textContent:'คำนวณค่างวด'});
   btn.onclick = ()=>{
     const down = +inputDown.value||0;
     const loan = Math.max((+price||0)-down, 0);
