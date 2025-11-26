@@ -5,11 +5,15 @@ function PMT(rate, nper, pv) {
 }
 export function mountPayCalc(target, { price=0 }) {
   if (!target) return;
-  const wrap = el('div',{className:'card',style:'padding:1rem;border-radius:12px;border:1px solid #eee;'});
+  const wrap = el('div',{
+    className:'card',
+    style:'padding:1rem;border-radius:12px;border:1px solid #eee;display:flex;flex-direction:column;gap:1rem;'
+  });
+  const heading = el('h3',{textContent:'คำนวณเงินกู้เบื้องต้น',style:'margin:0;font-size:1.05rem;font-weight:700;color:#1f2937;'});
   const inputDown = el('input',{className:'form-control',attributes:{type:'number',placeholder:'เงินดาวน์ (บาท)'}});
   const inputRate = el('input',{className:'form-control',attributes:{type:'number',placeholder:'ดอกเบี้ยต่อปี (%)', step:'0.01', value:'5.75'}});
   const inputYears= el('input',{className:'form-control',attributes:{type:'number',placeholder:'ระยะเวลากู้ (ปี)', value:'30'}});
-  const result = el('div',{style:'margin-top:.5rem;color:#111827;'});
+  const result = el('div',{style:'margin-top:.25rem;color:#111827;'});
   const btn = el('button',{className:'btn',textContent:'คำนวณค่างวด'});
   btn.onclick = ()=>{
     const down = +inputDown.value||0;
@@ -18,6 +22,7 @@ export function mountPayCalc(target, { price=0 }) {
     result.textContent = `ผ่อนประมาณ ${Math.round(pmt).toLocaleString()} บาท/เดือน (กู้ ${loan.toLocaleString()} บ.)`;
   };
   wrap.append(
+    heading,
     el('div',{textContent:`ราคาบ้าน: ${(+price||0).toLocaleString()} บ.`}),
     inputDown, inputRate, inputYears, btn, result
   );
