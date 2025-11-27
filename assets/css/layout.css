@@ -118,11 +118,18 @@ main {
   max-height: 420px;
   padding: 0;
   box-sizing: border-box;
+  height: clamp(240px, 68vw, 420px);
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
 }
 
 .hero-slide {
   position: relative;
   display: none;
+  height: 100%;
 }
 
 .hero-slide.is-active {
@@ -263,6 +270,12 @@ main {
     padding: 0 1rem;
   }
 
+  /* Make header as wide as content cards on mobile */
+  .header .container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+
   .hero {
     min-height: 320px;
     padding: 2rem 0 2.5rem;
@@ -358,6 +371,7 @@ main {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
+  justify-items: center;
 }
 
 .sidebar-stack {
@@ -653,11 +667,15 @@ main {
 
 @media (min-width: 900px) {
   .listings-layout {
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 1fr;
+    max-width: 1100px;
+    margin: 0 auto;
   }
 
   .listings-main {
     padding: 1.5rem;
+    max-width: 980px;
+    width: 100%;
   }
 }
 
