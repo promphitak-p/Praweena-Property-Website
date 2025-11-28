@@ -322,7 +322,7 @@ main {
 /* Filters: stack first, expand on larger screens */
 .advanced-filters {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
   align-items: flex-end;
   margin: 1.25rem 0 0.5rem;
@@ -337,26 +337,7 @@ main {
   width: 100%;
 }
 
-@media (min-width: 640px) {
-  .advanced-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.25rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .advanced-filters {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .advanced-filters .form-group--button {
-    justify-content: flex-end;
-  }
-
-  .advanced-filters .form-group--button .btn {
-    width: auto;
-  }
-}
+/* cap at 2 columns naturally via container width; no wider grids */
 
 .featured-grid .property-card__image {
   height: 240px;
@@ -371,7 +352,7 @@ main {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
-  justify-items: center;
+  justify-items: stretch;
 }
 
 .sidebar-stack {
@@ -670,6 +651,7 @@ main {
     grid-template-columns: 1fr;
     max-width: 1100px;
     margin: 0 auto;
+    justify-items: center;
   }
 
   .listings-main {

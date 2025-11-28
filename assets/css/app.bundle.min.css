@@ -11,3 +11,4 @@
  .showcase-slider{max-width:980px}
  @media(max-width:768px){.header .container{max-width:100%}}
  @media(max-width:768px){.header .container{max-width:100%;padding:0 1rem}}
+ .listings-layout{justify-items:stretch} @media(min-width:900px){.listings-layout{justify-items:center}} .advanced-filters{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
