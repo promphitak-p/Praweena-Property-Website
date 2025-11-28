@@ -12,3 +12,4 @@
  @media(max-width:768px){.header .container{max-width:100%}}
  @media(max-width:768px){.header .container{max-width:100%;padding:0 1rem}}
  .listings-layout{justify-items:stretch} @media(min-width:900px){.listings-layout{justify-items:center}} .advanced-filters{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+ @media(max-width:640px){.modal{padding:.5rem;align-items:flex-start}.modal-content{width:100%;margin:0 auto;padding:1.25rem 1rem;border-radius:12px;max-height:calc(100vh - 1rem)}.modal-content .grid.grid-cols-2,.modal-content .form-grid{grid-template-columns:1fr;gap:.75rem}}
