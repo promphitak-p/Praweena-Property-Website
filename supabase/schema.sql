@@ -21,6 +21,7 @@ create table if not exists public.properties (
   beds int,
   baths int,
   parking int,
+  property_type text,
   address text,
   district text,
   province text,

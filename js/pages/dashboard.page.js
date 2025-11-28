@@ -698,7 +698,7 @@ function fillFormFromProperty(p = {}) {
   if (!propertyForm) return;
   const keys = [
     'id', 'title', 'slug', 'price', 'size_text', 'beds', 'baths',
-    'parking', 'district', 'province', 'status', 'address',
+    'parking', 'district', 'province', 'status', 'address', 'property_type',
     'latitude', 'longitude'
   ];
   keys.forEach(k => {

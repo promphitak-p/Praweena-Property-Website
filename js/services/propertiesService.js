@@ -11,28 +11,49 @@ function generateSlug(title) {
 
 /** ดึง public list */
 export async function listPublic(filters = {}) {
-  let query = supabase
-    .from('properties')
-    .select('*')
-    .eq('published', true)
-    .order('updated_at', { ascending: false });
+  const typeFilter = filters.property_type || filters.type;
 
-  if (filters.q) query = query.ilike('title', `%${filters.q}%`);
-  if (filters.district) query = query.eq('district', filters.district);
+  const buildQuery = (includeType = true) => {
+    let query = supabase
+      .from('properties')
+      .select('*')
+      .eq('published', true)
+      .order('updated_at', { ascending: false });
 
-  const minRaw = filters.price_min;
-  const maxRaw = filters.price_max;
+    if (filters.q) query = query.ilike('title', `%${filters.q}%`);
+    if (filters.district) query = query.eq('district', filters.district);
 
-  if (minRaw !== undefined && minRaw !== null && minRaw !== '') {
-    const min = Number(minRaw);
-    if (Number.isFinite(min)) query = query.gte('price', min);
+    const minRaw = filters.price_min;
+    const maxRaw = filters.price_max;
+
+    if (minRaw !== undefined && minRaw !== null && minRaw !== '') {
+      const min = Number(minRaw);
+      if (Number.isFinite(min)) query = query.gte('price', min);
+    }
+
+    if (maxRaw !== undefined && maxRaw !== null && maxRaw !== '') {
+      const max = Number(maxRaw);
+      if (Number.isFinite(max)) query = query.lte('price', max);
+    }
+
+    if (includeType && typeFilter) query = query.eq('property_type', typeFilter);
+    return query;
+  };
+
+  const primary = await buildQuery(true);
+  if (!primary.error || !typeFilter) return primary;
+
+  // Fallback: if property_type column missing in DB, retry without server-side filter and filter client-side
+  if (primary.error.message && primary.error.message.includes('property_type')) {
+    const fallback = await buildQuery(false);
+    if (fallback.data) {
+      fallback.data = fallback.data.filter((p) => (p.property_type || '') === typeFilter);
+      fallback.error = null;
+    }
+    return fallback;
   }
 
-  if (maxRaw !== undefined && maxRaw !== null && maxRaw !== '') {
-    const max = Number(maxRaw);
-    if (Number.isFinite(max)) query = query.lte('price', max);
-  }
-  return await query;
+  return primary;
 }
 
 /** ดึงด้วย slug */
@@ -113,11 +134,29 @@ export async function upsertProperty(payload) {
   }
 
   // ✅ upsert ครั้งเดียวด้วย body (ที่ normalize แล้ว)
-  return await supabase
+  const attempt = await supabase
     .from('properties')
     .upsert(body)
     .select()
     .single();
+
+  // ถ้า schema ยังไม่มี property_type ให้บันทึกต่อโดยตัด field นี้ออก (ป้องกัน error บน DB เดิม)
+  const missingType =
+    attempt?.error &&
+    (attempt.error.code === '42703' || (attempt.error.message || '').includes('property_type'));
+
+  if (missingType) {
+    const fallbackBody = { ...body };
+    delete fallbackBody.property_type;
+    console.warn('property_type column missing; upserting without it. Please add property_type to properties table.');
+    return await supabase
+      .from('properties')
+      .upsert(fallbackBody)
+      .select()
+      .single();
+  }
+
+  return attempt;
 }
 
 export async function removeProperty(id) {
