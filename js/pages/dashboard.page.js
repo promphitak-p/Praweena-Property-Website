@@ -238,7 +238,15 @@ function setupModalMap(lat, lng) {
         const pos = event.target.getLatLng();
         latInput.value = pos.lat.toFixed(6);
         lngInput.value = pos.lng.toFixed(6);
+        // ถ้ายังเป็นประกาศใหม่ (ยังไม่มี id) ให้หา POI แนะนำตามพิกัดล่าสุด
+        if (!propertyForm.elements.id?.value) {
+          fetchNearbyPOIInline(pos.lat, pos.lng);
+        }
       });
+    }
+    // ประกาศใหม่: โหลด POI แนะนำทันทีเมื่อเปิด modal
+    if (!propertyForm.elements.id?.value) {
+      fetchNearbyPOIInline(startLat, startLng);
     }
   } catch (err) {
     console.error('map error', err);
