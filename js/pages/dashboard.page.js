@@ -20,6 +20,7 @@ import { supabase } from '../utils/supabaseClient.js';
 // =========== 👇👇 ตั้งค่าตรงนี้ให้ตรงกับ Cloudinary ของกุ้งก่อนนะ 👇👇 ===========
 const CLOUDINARY_CLOUD_NAME = 'dupwjm8q2';        // <- ใส่ชื่อ cloud
 const CLOUDINARY_UNSIGNED_PRESET = 'praweena_property_preset'; // <- ใส่ unsigned preset
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB (Cloudinary unsigned free limit)
 // ============================================================================
 
 // DOM หลัก
@@ -64,6 +65,10 @@ function poiEmoji(type = '') {
 async function uploadToCloudinary(file) {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UNSIGNED_PRESET) {
     throw new Error('ยังไม่ได้ตั้งค่า Cloudinary');
+  }
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    const mb = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(0);
+    throw new Error(`ไฟล์ใหญ่เกิน ${mb}MB`);
   }
   const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
   const fd = new FormData();
@@ -824,6 +829,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       coverInput.addEventListener('change', async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          const mb = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(0);
+          toast(`ไฟล์ใหญ่เกิน ${mb}MB`, 2500, 'error');
+          coverInput.value = '';
+          return;
+        }
         try {
           toast('กำลังอัปโหลดรูปหน้าปก...', 2000, 'info');
           const url = await uploadToCloudinary(file);
@@ -845,6 +856,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
         for (const file of files) {
+          if (file.size > MAX_FILE_SIZE_BYTES) {
+            const mb = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(0);
+            toast(`${file.name} ใหญ่เกิน ${mb}MB`, 2500, 'error');
+            continue;
+          }
           try {
             toast(`กำลังอัปโหลด ${file.name} ...`, 1500, 'info');
             const url = await uploadToCloudinary(file);
