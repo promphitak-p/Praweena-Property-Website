@@ -88,16 +88,7 @@ function renderPropertyCard(property, opts = {}) {
     textContent: 'ดูรายละเอียด',
     attributes: { href: link }
   });
-  const reportBtn = el('button', {
-    className: 'btn btn-secondary btn-sm',
-    textContent: 'ขอดูรีพอร์ต',
-    attributes: {
-      type: 'button',
-      'data-interest': `ขอดูรีพอร์ตรีโนเวท: ${property.title}`,
-      'data-slug': property.slug
-    }
-  });
-  actionBar.append(detailBtn, reportBtn);
+  actionBar.append(detailBtn);
 
   body.append(title, address, price, metaRow, actionBar);
 
@@ -278,17 +269,12 @@ function renderHeroSlides(properties = []) {
       el('h1', { textContent: p.title || 'บ้านรีโนเวททำเลดี' }),
       el('p', { className: 'hero-subtext', textContent: loc || 'สุราษฎร์ธานี' })
     );
-    const metaRow = el('div', { className: 'hero-slide-meta' });
-    metaRow.append(el('span', { className: 'pill', textContent: formatPrice(p.price || 0) }));
-    caption.append(metaRow);
     const ctas = el('div', { className: 'hero-ctas' });
     ctas.append(
-      el('a', { className: 'btn btn-secondary btn-sm', textContent: 'ดูรายละเอียด', attributes: { href: p.slug ? `/property-detail.html?slug=${p.slug}` : '#listings' } }),
-      el('a', {
-        className: 'btn btn-primary btn-sm',
-        textContent: 'ขอรีพอร์ตรีโนเวท',
-        attributes: { href: '#lead-form', 'data-interest': `ขอดูรีพอร์ตรีโนเวท: ${p.title || ''}`, 'data-slug': p.slug || '' }
-      })
+      el('span', { className: 'pill hero-price-pill', textContent: formatPrice(p.price || 0) })
+    );
+    ctas.append(
+      el('a', { className: 'btn btn-secondary btn-sm', textContent: 'ดูรายละเอียด', attributes: { href: p.slug ? `/property-detail.html?slug=${p.slug}` : '#listings' } })
     );
     caption.append(ctas);
     slide.append(img, caption);
