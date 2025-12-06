@@ -5,21 +5,22 @@
 /* ============ Property Card ============ */
 .property-card {
   position: relative;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(193,161,90,0.16);
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   height: 100%;
-  transition: transform .2s, box-shadow .2s;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
   width: 100%;
 }
 
 .property-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(193,161,90,0.35);
 }
 
 .property-card__image-link {
@@ -40,7 +41,7 @@
 }
 
 .property-card__body {
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.35rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -52,6 +53,7 @@
   font-weight: 600;
   margin-bottom: .5rem;
   color: var(--text);
+  letter-spacing: 0.01em;
 }
 
 .property-card__address {
@@ -66,17 +68,17 @@
 }
 
 .property-meta-item {
-  background: #f9f5ed;
-  color: #5b4b31;
-  border: 1px solid #f0e6d2;
-  border-radius: 10px;
+  background: rgba(193,161,90,0.12);
+  color: #e9ddc1;
+  border: 1px solid rgba(193,161,90,0.35);
+  border-radius: 999px;
   padding: 0.35rem 0.6rem;
   font-weight: 600;
   font-size: 0.95rem;
 }
 
 .property-card__price {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--brand);
   margin-top: auto;
@@ -96,12 +98,12 @@
 }
 
 .meta-chip {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: rgba(193,161,90,0.08);
+  border: 1px solid rgba(193,161,90,0.26);
   border-radius: 999px;
   padding: 0.35rem 0.7rem;
   font-weight: 600;
-  color: #374151;
+  color: #e9ddc1;
   font-size: 0.9rem;
 }
 
@@ -109,26 +111,28 @@
   position: absolute;
   top: 12px;
   left: 12px;
-  background: #0f172a;
-  color: #fff;
+  background: linear-gradient(135deg, rgba(17,26,23,0.9) 0%, rgba(17,26,23,0.75) 60%, rgba(193,161,90,0.8) 100%);
+  color: #fefcf7;
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   font-weight: 700;
   box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(193,161,90,0.4);
 }
 
-.property-badge.status-renovated { background: #166534; }
-.property-badge.status-progress { background: #92400e; }
-.property-badge.status-sold { background: #4b5563; }
+.property-badge.status-renovated { background: linear-gradient(135deg, rgba(22,101,52,0.85), rgba(193,161,90,0.75)); }
+.property-badge.status-progress { background: linear-gradient(135deg, rgba(146,64,14,0.88), rgba(193,161,90,0.65)); }
+.property-badge.status-sold { background: linear-gradient(135deg, rgba(55,65,81,0.9), rgba(17,17,17,0.95)); }
 
 .property-badge--new {
   right: 12px;
   left: auto;
-  background: #b45309;
+  background: #c1a15a;
+  color: #0f1412;
 }
 
 .property-card--featured {
-  border: 1px solid #f0e6d2;
+  border: 1px solid rgba(193,161,90,0.35);
   box-shadow: var(--shadow-lg);
 }
 
@@ -142,7 +146,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: radial-gradient(circle at 20% 20%, rgba(193,161,90,0.08), transparent 45%),
+              radial-gradient(circle at 80% 0%, rgba(193,161,90,0.08), transparent 40%),
+              #0f1412;
 }
 
 @media (min-width: 768px) {

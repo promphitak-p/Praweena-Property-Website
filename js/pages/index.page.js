@@ -54,6 +54,10 @@ function renderPropertyCard(property, opts = {}) {
   const { variant = 'default', isNew = false } = opts;
   const link = `/property-detail.html?slug=${property.slug}`;
   const card = el('article', { className: `property-card ${variant === 'featured' ? 'property-card--featured' : ''}` });
+  // Subtle fade-up animation per card
+  card.classList.add('animate-fade-up');
+  const delay = typeof opts.delay === 'number' ? opts.delay : 0;
+  card.style.setProperty('--anim-delay', `${delay}ms`);
 
   const media = el('a', {
     className: 'property-card__media',
@@ -137,6 +141,7 @@ async function loadProperties() {
 
   if (!data.length) {
     grid.append(el('p', { textContent: 'ไม่พบรายการที่ตรงกับเงื่อนไข' }));
+    renderHeroSlides([]); // Render fallback slides
     return;
   }
 
@@ -152,12 +157,14 @@ async function loadProperties() {
     if (!featured.length) {
       featuredGrid.append(el('p', { textContent: 'กำลังเตรียมบ้านแนะนำ...' }));
     } else {
-      featured.forEach(p => featuredGrid.append(renderPropertyCard(p, { variant: 'featured', isNew: true })));
+      featured.forEach((p, idx) => {
+        featuredGrid.append(renderPropertyCard(p, { variant: 'featured', isNew: true, delay: idx * 80 }));
+      });
     }
   }
 
   data.forEach((property, idx) => {
-    grid.append(renderPropertyCard(property, { isNew: idx < newCount }));
+    grid.append(renderPropertyCard(property, { isNew: idx < newCount, delay: idx * 70 }));
   });
 }
 
@@ -245,15 +252,18 @@ function renderHeroSlides(properties = []) {
   clear(dotsWrap);
   heroSlides = properties.length ? properties : [{
     title: 'บ้านรีโนเวททำเลดี',
-    district: 'สุราษฎร์ธานี',
+    district: 'เมืองสุราษฎร์ธานี',
     province: 'สุราษฎร์ธานี',
-    price: 0,
+    price: 2590000,
+    beds: 3,
+    baths: 2,
     cover_url: '/assets/img/hero-background.jpg',
     slug: ''
   }];
 
   heroSlides.forEach((p, index) => {
     const slide = el('div', { className: `hero-slide${index === 0 ? ' is-active' : ''}`, attributes: { 'data-index': index } });
+    slide.style.setProperty('--hero-delay', `${index * 80}ms`);
     const img = el('img', {
       attributes: {
         src: p.cover_url || '/assets/img/hero-background.jpg',
@@ -269,10 +279,23 @@ function renderHeroSlides(properties = []) {
       el('h1', { textContent: p.title || 'บ้านรีโนเวททำเลดี' }),
       el('p', { className: 'hero-subtext', textContent: loc || 'สุราษฎร์ธานี' })
     );
+
+
+    // Add meta (beds/baths/size + price)
+    const metaDiv = el('div', { className: 'hero-slide-meta' });
+    const highlights = buildHighlights(p); // Use existing function
+
+    // Add highlights (beds, baths, size)
+    highlights.forEach(h => {
+      metaDiv.append(el('span', { className: 'pill', textContent: h }));
+    });
+
+    // Always add price pill to meta section
+    metaDiv.append(el('span', { className: 'pill hero-price-pill', textContent: formatPrice(p.price || 0) }));
+
+    caption.append(metaDiv);
+
     const ctas = el('div', { className: 'hero-ctas' });
-    ctas.append(
-      el('span', { className: 'pill hero-price-pill', textContent: formatPrice(p.price || 0) })
-    );
     ctas.append(
       el('a', { className: 'btn btn-secondary btn-sm', textContent: 'ดูรายละเอียด', attributes: { href: p.slug ? `/property-detail.html?slug=${p.slug}` : '#listings' } })
     );
@@ -385,4 +408,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  // Mobile filter toggle
+  const mobileFilterToggle = $('#mobile-filter-toggle');
+  const advancedFilters = $('#filter-form-advanced');
+  if (mobileFilterToggle && advancedFilters) {
+    mobileFilterToggle.addEventListener('click', () => {
+      advancedFilters.classList.toggle('is-open');
+      const isOpen = advancedFilters.classList.contains('is-open');
+      mobileFilterToggle.textContent = isOpen ? 'ซ่อนตัวกรองค้นหา' : 'แสดงตัวกรองค้นหา';
+    });
+  }
 });

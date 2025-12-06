@@ -1,6 +1,19 @@
 // js/services/propertiesService.js
 import { supabase } from '../lib/supabaseClient.js';
 
+const missingClientError = (() => {
+  const err = new Error('Supabase client not initialized. Please configure SUPABASE_URL / SUPABASE_ANON_KEY.');
+  err.code = 'SUPABASE_CLIENT_MISSING';
+  return err;
+})();
+
+function ensureClient() {
+  if (!supabase) {
+    return { error: missingClientError };
+  }
+  return null;
+}
+
 function generateSlug(title) {
   if (!title) return '';
   return title.toString().toLowerCase().trim()
@@ -11,6 +24,9 @@ function generateSlug(title) {
 
 /** ดึง public list */
 export async function listPublic(filters = {}) {
+  const missing = ensureClient();
+  if (missing) return { data: [], error: missing.error };
+
   const typeFilter = filters.property_type || filters.type;
 
   const buildQuery = (includeType = true) => {
@@ -58,6 +74,9 @@ export async function listPublic(filters = {}) {
 
 /** ดึงด้วย slug */
 export async function getBySlug(slug) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
   return await supabase
     .from('properties')
     .select('*')
@@ -67,6 +86,9 @@ export async function getBySlug(slug) {
 
 /** admin list */
 export async function listAll(filters = {}) {
+  const missing = ensureClient();
+  if (missing) return { data: [], error: missing.error };
+
   let query = supabase
     .from('properties')
     .select('*')
@@ -78,6 +100,9 @@ export async function listAll(filters = {}) {
 
 /** Upsert (normalize ครบ) */
 export async function upsertProperty(payload) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
   const body = { ...payload };
 
   // ให้ DB สร้าง id เองถ้าไม่ส่งมา
@@ -160,5 +185,8 @@ export async function upsertProperty(payload) {
 }
 
 export async function removeProperty(id) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
   return await supabase.from('properties').delete().eq('id', id);
 }
