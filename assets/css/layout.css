@@ -476,6 +476,7 @@ main {
     grid-template-columns: 1fr;
     gap: 1.25rem;
     justify-items: stretch;
+    width: 100%;
   }
 
   .sidebar-stack {
@@ -794,14 +795,15 @@ main {
   @media (min-width: 900px) {
     .listings-layout {
       grid-template-columns: 1fr;
-      max-width: 1100px;
-      margin: 0 auto;
-      justify-items: center;
+      max-width: none;
+      margin: 0;
+      justify-items: stretch;
+      width: 100%;
     }
 
     .listings-main {
       padding: 1.5rem;
-      max-width: 980px;
+      max-width: none;
       width: 100%;
     }
   }
