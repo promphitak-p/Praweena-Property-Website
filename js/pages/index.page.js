@@ -25,33 +25,6 @@ let heroTimer = null;
 let heroSlides = [];
 let heroActiveIndex = 0;
 
-function renderHeroCaption(property = {}) {
-  const wrap = document.getElementById('hero-caption');
-  if (!wrap) return;
-  clear(wrap);
-
-  const loc = [property.district, property.province].filter(Boolean).join(', ');
-  const block = el('div', { className: 'hero-caption-block' });
-  block.append(
-    el('p', { className: 'eyebrow', textContent: 'บ้านเข้าใหม่' }),
-    el('h3', { textContent: property.title || 'บ้านรีโนเวททำเลดี' }),
-    el('p', { className: 'hero-subtext', textContent: loc || 'สุราษฎร์ธานี' })
-  );
-
-  const metaRow = el('div', { className: 'hero-caption-meta' });
-  buildHighlights(property).forEach(txt => metaRow.append(el('span', { className: 'meta-chip', textContent: txt })));
-  metaRow.append(el('span', { className: 'meta-chip', textContent: formatPrice(property.price || 0) }));
-  block.append(metaRow);
-
-  const ctas = el('div', { className: 'hero-ctas' });
-  ctas.append(
-    el('a', { className: 'btn btn-secondary btn-sm', textContent: 'ดูรายละเอียด', attributes: { href: property.slug ? `/property-detail.html?slug=${property.slug}` : '#listings' } })
-  );
-  block.append(ctas);
-
-  wrap.append(block);
-}
-
 /**
  * สร้าง badge สถานะรีโนเวท
  */
@@ -273,16 +246,13 @@ function setupInterestPrefill() {
 function renderHeroSlides(properties = []) {
   const slider = document.getElementById('hero-slider');
   let dotsWrap = document.getElementById('hero-slider-dots');
-  let captionWrap = document.getElementById('hero-caption');
   if (!slider) return;
 
   // เตรียม container (ถ้าเคยถูก clear ไปแล้วให้สร้างใหม่)
   if (!dotsWrap) dotsWrap = el('div', { id: 'hero-slider-dots', className: 'hero-slider-dots' });
-  if (!captionWrap) captionWrap = el('div', { id: 'hero-caption', className: 'hero-caption' });
 
   clear(slider);
   clear(dotsWrap);
-  clear(captionWrap);
   heroSlides = properties.length ? properties : [{
     title: 'บ้านรีโนเวททำเลดี',
     district: 'เมืองสุราษฎร์ธานี',
@@ -340,12 +310,10 @@ function renderHeroSlides(properties = []) {
     dotsWrap.append(dot);
   });
 
-  // Append caption block + dots under slider
-  slider.append(captionWrap);
+  // Append dots under slider
   slider.append(dotsWrap);
 
   heroActiveIndex = 0;
-  renderHeroCaption(heroSlides[heroActiveIndex]);
   restartHeroTimer();
 }
 
@@ -384,7 +352,6 @@ function setHeroSlide(index) {
   dots.forEach((d, i) => {
     if (i === heroActiveIndex) d.classList.add('is-active'); else d.classList.remove('is-active');
   });
-  renderHeroCaption(heroSlides[heroActiveIndex]);
   restartHeroTimer();
 }
 
