@@ -3255,3 +3255,21 @@ body.mobile-card-view #properties-table td::before {
     padding: 0.9rem 1rem 1.1rem;
   }
 }
+
+/* === Override: stack filter form desktop (match mobile look) === */
+.filters-card {
+  width: 100%;
+  max-width: 720px;
+  margin: 1.5rem auto;
+}
+.advanced-filters {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.75rem !important;
+  align-items: flex-end;
+  max-width: 540px;
+  margin: 0 auto 1rem !important;
+}
+.advanced-filters .form-group--button .btn {
+  width: 100%;
+}
