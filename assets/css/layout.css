@@ -199,10 +199,11 @@ main {
   position: relative;
   display: none;
   height: 100%;
+  flex-direction: column;
 }
 
 .hero-slide.is-active {
-  display: block;
+  display: flex;
 }
 
 .hero-slide img {
@@ -210,28 +211,23 @@ main {
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: var(--radius-lg);
 }
 
 .hero-slide::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(247,242,233,0.4) 55%, rgba(233,222,205,0.7) 100%);
-  z-index: 1;
+  display: none;
 }
 
 .hero-slide-caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 1.25rem 1.25rem 1.4rem;
+  position: static;
+  padding: 0.9rem 0.25rem 0.5rem;
   color: var(--text);
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.4rem;
+  background: transparent;
 }
 
 .hero-slide-caption h1 {
