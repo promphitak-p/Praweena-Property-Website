@@ -184,7 +184,7 @@ main {
 
 /* Hide legacy in-slide caption; we show caption below slider instead */
 .hero-slide-caption {
-  display: none;
+  display: none !important;
 }
 
 .hero-caption {
