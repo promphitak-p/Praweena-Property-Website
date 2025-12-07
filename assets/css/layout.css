@@ -182,6 +182,36 @@ main {
   padding: 0.35rem 0 0;
 }
 
+/* Hide legacy in-slide caption; we show caption below slider instead */
+.hero-slide-caption {
+  display: none;
+}
+
+.hero-caption {
+  margin-top: 0.35rem;
+}
+
+.hero-caption-block {
+  background: #fff;
+  border: 1px solid rgba(193,161,90,0.25);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hero-caption-block h3 {
+  margin: 0.1rem 0;
+}
+
+.hero-caption-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .hero-dot {
   width: 28px;
   height: 4px;

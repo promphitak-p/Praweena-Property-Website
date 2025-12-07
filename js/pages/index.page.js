@@ -25,6 +25,33 @@ let heroTimer = null;
 let heroSlides = [];
 let heroActiveIndex = 0;
 
+function renderHeroCaption(property = {}) {
+  const wrap = document.getElementById('hero-caption');
+  if (!wrap) return;
+  clear(wrap);
+
+  const loc = [property.district, property.province].filter(Boolean).join(', ');
+  const block = el('div', { className: 'hero-caption-block' });
+  block.append(
+    el('p', { className: 'eyebrow', textContent: 'บ้านเข้าใหม่' }),
+    el('h3', { textContent: property.title || 'บ้านรีโนเวททำเลดี' }),
+    el('p', { className: 'hero-subtext', textContent: loc || 'สุราษฎร์ธานี' })
+  );
+
+  const metaRow = el('div', { className: 'hero-caption-meta' });
+  buildHighlights(property).forEach(txt => metaRow.append(el('span', { className: 'meta-chip', textContent: txt })));
+  metaRow.append(el('span', { className: 'meta-chip', textContent: formatPrice(property.price || 0) }));
+  block.append(metaRow);
+
+  const ctas = el('div', { className: 'hero-ctas' });
+  ctas.append(
+    el('a', { className: 'btn btn-secondary btn-sm', textContent: 'ดูรายละเอียด', attributes: { href: property.slug ? `/property-detail.html?slug=${property.slug}` : '#listings' } })
+  );
+  block.append(ctas);
+
+  wrap.append(block);
+}
+
 /**
  * สร้าง badge สถานะรีโนเวท
  */
@@ -263,7 +290,6 @@ function renderHeroSlides(properties = []) {
 
   heroSlides.forEach((p, index) => {
     const slide = el('div', { className: `hero-slide${index === 0 ? ' is-active' : ''}`, attributes: { 'data-index': index } });
-    slide.style.setProperty('--hero-delay', `${index * 80}ms`);
     const img = el('img', {
       attributes: {
         src: p.cover_url || '/assets/img/hero-background.jpg',
@@ -309,6 +335,7 @@ function renderHeroSlides(properties = []) {
   });
 
   heroActiveIndex = 0;
+  renderHeroCaption(heroSlides[heroActiveIndex]);
   restartHeroTimer();
 }
 
@@ -347,6 +374,7 @@ function setHeroSlide(index) {
   dots.forEach((d, i) => {
     if (i === heroActiveIndex) d.classList.add('is-active'); else d.classList.remove('is-active');
   });
+  renderHeroCaption(heroSlides[heroActiveIndex]);
   restartHeroTimer();
 }
 
