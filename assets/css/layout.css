@@ -435,7 +435,7 @@ main {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1rem;
     align-items: flex-end;
-    margin: 1.25rem 0 0.5rem;
+    margin: 1rem 0;
   }
 
   /* Mobile Filter Toggle */
@@ -1058,6 +1058,7 @@ main {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.9rem;
   align-items: flex-end;
+  margin: 1rem 0;
 }
 
 .mobile-filter-toggle {
