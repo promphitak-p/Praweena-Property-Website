@@ -3273,3 +3273,53 @@ body.mobile-card-view #properties-table td::before {
 .advanced-filters .form-group--button .btn {
   width: 100%;
 }
+
+/* === Mobile-first page layout tweaks === */
+.container {
+  max-width: 1200px;
+  padding: 0 1rem;
+}
+.hero-showcase .container {
+  padding: 0 1rem;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+.hero-media,
+.hero-panel {
+  width: 100%;
+}
+.hero-panel {
+  padding: 1.25rem;
+}
+.showcase-slider {
+  width: 100%;
+  height: clamp(320px, 60vh, 520px);
+}
+.hero-slider-dots {
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.listings-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.listings-main {
+  padding: 1rem;
+}
+.property-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .property-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
