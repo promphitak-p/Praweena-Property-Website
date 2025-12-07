@@ -310,8 +310,8 @@ function renderHeroSlides(properties = []) {
     dotsWrap.append(dot);
   });
 
-  // Append dots under slider
-  slider.append(dotsWrap);
+  // Place dots after the slider (outside image area)
+  slider.after(dotsWrap);
 
   heroActiveIndex = 0;
   restartHeroTimer();
