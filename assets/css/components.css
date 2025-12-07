@@ -7,7 +7,7 @@
   position: relative;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(193,161,90,0.16);
-  border-radius: 12px;
+  border-radius: 6px;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -71,7 +71,7 @@
   background: rgba(193,161,90,0.12);
   color: #e9ddc1;
   border: 1px solid rgba(193,161,90,0.35);
-  border-radius: 999px;
+  border-radius: 6px;
   padding: 0.35rem 0.6rem;
   font-weight: 600;
   font-size: 0.95rem;
@@ -100,7 +100,7 @@
 .meta-chip {
   background: rgba(193,161,90,0.08);
   border: 1px solid rgba(193,161,90,0.26);
-  border-radius: 999px;
+  border-radius: 6px;
   padding: 0.35rem 0.7rem;
   font-weight: 600;
   color: #e9ddc1;
@@ -114,7 +114,7 @@
   background: linear-gradient(135deg, rgba(17,26,23,0.9) 0%, rgba(17,26,23,0.75) 60%, rgba(193,161,90,0.8) 100%);
   color: #fefcf7;
   padding: 0.35rem 0.75rem;
-  border-radius: 999px;
+  border-radius: 6px;
   font-weight: 700;
   box-shadow: var(--shadow-sm);
   border: 1px solid rgba(193,161,90,0.4);

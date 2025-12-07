@@ -25,9 +25,9 @@
   --text: #1f2624;
   --text-light: #4d5a54;
 
-  --radius: 8px;
-  --radius-sm: 8px;
-  --radius-lg: 12px;
+  --radius: 6px;
+  --radius-sm: 6px;
+  --radius-lg: 6px;
 
   --shadow-sm: 0 6px 16px rgba(31, 38, 36, 0.12);
   --shadow-md: 0 12px 26px rgba(31, 38, 36, 0.16);
