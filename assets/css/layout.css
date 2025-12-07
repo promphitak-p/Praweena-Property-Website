@@ -164,13 +164,11 @@ main {
 
 .showcase-slider {
   position: relative;
-  height: 100%;
-  min-height: inherit;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  display: block;
+  height: clamp(320px, 60vh, 520px);
+  min-height: 320px;
   border-radius: var(--radius-lg);
-  overflow: visible;
+  overflow: hidden;
 }
 
 .hero-slider-dots {
