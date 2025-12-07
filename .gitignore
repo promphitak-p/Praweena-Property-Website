@@ -9,3 +9,5 @@
 
 # โฟลเดอร์ dependencies ของ Node.js
 node_modules/
+.vercel
+.env*.local

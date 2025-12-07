@@ -3,12 +3,14 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js';
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('Supabase URL/Anon key missing. Set window.__SUPABASE = { url, anonKey } before loading scripts.');
+const hasConfig = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+if (!hasConfig) {
+  console.warn('Supabase URL/Anon key missing. Set window.__SUPABASE = { url, anonKey } (or localStorage) before loading scripts.');
 }
 
 // export client ตัวเดียวไว้เรียกทั้ง DB / Auth / Edge Functions
 export const supabase = (() => {
+  if (!hasConfig) return null;
   try {
     return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
