@@ -170,7 +170,7 @@ main {
   flex-direction: column;
   gap: 0.75rem;
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hero-slider-dots {

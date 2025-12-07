@@ -272,11 +272,17 @@ function setupInterestPrefill() {
 
 function renderHeroSlides(properties = []) {
   const slider = document.getElementById('hero-slider');
-  const dotsWrap = document.getElementById('hero-slider-dots');
-  if (!slider || !dotsWrap) return;
+  let dotsWrap = document.getElementById('hero-slider-dots');
+  let captionWrap = document.getElementById('hero-caption');
+  if (!slider) return;
+
+  // เตรียม container (ถ้าเคยถูก clear ไปแล้วให้สร้างใหม่)
+  if (!dotsWrap) dotsWrap = el('div', { id: 'hero-slider-dots', className: 'hero-slider-dots' });
+  if (!captionWrap) captionWrap = el('div', { id: 'hero-caption', className: 'hero-caption' });
 
   clear(slider);
   clear(dotsWrap);
+  clear(captionWrap);
   heroSlides = properties.length ? properties : [{
     title: 'บ้านรีโนเวททำเลดี',
     district: 'เมืองสุราษฎร์ธานี',
@@ -333,6 +339,10 @@ function renderHeroSlides(properties = []) {
     dot.addEventListener('click', () => setHeroSlide(index));
     dotsWrap.append(dot);
   });
+
+  // Append caption block + dots under slider
+  slider.append(captionWrap);
+  slider.append(dotsWrap);
 
   heroActiveIndex = 0;
   renderHeroCaption(heroSlides[heroActiveIndex]);
