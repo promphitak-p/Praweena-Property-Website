@@ -11,6 +11,7 @@ import { toast } from '../ui/toast.js';
 
 const LEAD_TOKEN_KEY = 'lead_token_v1';
 const LEAD_LAST_TS_KEY = 'lead_last_ts';
+let showAllListings = false;
 
 function getLeadToken() {
   let token = sessionStorage.getItem(LEAD_TOKEN_KEY);
@@ -165,7 +166,8 @@ async function loadProperties() {
     }
   }
 
-  data.forEach((property, idx) => {
+  const listToRender = showAllListings ? data : data.slice(0, 3);
+  listToRender.forEach((property, idx) => {
     grid.append(renderPropertyCard(property, { isNew: idx < newCount, delay: idx * 70 }));
   });
 }
@@ -464,6 +466,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupLeadForm();
   setupInterestPrefill();
   loadProperties(); // โหลดครั้งแรก
+  const showAllBtn = document.getElementById('show-all-properties');
+  if (showAllBtn) {
+    showAllBtn.addEventListener('click', () => {
+      showAllListings = true;
+      loadProperties();
+    });
+  }
 
   const advancedFilterBtn = $('#advanced-filter-btn');
   if (advancedFilterBtn) {
