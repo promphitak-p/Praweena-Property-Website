@@ -1,130 +1,192 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Praweena Property | บ้านรีโนเวทพร้อมขาย สุราษฎร์ธานี</title>
-
-  <meta name="description"
-    content="บ้านรีโนเวทพร้อมอยู่ ทำเลดีในสุราษฎร์ธานี รีโนเวทครบวงจร คุมงบโปร่งใส พร้อมทีมดูแลงานเอกสารและสินเชื่อ">
-  <meta name="keywords"
-    content="บ้านรีโนเวท, บ้านรีโนเวท สุราษฎร์ธานี, บ้านรีโนเวทพร้อมขาย, บ้านมือสองรีโนเวท, รับรีโนเวทบ้าน">
+  <title>Re:Living | บ้านรีโนเวทพร้อมอยู่</title>
+  <meta name="description" content="บ้านรีโนเวทสไตล์มินิมอล พร้อมเข้าอยู่ ดีไซน์ใหม่ ทำเลศักยภาพ">
+  <meta name="keywords" content="บ้านรีโนเวท, บ้านรีโนเวทพร้อมอยู่, บ้านสไตล์มินิมอล">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="บ้านรีโนเวทพร้อมขาย สุราษฎร์ธานี | Praweena Property">
-  <meta property="og:description"
-    content="รีโนเวทครบจบหลังเดียว วัสดุพรีเมียม ทำเลดี สุราษฎร์ธานี พร้อมทีมดูแลสินเชื่อและเอกสาร">
-  <meta property="og:image" content="https://praweena-property-website.vercel.app/assets/img/og-image.jpg">
-  <meta property="og:url" content="https://praweena-property-website.vercel.app/">
+  <meta property="og:title" content="Re:Living | บ้านรีโนเวทพร้อมอยู่">
+  <meta property="og:description" content="รีโนเวทครบ วัสดุพรีเมียม เลย์เอาท์ใหม่ พร้อมทีมดูแลเอกสารและสินเชื่อ">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1200">
   <meta property="og:locale" content="th_TH">
-  <meta name="author" content="Praweena Property">
 
-  <!-- removed preload app.bundle.min.css -->
   <script src="/js/env-loader.js"></script>
   <script src="/js/local-setup.js"></script>
-  <!-- Local fallback: define __SUPABASE to avoid script errors when /api/env.js is unavailable (e.g., static localhost) -->
   <script>
     window.__SUPABASE = window.__SUPABASE || {};
   </script>
+
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
   <link rel="manifest" href="/assets/favicon/site.webmanifest">
 
   <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
-    /* Animation overrides (inline to avoid rebuild) */
-    .showcase-slider {
-      position: relative;
-      overflow: hidden;
+    /* New landing look (scoped) */
+    body.rl-page {
+      font-family: 'Plus Jakarta Sans', 'Sarabun', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #FDFBF7;
+      color: #2b2a28;
     }
 
-    .hero-slide {
-      position: absolute;
-      inset: 0;
-      display: block;
-      height: 100%;
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(1.02);
-      transition: opacity 0.8s ease, transform 0.9s ease;
-    }
-
-    .hero-slide.is-active {
-      opacity: 1;
-      pointer-events: auto;
-      transform: scale(1) translateY(0);
-    }
-
-    .hero-slide img {
-      height: 100%;
-      object-fit: cover;
+    .rl-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+    .rl-nav {
+      position: fixed;
+      inset: 0 auto auto 0;
       width: 100%;
-      position: absolute;
-      inset: 0;
+      z-index: 50;
+      transition: box-shadow 0.25s ease, background 0.25s ease, padding 0.25s ease;
+      padding: 1.25rem 0;
+    }
+    .rl-nav.is-scrolled { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); box-shadow: 0 10px 35px rgba(0,0,0,0.06); padding: 0.85rem 0; }
+    .rl-nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .rl-brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; letter-spacing: 0.02em; color: #2b2a28; }
+    .rl-brand-mark { width: 42px; height: 42px; border-radius: 14px; background: #1f1c1a; color: #fff; display: grid; place-items: center; font-weight: 800; }
+    .rl-nav-links { display: flex; align-items: center; gap: 1.25rem; font-weight: 600; color: #6b645d; }
+    .rl-nav-links a { color: inherit; text-decoration: none; transition: color 0.2s ease; }
+    .rl-nav-links a:hover { color: #f37335; }
+    .rl-nav-actions { display: flex; align-items: center; gap: 0.75rem; }
+    .rl-btn {
+      border: none; cursor: pointer; font-weight: 700; border-radius: 999px; padding: 0.8rem 1.35rem;
+      transition: transform 0.18s ease, box-shadow 0.22s ease, background 0.22s ease, color 0.22s ease;
+    }
+    .rl-btn--ghost { background: transparent; color: #5b544c; }
+    .rl-btn--solid { background: #2b2a28; color: #fff; box-shadow: 0 12px 24px rgba(0,0,0,0.18); }
+    .rl-btn--solid:hover { background: #1d1b19; transform: translateY(-2px); }
+    .rl-btn--accent { background: linear-gradient(135deg, #f89b29, #f37335); color: #fff; box-shadow: 0 14px 40px rgba(243,115,53,0.35); }
+    .rl-btn--accent:hover { transform: translateY(-2px); }
+
+    .rl-nav-toggle { display: none; background: transparent; border: none; color: #2b2a28; }
+    .rl-nav-menu-mobile { display: none; }
+
+    @media (max-width: 900px) {
+      .rl-nav-links, .rl-nav-actions { display: none; }
+      .rl-nav-toggle { display: block; }
+      .rl-nav-menu-mobile { display: grid; gap: 1rem; padding: 1.2rem; background: #fff; border-radius: 1rem; box-shadow: 0 14px 30px rgba(0,0,0,0.1); margin-top: 0.9rem; }
+      .rl-nav-menu-mobile a { color: #5b544c; font-weight: 600; }
+      .rl-nav-menu-mobile .rl-btn { width: 100%; }
     }
 
-    .hero-slide .hero-slide-caption {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      padding: 1rem 1.25rem;
-      background: linear-gradient(180deg, rgba(17, 24, 39, 0) 0%, rgba(17, 24, 39, 0.65) 100%);
+    /* Hero */
+    .rl-hero { padding: 8rem 0 5rem; position: relative; overflow: hidden; }
+    .rl-hero-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 2.5rem; align-items: center; }
+    @media (min-width: 1024px) { .rl-hero-grid { grid-template-columns: 1.05fr 0.95fr; } }
+    .rl-chip { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.9rem; border-radius: 999px; background: #fff1e6; color: #f37335; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; }
+    .rl-hero h1 { font-size: clamp(2.6rem, 5vw, 4rem); line-height: 1.05; color: #201b17; margin: 0.65rem 0 1rem; }
+    .rl-hero h1 span { color: #bcb4a7; }
+    .rl-hero p { color: #6b645d; font-size: 1.1rem; max-width: 36rem; line-height: 1.7; }
+    .rl-search {
+      margin-top: 1.4rem;
+      display: grid; grid-template-columns: 1fr auto; gap: 0.75rem;
+      background: #fff; padding: 0.9rem; border-radius: 1.4rem;
+      box-shadow: 0 24px 50px rgba(0,0,0,0.08);
+    }
+    .rl-search-field { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.9rem; border-radius: 1rem; border: 1px solid #f1e8dd; }
+    .rl-search-field input { border: none; outline: none; width: 100%; font-size: 1rem; color: #4a433c; }
+    .rl-search-btn { border: none; background: linear-gradient(135deg, #f89b29, #f37335); color: #fff; font-weight: 700; padding: 0 1.6rem; border-radius: 1rem; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 16px 36px rgba(243,115,53,0.35); cursor: pointer; transition: transform 0.18s ease; }
+    .rl-search-btn:hover { transform: translateY(-1px); }
+    .rl-hero-metrics { display: flex; align-items: center; gap: 2.5rem; padding-top: 1.4rem; }
+    .rl-hero-metrics div span:first-child { display: block; font-weight: 800; font-size: 2rem; color: #2b2a28; }
+    .rl-hero-metrics div span:last-child { color: #8a837c; font-size: 0.95rem; }
+
+    .rl-hero-media { position: relative; border-radius: 2.3rem; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.16); }
+    .rl-hero-media img { width: 100%; height: 640px; object-fit: cover; display: block; transition: transform 0.8s ease; }
+    .rl-hero-media:hover img { transform: scale(1.03); }
+    .rl-hero-badge {
+      position: absolute; inset: auto auto 1.5rem 1.5rem;
       color: #fff;
+      display: grid; gap: 0.3rem;
     }
+    .rl-hero-badge h3 { margin: 0; font-size: 1.4rem; }
+    .rl-hero-badge p { margin: 0; color: rgba(255,255,255,0.85); }
+    .rl-blob { position: absolute; border-radius: 999px; filter: blur(60px); opacity: 0.35; z-index: 0; }
+    .rl-blob--orange { width: 240px; height: 240px; background: #f89b29; top: -60px; right: -30px; }
+    .rl-blob--gray { width: 240px; height: 240px; background: #d9d3c8; bottom: -80px; left: -50px; }
 
-    .hero-slide .hero-slide-caption {
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
+    /* Sections */
+    .rl-section { padding: 5rem 0; position: relative; }
+    .rl-section-title { text-align: center; margin-bottom: 3rem; }
+    .rl-section-title h2 { font-size: clamp(2rem, 3.4vw, 2.8rem); margin-bottom: 0.5rem; color: #2b2a28; }
+    .rl-section-title p { color: #7b746d; }
+
+    /* Why cards */
+    .rl-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .rl-card {
+      background: #fff; border-radius: 1.6rem; padding: 1.5rem; box-shadow: 0 16px 38px rgba(0,0,0,0.08);
+      transition: transform 0.2s ease, box-shadow 0.24s ease;
     }
-
-    .hero-slide.is-active .hero-slide-caption {
-      opacity: 1;
-      transform: translateY(0);
-      transition-delay: var(--hero-delay, 0ms);
+    .rl-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,0.1); }
+    .rl-card-icon {
+      width: 52px; height: 52px; border-radius: 1rem; display: grid; place-items: center; background: #fff5ea; color: #f37335; margin-bottom: 1rem;
     }
+    .rl-card h3 { margin: 0 0 0.5rem; }
+    .rl-card p { margin: 0; color: #7b746d; line-height: 1.6; }
 
-    .hero-dot {
-      transition: transform 0.25s ease, background 0.25s ease;
-    }
+    /* Listings */
+    .rl-listings-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .rl-listings-head p { color: #7b746d; margin: 0; }
+    .property-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+    .property-card { background: #fff; border-radius: 1.6rem; box-shadow: 0 18px 45px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .property-card:hover { transform: translateY(-6px); box-shadow: 0 22px 55px rgba(0,0,0,0.12); }
+    .property-card__media { position: relative; height: 240px; overflow: hidden; display: block; }
+    .property-card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+    .property-card:hover .property-card__media img { transform: scale(1.06); }
+    .property-pill { position: absolute; inset: 16px auto auto 16px; display: inline-flex; gap: 0.4rem; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.9); border-radius: 999px; font-weight: 700; color: #2b2a28; }
+    .property-heart { position: absolute; inset: 14px 14px auto auto; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,0.7); display: grid; place-items: center; cursor: pointer; transition: background 0.2s ease; }
+    .property-heart:hover { background: #f37335; color: #fff; }
+    .property-card__body { padding: 1.2rem 1.2rem 1.4rem; display: grid; gap: 0.55rem; }
+    .property-card__title { font-size: 1.1rem; font-weight: 800; color: #2b2a28; text-decoration: none; }
+    .property-card__address { color: #8a837c; font-size: 0.95rem; display: flex; gap: 0.4rem; align-items: center; }
+    .property-card__price { font-weight: 800; color: #f37335; font-size: 1.2rem; }
+    .property-card__meta-row { display: flex; flex-wrap: wrap; gap: 0.65rem; color: #6b645d; font-weight: 600; }
+    .meta-chip { background: #f7f2ea; padding: 0.35rem 0.65rem; border-radius: 0.9rem; font-size: 0.92rem; border: 1px solid #efe4d7; }
 
-    .hero-dot.is-active {
-      transform: translateY(-1px);
-      background: var(--brand);
-    }
+    /* Before after */
+    .rl-compare { position: relative; height: 440px; border-radius: 1.8rem; overflow: hidden; box-shadow: 0 22px 50px rgba(0,0,0,0.12); cursor: ew-resize; user-select: none; }
+    .rl-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .rl-compare .rl-before { width: 50%; overflow: hidden; position: absolute; inset: 0; }
+    .rl-compare .rl-before img { width: 100%; height: 100%; object-fit: cover; }
+    .rl-handle { position: absolute; inset: 0; width: 2px; background: #fff; box-shadow: 0 0 14px rgba(0,0,0,0.3); }
+    .rl-handle-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 42px; height: 42px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 14px 40px rgba(0,0,0,0.18); color: #6b645d; }
+    .rl-handle-dot svg { width: 18px; height: 18px; }
+    .rl-badge { position: absolute; top: 14px; padding: 0.4rem 0.75rem; border-radius: 999px; font-weight: 700; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    .rl-badge--after { right: 14px; background: rgba(255,255,255,0.9); color: #2b2a28; }
+    .rl-badge--before { left: 14px; background: rgba(0,0,0,0.7); color: #fff; }
 
-    /* Fade-up utility used by cards */
-    .animate-fade-up {
-      opacity: 0;
-      transform: translateY(14px);
-      animation: fadeUp 0.6s ease forwards;
-      animation-delay: var(--anim-delay, 0ms);
-    }
+    /* Testimonials */
+    .rl-reviews { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .rl-review-card { background: #fff; border-radius: 1.6rem; padding: 1.4rem; box-shadow: 0 14px 36px rgba(0,0,0,0.08); }
+    .rl-stars { color: #fbbf24; display: flex; gap: 0.15rem; }
+    .rl-review-card p { color: #6b645d; margin: 0.8rem 0 1rem; line-height: 1.6; }
+    .rl-reviewer { display: flex; align-items: center; gap: 0.75rem; }
+    .rl-avatar { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: #eee; }
 
-    /* Listings grid: max 3 cols on desktop */
-    .property-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1.25rem;
-      align-items: stretch;
-      padding: 1rem 0;
-    }
+    /* CTA */
+    .rl-cta { text-align: center; background: #fff; border-radius: 2rem; padding: 3rem 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
+    .rl-cta h2 { margin: 0 0 0.8rem; font-size: clamp(2rem, 3vw, 2.6rem); }
+    .rl-cta p { margin: 0 0 1.5rem; color: #7b746d; }
+    .rl-cta-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
 
-    @media (min-width: 640px) {
-      .property-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
+    /* Footer */
+    .rl-footer { background: #fff; border-top: 1px solid #eee; padding: 3rem 0 2rem; }
+    .rl-footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+    .rl-footer h4 { margin-bottom: 0.7rem; }
+    .rl-footer p, .rl-footer a { color: #7b746d; }
+    .rl-footer-bottom { margin-top: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; color: #a39c95; font-size: 0.95rem; }
 
-    @media (min-width: 1024px) {
-      .property-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-    }
+    /* Reveal animation */
+    .rl-reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .rl-reveal.is-visible { opacity: 1; transform: translateY(0); }
 
+<<<<<<< HEAD
     @keyframes fadeUp {
       0% {
         opacity: 0;
@@ -147,52 +209,48 @@
         transform: none !important;
         opacity: 1 !important;
       }
+=======
+    @media (max-width: 720px) {
+      .rl-hero { padding-top: 7rem; }
+      .rl-hero-media img { height: 460px; }
+      .rl-hero-metrics { gap: 1.5rem; }
+      .rl-search { grid-template-columns: 1fr; }
+      .rl-compare { height: 360px; }
+>>>>>>> 37e99a2 (Fix: Remove duplicate import in supabaseClient)
     }
   </style>
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": "บ้านรีโนเวทพร้อมขาย สุราษฎร์ธานี",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "url": "https://praweena-property-website.vercel.app/property-detail.html?slug=surat-renovated-01",
-        "name": "บ้านรีโนเวท เขตเมืองสุราษฎร์ธานี",
-        "description": "รีโนเวทครบ จบหลังเดียว วัสดุพรีเมียม ใกล้แหล่งอำนวยความสะดวก",
-        "image": "https://praweena-property-website.vercel.app/assets/img/hero-background.jpg",
-        "offers": { "@type": "Offer", "priceCurrency": "THB", "price": "3450000", "availability": "https://schema.org/InStock" }
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "url": "https://praweena-property-website.vercel.app/property-detail.html?slug=renovated-townhome-surat",
-        "name": "ทาวน์โฮมรีโนเวท ทะเลสาบ",
-        "description": "ทาวน์โฮมรีโนเวทพร้อมอยู่ ฟังก์ชันครบ เหมาะอยู่เองหรือปล่อยเช่า",
-        "image": "https://praweena-property-website.vercel.app/assets/img/hero-background.jpg",
-        "offers": { "@type": "Offer", "priceCurrency": "THB", "price": "2650000", "availability": "https://schema.org/InStock" }
-      },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "url": "https://praweena-property-website.vercel.app/property-detail.html?slug=surat-poolvilla-renovated",
-        "name": "พูลวิลล่ารีโนเวท ทำเลดี",
-        "description": "พูลวิลล่ารีโนเวทดีไซน์โมเดิร์น วัสดุพรีเมียม พื้นที่กว้าง",
-        "image": "https://praweena-property-website.vercel.app/assets/img/hero-background.jpg",
-        "offers": { "@type": "Offer", "priceCurrency": "THB", "price": "8900000", "availability": "https://schema.org/InStock" }
-      }
-    ]
-  }
-  </script>
 </head>
-
-<body data-page="home">
-  <!-- โหลด header ด้วย load-header.js -->
-  <div id="app-header"></div>
+<body class="rl-page" data-page="home">
+  <nav class="rl-nav" id="rl-nav">
+    <div class="rl-container rl-nav-inner">
+      <div class="rl-brand">
+        <div class="rl-brand-mark">R</div>
+        <span>RE:LIVING</span>
+      </div>
+      <div class="rl-nav-links">
+        <a href="#hero">หน้าแรก</a>
+        <a href="#listings">โครงการ</a>
+        <a href="#why">ผลงานรีโนเวท</a>
+        <a href="#reviews">เกี่ยวกับเรา</a>
+      </div>
+      <div class="rl-nav-actions">
+        <button class="rl-btn rl-btn--ghost">เข้าสู่ระบบ</button>
+        <button class="rl-btn rl-btn--solid" data-interest="นัดชมบ้าน">นัดชมบ้าน</button>
+      </div>
+      <button class="rl-nav-toggle" id="rl-nav-toggle" aria-label="toggle menu">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="rl-container rl-nav-menu-mobile" id="rl-nav-mobile">
+      <a href="#hero">หน้าแรก</a>
+      <a href="#listings">โครงการ</a>
+      <a href="#why">ผลงานรีโนเวท</a>
+      <button class="rl-btn rl-btn--accent" data-interest="นัดชมบ้าน">นัดชมบ้าน</button>
+    </div>
+  </nav>
 
   <main>
+<<<<<<< HEAD
     <section class="hero hero-showcase">
       <div class="container showcase-inner">
         <div class="hero-grid">
@@ -201,8 +259,26 @@
             <div class="showcase-slider" id="hero-slider">
               <!-- JS will inject slides -->
               <div class="hero-slider-dots" id="hero-slider-dots"></div>
+=======
+    <!-- Hero -->
+    <section class="rl-hero" id="hero">
+      <div class="rl-container rl-hero-grid">
+        <div class="rl-reveal">
+          <div class="rl-chip">New Collection 2024</div>
+          <h1>ให้บ้านเก่า <br><span>เล่าเรื่องใหม่</span></h1>
+          <p>ค้นหาบ้านรีโนเวทสไตล์มินิมอล ที่ออกแบบมาเพื่อการใช้ชีวิตที่ลงตัว พร้อมเข้าอยู่ ในทำเลศักยภาพทั่วกรุงเทพฯ</p>
+          <div class="rl-search">
+            <div class="rl-search-field">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bcb4a7" stroke-width="2"><path d="M21 10.5a8.5 8.5 0 1 1-8.5-8.5 8.5 8.5 0 0 1 8.5 8.5Z"/><path d="m16 16 5 5"/></svg>
+              <input type="text" placeholder="ทำเลที่ต้องการ..." id="hero-search-input">
+>>>>>>> 37e99a2 (Fix: Remove duplicate import in supabaseClient)
             </div>
+            <button class="rl-search-btn" id="hero-search-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10.5a8.5 8.5 0 1 1-8.5-8.5 8.5 8.5 0 0 1 8.5 8.5Z"/><path d="m16 16 5 5"/></svg>
+              ค้นหา
+            </button>
           </div>
+<<<<<<< HEAD
           <div class="hero-panel card animate-fade-up">
             <p class="eyebrow">Luxury Minimal</p>
             <h1>รีโนเวทหรู เรียบ พร้อมเข้าอยู่</h1>
@@ -212,70 +288,131 @@
               <span class="pill">ดีไซน์ครบทุกมุม</span>
               <span class="pill">วัสดุพรีเมียม &amp; เฟอร์นิเจอร์บิวท์อิน</span>
               <span class="pill">ทีมดูแลงบประมาณและงานเอกสาร</span>
+=======
+          <div class="rl-hero-metrics">
+            <div><span>150+</span><span>บ้านพร้อมขาย</span></div>
+            <div><span>500+</span><span>ครอบครัวที่มีความสุข</span></div>
+          </div>
+        </div>
+        <div class="rl-hero-media rl-reveal">
+          <img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1200" alt="Hero Home">
+          <div class="rl-hero-badge">
+            <p>โครงการแนะนำ</p>
+            <h3>บ้านอิสระ อารีย์-สัมพันธ์</h3>
+            <p>เริ่มต้น 7.9 ลบ.</p>
+          </div>
+          <div class="rl-blob rl-blob--orange"></div>
+          <div class="rl-blob rl-blob--gray"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why -->
+    <section class="rl-section" id="why">
+      <div class="rl-container">
+        <div class="rl-section-title rl-reveal">
+          <h2>ทำไมต้องเลือกบ้านจาก <span style="color:#f37335;">RE:LIVING</span></h2>
+          <p>เราใส่ใจทุกรายละเอียดของการซ่อมแซมและตกแต่ง</p>
+        </div>
+        <div class="rl-grid">
+          <div class="rl-card rl-reveal">
+            <div class="rl-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m20 6-11 9-5-4"/><path d="m9 21 3-3-3-3-3 3 3 3Z"/></svg>
+>>>>>>> 37e99a2 (Fix: Remove duplicate import in supabaseClient)
             </div>
-            <div class="hero-ctas">
-              <a class="btn" href="#listings" data-interest="ดูบ้านเข้าใหม่">ดูบ้านเข้าใหม่</a>
-              <a class="btn btn-ghost" href="#lead-form" data-interest="ขอคำปรึกษา">ขอคำปรึกษา</a>
+            <h3>ตรวจสภาพโครงสร้าง</h3>
+            <p>วิศวกรตรวจสอบโครงสร้างหลักและการรั่วซึมอย่างละเอียด</p>
+          </div>
+          <div class="rl-card rl-reveal">
+            <div class="rl-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5 12 4l9 5.5"/><path d="M3 14.5 12 20l9-5.5"/><path d="m3 9.5 9 5 9-5"/></svg>
             </div>
-            <p class="text-muted" style="margin:0;">ตอบกลับภายใน 1 ชั่วโมง | ปรึกษาได้ทุกเรื่องรีโนเวท</p>
+            <h3>ดีไซน์มินิมอล ทันสมัย</h3>
+            <p>ออกแบบภายในใหม่โดย Architect เน้นฟังก์ชันและการคุมโทน</p>
+          </div>
+          <div class="rl-card rl-reveal">
+            <div class="rl-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11V8a3 3 0 1 1 6 0v3"/><path d="M6.3 20h11.4a2 2 0 0 0 1.92-2.56l-1.2-4A2 2 0 0 0 16.52 12H7.48a2 2 0 0 0-1.9 1.44l-1.2 4A2 2 0 0 0 6.3 20Z"/></svg>
+            </div>
+            <h3>รับประกันหลังการขาย</h3>
+            <p>ดูแลซ่อมแซมฟรี 6 เดือน สบายใจหายห่วง</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section" id="listings">
-      <div class="container">
-        <div class="listings-layout">
-          <div class="listings-main">
-            <div class="section-header">
-              <div>
-                <p class="eyebrow">รายการบ้านรีโนเวท</p>
-                <h2>Latest Listings</h2>
-                <p class="text-muted">เรียงจากบ้านใหม่ล่าสุดในสุราษฎร์ธานี</p>
-              </div>
-              <div class="section-actions">
-                <a class="btn btn-outline btn-sm" href="#lead-form" data-interest="ให้เราหาให้คุณ">ให้เราหาให้คุณ</a>
-              </div>
-            </div>
+    <!-- Listings -->
+    <section class="rl-section" id="listings" style="background:#f7f3ec;">
+      <div class="rl-container">
+        <div class="rl-listings-head rl-reveal">
+          <div>
+            <p class="rl-chip" style="background:#fff; color:#f37335;">บ้านรีโนเวทพร้อมอยู่</p>
+            <h2 style="margin:0.6rem 0 0.25rem;">คัดสรรบ้านคุณภาพในทำเลที่ดีที่สุด</h2>
+            <p>ข้อมูลดึงอัตโนมัติจากฐานข้อมูล</p>
+          </div>
+          <a href="#lead-form" class="rl-btn rl-btn--ghost">ให้เราหาให้คุณ</a>
+        </div>
+        <div id="property-grid" class="property-grid"></div>
+        <div class="rl-reveal" style="text-align:center; margin-top:1.5rem;">
+          <a class="rl-btn rl-btn--accent" data-interest="ดูโครงการทั้งหมด">ดูโครงการทั้งหมด</a>
+        </div>
+      </div>
+    </section>
 
-            <div class="card filters-card">
-              <div id="mobile-filter-toggle" class="mobile-filter-toggle">
-                แสดงตัวกรองค้นหา
-              </div>
-              <form id="filter-form-advanced" class="advanced-filters">
-                <div class="form-group">
-                  <label for="filter-district">อำเภอ</label>
-                  <select name="district" id="filter-district" class="form-control">
-                    <option value="">ทุกตำบล</option>
-                    <option value="เมืองสุราษฎร์ธานี">เมืองสุราษฎร์ธานี</option>
-                    <option value="พระแสง">พระแสง</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="filter-type">ประเภททรัพย์</label>
-                  <select name="type" id="filter-type" class="form-control">
-                    <option value="">ทุกประเภท</option>
-                    <option value="บ้านเดี่ยว">บ้านเดี่ยว</option>
-                    <option value="ทาวน์โฮม">ทาวน์โฮม</option>
-                    <option value="คอนโด">คอนโด</option>
-                    <option value="พูลวิลล่า">พูลวิลล่า</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="filter-price-min">ราคาต่ำสุด</label>
-                  <input type="number" name="price_min" id="filter-price-min" class="form-control"
-                    placeholder="ราคาต่ำสุด (บาท)">
-                </div>
-                <div class="form-group">
-                  <label for="filter-price-max">ราคาสูงสุด</label>
-                  <input type="number" name="price_max" id="filter-price-max" class="form-control"
-                    placeholder="ราคาสูงสุด (บาท)">
-                </div>
-                <div class="form-group form-group--button">
-                  <button type="submit" class="btn btn-primary" id="advanced-filter-btn">กรองข้อมูล</button>
-                </div>
-              </form>
+    <!-- Before / After -->
+    <section class="rl-section" style="background:#1f1c1a; color:#fff;">
+      <div class="rl-container rl-grid" style="align-items:center; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        <div class="rl-reveal">
+          <h2>เปลี่ยนบ้านโทรม <br><span style="color:#f37335;">ให้เป็นบ้านในฝัน</span></h2>
+          <p style="color:#c7c0b8;">เราไม่เพียงแค่ทาสีใหม่ แต่เราปรับปรุงระบบน้ำ ระบบไฟ และจัดวาง Layout ใหม่เพื่อให้เหมาะกับไลฟ์สไตล์คนรุ่นใหม่ พร้อมวัสดุเกรดพรีเมียมที่ทนทานและสวยงาม</p>
+          <ul style="list-style:none; padding:0; margin-top:1rem; color:#e6e0d8; display:grid; gap:0.65rem;">
+            <li>✔ เปลี่ยนระบบสายไฟใหม่ทั้งหลัง</li>
+            <li>✔ แก้ไขปัญหารั่วซึมและหลังคา</li>
+            <li>✔ รับประกันงานรีโนเวท 1 ปีเต็ม</li>
+          </ul>
+        </div>
+        <div class="rl-reveal">
+          <div class="rl-compare" id="rl-compare">
+            <img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=1200" alt="After">
+            <div class="rl-before" id="rl-before">
+              <img src="https://images.unsplash.com/photo-1503594384566-461fe158e797?auto=format&fit=crop&q=80&w=1200" alt="Before">
             </div>
+            <div class="rl-badge rl-badge--after">AFTER</div>
+            <div class="rl-badge rl-badge--before">BEFORE</div>
+            <div class="rl-handle" id="rl-handle">
+              <div class="rl-handle-dot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18-6-6 6-6"/><path d="m15 6 6 6-6 6"/></svg>
+              </div>
+            </div>
+          </div>
+          <p style="text-align:center; margin-top:0.8rem; color:#c7c0b8;">ลากเพื่อเปรียบเทียบการเปลี่ยนแปลง</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reviews -->
+    <section class="rl-section" id="reviews">
+      <div class="rl-container">
+        <div class="rl-section-title rl-reveal">
+          <h2>เสียงจากลูกบ้านของเรา</h2>
+        </div>
+        <div class="rl-reviews">
+          <div class="rl-review-card rl-reveal">
+            <div class="rl-stars">★★★★★</div>
+            <p>"บ้านสวยมาก งานรีโนเวทละเอียดเหมือนได้บ้านมือหนึ่งเลยค่ะ"</p>
+            <div class="rl-reviewer">
+              <div class="rl-avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ploy" alt=""></div>
+              <div><strong>คุณพลอย</strong><br><span style="color:#a39c95; font-size:0.9rem;">เจ้าของบ้านรุ่นใหม่</span></div>
+            </div>
+          </div>
+          <div class="rl-review-card rl-reveal">
+            <div class="rl-stars">★★★★★</div>
+            <p>"ชอบสไตล์การตกแต่งที่อบอุ่น บริการดีตั้งแต่วันแรกจนโอนบ้าน"</p>
+            <div class="rl-reviewer">
+              <div class="rl-avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=nut" alt=""></div>
+              <div><strong>คุณนัท</strong><br><span style="color:#a39c95; font-size:0.9rem;">Freelance Designer</span></div>
+            </div>
+<<<<<<< HEAD
             <div id="property-grid" class="property-grid"></div>
             <h3>Praweena Property</h3>
             <p class="text-muted">รีโนเวทบ้านพร้อมขายในสุราษฎร์ธานี เน้นวัสดุคุณภาพ และดีไซน์เรียบหรู</p>
@@ -292,11 +429,14 @@
             <p><a href="#lead-form">ขอคำปรึกษา</a></p>
             <p><a href="#listings">ดูรายการบ้าน</a></p>
             <p><a href="mailto:info@praweenaproperty.com">info@praweenaproperty.com</a></p>
+=======
+>>>>>>> 37e99a2 (Fix: Remove duplicate import in supabaseClient)
           </div>
         </div>
         <div class="footer-bottom">&copy; 2025 Praweena Property. All rights reserved.</div>
         </footer>
 
+<<<<<<< HEAD
         <!-- load header -->
         <script type="module" src="/js/layout/load-header.js"></script>
         <script type="module" src="/js/pages/index.page.js"></script>
@@ -334,3 +474,65 @@
 </body>
 
 </html>
+=======
+    <!-- CTA -->
+    <section class="rl-section" id="lead-form">
+      <div class="rl-container">
+        <div class="rl-cta rl-reveal">
+          <h2>พร้อมเริ่มต้นชีวิตใหม่หรือยัง?</h2>
+          <p>ปรึกษาเรื่องซื้อบ้านรีโนเวท หรือนัดชมโครงการจริงได้ทุกวัน</p>
+          <div class="rl-cta-actions">
+            <button class="rl-btn rl-btn--solid" data-interest="นัดหมายเข้าชม">นัดหมายเข้าชม</button>
+            <button class="rl-btn rl-btn--ghost" data-interest="แอดไลน์คุยกับเรา">แอดไลน์คุยกับเรา</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rl-footer">
+    <div class="rl-container">
+      <div class="rl-footer-grid">
+        <div>
+          <div class="rl-brand" style="margin-bottom:0.5rem;">
+            <div class="rl-brand-mark">R</div>
+            <span>RE:LIVING</span>
+          </div>
+          <p>บริษัทพัฒนาอสังหาริมทรัพย์ที่เชี่ยวชาญด้านการรีโนเวทและปรับปรุงที่อยู่อาศัย เพื่อคุณภาพชีวิตที่ดีขึ้น</p>
+        </div>
+        <div>
+          <h4>เมนู</h4>
+          <p><a href="#hero">หน้าแรก</a></p>
+          <p><a href="#listings">โครงการทั้งหมด</a></p>
+          <p><a href="#why">ผลงานที่ผ่านมา</a></p>
+        </div>
+        <div>
+          <h4>ติดต่อเรา</h4>
+          <p>02-123-4567</p>
+          <p>hello@reliving.co.th</p>
+          <p>Line: @reliving</p>
+          <p>123 สาทร, กรุงเทพฯ</p>
+        </div>
+        <div>
+          <h4>ติดตามเรา</h4>
+          <div style="display:flex; gap:0.75rem;">
+            <a href="#" class="rl-brand-mark" style="width:40px; height:40px; background:#f7f3ec; color:#5b544c;">f</a>
+            <a href="#" class="rl-brand-mark" style="width:40px; height:40px; background:#f7f3ec; color:#5b544c;">ig</a>
+            <a href="#" class="rl-brand-mark" style="width:40px; height:40px; background:#f7f3ec; color:#5b544c;">t</a>
+          </div>
+        </div>
+      </div>
+      <div class="rl-footer-bottom">
+        <p>&copy; 2024 Re:Living Property Co., Ltd. All rights reserved.</p>
+        <div style="display:flex; gap:1rem;">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/js/pages/index.page.js"></script>
+</body>
+</html>
+>>>>>>> 37e99a2 (Fix: Remove duplicate import in supabaseClient)

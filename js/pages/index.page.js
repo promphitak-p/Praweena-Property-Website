@@ -54,28 +54,17 @@ function renderPropertyCard(property, opts = {}) {
   const { variant = 'default', isNew = false } = opts;
   const link = `/property-detail.html?slug=${property.slug}`;
   const card = el('article', { className: `property-card ${variant === 'featured' ? 'property-card--featured' : ''}` });
-  // Subtle fade-up animation per card
-  card.classList.add('animate-fade-up');
+  card.classList.add('rl-reveal');
   const delay = typeof opts.delay === 'number' ? opts.delay : 0;
-  card.style.setProperty('--anim-delay', `${delay}ms`);
+  card.style.transitionDelay = `${delay}ms`;
 
-  const media = el('a', {
-    className: 'property-card__media',
-    attributes: { href: link }
-  });
-  const image = el('img', {
-    className: 'property-card__image',
-    attributes: {
-      src: property.cover_url || '/assets/img/placeholder.jpg',
-      alt: property.title,
-      loading: 'lazy'
-    }
-  });
+  const media = el('a', { className: 'property-card__media', attributes: { href: link } });
+  const image = el('img', { className: 'property-card__image', attributes: { src: property.cover_url || '/assets/img/placeholder.jpg', alt: property.title, loading: 'lazy' } });
+  media.append(image);
+
   const badge = getStatusBadge(property);
-  media.append(image, el('div', { className: `property-badge ${badge.className}`, textContent: badge.label }));
-  if (isNew) {
-    media.append(el('div', { className: 'property-badge property-badge--new', textContent: 'เข้าใหม่' }));
-  }
+  media.append(el('div', { className: 'property-pill', textContent: isNew ? 'เข้าใหม่' : badge.label }));
+  media.append(el('button', { className: 'property-heart', attributes: { type: 'button', 'aria-label': 'favorite' }, textContent: '♥' }));
 
   const body = el('div', { className: 'property-card__body' });
   const title = el('a', { className: 'property-card__title', textContent: property.title, attributes: { href: link } });
@@ -108,7 +97,6 @@ async function loadProperties() {
   const featuredGrid = $('#featured-grid');
   const featuredList = $('#featured-list');
   if (!grid) {
-    console.error('Property grid container (#property-grid) not found. Check HTML ID.');
     return;
   }
 
@@ -122,11 +110,11 @@ async function loadProperties() {
   if (featuredGrid) for (let i = 0; i < 3; i++) featuredGrid.append(renderSkeletonCard());
 
   const filters = {
-    q: heroForm?.elements.q.value || null,
-    district: advancedForm?.elements.district.value || null,
-    type: advancedForm?.elements.type.value || null,
-    price_min: advancedForm?.elements.price_min.value || null,
-    price_max: advancedForm?.elements.price_max.value || null,
+    q: heroForm?.elements?.q?.value || document.getElementById('hero-search-input')?.value || null,
+    district: advancedForm?.elements?.district?.value || null,
+    type: advancedForm?.elements?.type?.value || null,
+    price_min: advancedForm?.elements?.price_min?.value || null,
+    price_max: advancedForm?.elements?.price_max?.value || null,
   };
 
   const { data, error } = await listPublic(filters);
@@ -366,14 +354,86 @@ function restartHeroTimer() {
 
 function renderSkeletonCard() {
   const card = el('div', { className: 'property-card' });
-  const image = el('div', { className: 'skeleton', style: 'height: 200px;' });
+  const image = el('div', { className: 'skeleton', style: 'height: 220px;' });
   const body = el('div', { className: 'property-card__body' });
-  const title = el('div', { className: 'skeleton', style: 'height: 24px; width: 80%; margin-bottom: 0.5rem;' });
-  const address = el('div', { className: 'skeleton', style: 'height: 16px; width: 60%; margin-bottom: 1rem;' });
-  const price = el('div', { className: 'skeleton', style: 'height: 28px; width: 50%; margin-top: auto;' });
+  const title = el('div', { className: 'skeleton', style: 'height: 20px; width: 80%; margin-bottom: 0.5rem;' });
+  const address = el('div', { className: 'skeleton', style: 'height: 14px; width: 60%; margin-bottom: 1rem;' });
+  const price = el('div', { className: 'skeleton', style: 'height: 22px; width: 50%; margin-top: auto;' });
   body.append(title, address, price);
   card.append(image, body);
   return card;
+}
+
+function setupLandingUI() {
+  const nav = document.getElementById('rl-nav');
+  const mobileMenu = document.getElementById('rl-nav-mobile');
+  const toggleBtn = document.getElementById('rl-nav-toggle');
+  if (toggleBtn && mobileMenu) {
+    mobileMenu.style.display = 'none';
+    toggleBtn.addEventListener('click', () => {
+      const isOpen = mobileMenu.style.display === 'grid';
+      mobileMenu.style.display = isOpen ? 'none' : 'grid';
+    });
+  }
+  if (nav) {
+    const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 20);
+    onScroll();
+    window.addEventListener('scroll', onScroll);
+  }
+
+  const reveals = Array.from(document.querySelectorAll('.rl-reveal'));
+  if (reveals.length) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    reveals.forEach((elNode) => io.observe(elNode));
+  }
+
+  const heroBtn = document.getElementById('hero-search-btn');
+  if (heroBtn) {
+    heroBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadProperties();
+    });
+  }
+}
+
+function setupCompareSlider() {
+  const container = document.getElementById('rl-compare');
+  const before = document.getElementById('rl-before');
+  const handle = document.getElementById('rl-handle');
+  if (!container || !before || !handle) return;
+
+  let dragging = false;
+  const setPosition = (clientX) => {
+    const rect = container.getBoundingClientRect();
+    const x = Math.max(rect.left, Math.min(clientX, rect.right));
+    const percent = ((x - rect.left) / rect.width) * 100;
+    before.style.width = `${percent}%`;
+    handle.style.left = `${percent}%`;
+  };
+
+  container.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    container.setPointerCapture(e.pointerId);
+    setPosition(e.clientX);
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    setPosition(e.clientX);
+  });
+  window.addEventListener('pointerup', () => {
+    dragging = false;
+  });
+
+  // initial center
+  before.style.width = '50%';
+  handle.style.left = '50%';
 }
 
 // --- Main execution ---
@@ -381,6 +441,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   signOutIfAny();
   setupMobileNav();
+  setupLandingUI();
+  setupCompareSlider();
   setupLeadForm();
   setupInterestPrefill();
   loadProperties(); // โหลดครั้งแรก
