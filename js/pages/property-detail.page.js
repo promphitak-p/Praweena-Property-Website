@@ -307,29 +307,53 @@ async function renderPropertyDetails(property) {
 
   const openLightbox = setupLightbox(allImages);
   const thumbEls = [];
+  const slideEls = [];
+  let currentSlide = 0;
+
+  galleryContainer.style.position = 'relative';
+  galleryContainer.style.overflow = 'hidden';
+
+  function showSlide(idx) {
+    if (!slideEls.length) return;
+    currentSlide = (idx + slideEls.length) % slideEls.length;
+    slideEls.forEach((img, i) => { img.style.display = i === currentSlide ? 'block' : 'none'; });
+    thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
+  }
+
   allImages.forEach((url, index) => {
-    const img = el('img', { className: 'gallery-image', attributes: { src: url, alt: 'Property image', loading: index === 0 ? 'eager' : 'lazy', fetchpriority: index === 0 ? 'high' : 'auto' } });
+    const img = el('img', {
+      className: 'gallery-image',
+      attributes: {
+        src: url,
+        alt: 'Property image',
+        loading: index === 0 ? 'eager' : 'lazy',
+        fetchpriority: index === 0 ? 'high' : 'auto'
+      }
+    });
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.style.display = 'none';
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
+    slideEls.push(img);
 
     const thumb = el('img', { className: 'thumbnail-image', attributes: { src: url, alt: `Thumbnail ${index + 1}`, loading: 'lazy' } });
-    thumb.addEventListener('click', () => galleryContainer.scrollTo({ left: galleryContainer.offsetWidth * index, behavior: 'smooth' }));
+    thumb.addEventListener('click', () => showSlide(index));
     thumbnailContainer.append(thumb);
     thumbEls.push(thumb);
   });
-  if (thumbEls.length) thumbEls[0].classList.add('active');
-  galleryContainer.addEventListener('scroll', () => {
-    const idx = Math.round(galleryContainer.scrollLeft / galleryContainer.offsetWidth);
-    thumbEls.forEach((t, i) => t.classList.toggle('active', i === idx));
-  });
+
   if (allImages.length > 1) {
     const prevBtn = el('button', { className: 'gallery-nav prev', textContent: '‹' });
     const nextBtn = el('button', { className: 'gallery-nav next', textContent: '›' });
-    prevBtn.addEventListener('click', () => galleryContainer.scrollBy({ left: -galleryContainer.offsetWidth, behavior: 'smooth' }));
-    nextBtn.addEventListener('click', () => galleryContainer.scrollBy({ left: galleryContainer.offsetWidth, behavior: 'smooth' }));
+    prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
+    nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
     galleryWrapper.append(prevBtn, nextBtn);
   }
+
   galleryWrapper.prepend(galleryContainer);
+  showSlide(0);
 
   // Text/info card
   const infoCard = el('div', { className: 'detail-card detail-hero-info' });
