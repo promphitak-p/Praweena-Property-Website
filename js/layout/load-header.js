@@ -43,6 +43,38 @@ export async function loadHeader() {
     const html = await res.text();
     container.innerHTML = html;
 
+    // Inject rl-nav styles (once)
+    if (!document.getElementById('rl-nav-style')) {
+      const style = document.createElement('style');
+      style.id = 'rl-nav-style';
+      style.textContent = `
+        .rl-nav {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: 50;
+          padding: 1.1rem 0;
+          transition: background 0.25s ease, box-shadow 0.25s ease, padding 0.25s ease;
+          background: transparent;
+        }
+        .rl-nav.is-scrolled {
+          background: rgba(255,255,255,0.9);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 10px 35px rgba(0,0,0,0.06);
+          padding: 0.85rem 0;
+        }
+        .rl-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+        .rl-nav .nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+        .rl-nav .logo { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 800; color: #2b2a28; text-decoration: none; letter-spacing: 0.02em; }
+        .rl-nav .logo-img { height: 38px; width: auto; display: block; }
+        @media (max-width: 900px) {
+          .rl-container { padding: 0 1.1rem; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     // setup global nav / mobile / sign-out
     setupNav();
     setupMobileNav();
