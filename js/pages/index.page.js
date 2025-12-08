@@ -63,7 +63,8 @@ function renderPropertyCard(property, opts = {}) {
   media.append(image);
 
   const badge = getStatusBadge(property);
-  media.append(el('div', { className: 'property-pill', textContent: isNew ? 'เข้าใหม่' : badge.label }));
+  const pillText = isNew ? 'เข้าใหม่' : badge.label;
+  media.append(el('div', { className: 'property-pill', textContent: pillText }));
   media.append(el('button', { className: 'property-heart', attributes: { type: 'button', 'aria-label': 'favorite' }, textContent: '♥' }));
 
   const body = el('div', { className: 'property-card__body' });
@@ -75,6 +76,17 @@ function renderPropertyCard(property, opts = {}) {
   const metaRow = el('div', { className: 'property-card__meta-row' });
   buildHighlights(property).forEach(txt => metaRow.append(el('span', { className: 'meta-chip', textContent: txt })));
 
+  // Tags from API (array or comma-separated string)
+  const tagsRow = el('div', { className: 'property-card__meta-row' });
+  const tags = Array.isArray(property.tags)
+    ? property.tags
+    : (typeof property.tags_text === 'string' ? property.tags_text.split(',') : []);
+  tags.slice(0, 3).forEach((tag) => {
+    const t = String(tag || '').trim();
+    if (!t) return;
+    tagsRow.append(el('span', { className: 'meta-chip', textContent: t }));
+  });
+
   const actionBar = el('div', { className: 'property-card__actions' });
   const detailBtn = el('a', {
     className: 'btn btn-primary btn-sm',
@@ -83,7 +95,9 @@ function renderPropertyCard(property, opts = {}) {
   });
   actionBar.append(detailBtn);
 
-  body.append(title, address, price, metaRow, actionBar);
+  body.append(title, address, price, metaRow);
+  if (tagsRow.childNodes.length) body.append(tagsRow);
+  body.append(actionBar);
 
   card.append(media, body);
   return card;
@@ -370,9 +384,13 @@ function setupLandingUI() {
   const toggleBtn = document.getElementById('rl-nav-toggle');
   if (toggleBtn && mobileMenu) {
     mobileMenu.style.display = 'none';
+    const closeMobile = () => { mobileMenu.style.display = 'none'; };
     toggleBtn.addEventListener('click', () => {
       const isOpen = mobileMenu.style.display === 'grid';
       mobileMenu.style.display = isOpen ? 'none' : 'grid';
+    });
+    mobileMenu.querySelectorAll('a, button').forEach((node) => {
+      node.addEventListener('click', closeMobile);
     });
   }
   if (nav) {
