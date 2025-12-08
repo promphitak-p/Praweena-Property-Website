@@ -59,6 +59,14 @@ export async function loadHeader() {
       mobileToggle?.remove();
     }
 
+    // Scroll style on all pages (match landing behavior)
+    const navEl = container.querySelector('.header');
+    if (navEl) {
+      const onScroll = () => navEl.classList.toggle('is-scrolled', window.scrollY > 20);
+      onScroll();
+      window.addEventListener('scroll', onScroll);
+    }
+
     // ถ้าเป็นโหมดฝังใน iframe (เช่น embed=1) ซ่อนปุ่มออกจากระบบ
     const params = new URLSearchParams(window.location.search);
     if (params.get('embed') === '1') {
