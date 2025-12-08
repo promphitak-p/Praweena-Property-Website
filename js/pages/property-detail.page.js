@@ -314,6 +314,9 @@ async function renderPropertyDetails(property) {
   galleryContainer.style.overflow = 'hidden';
   galleryContainer.style.height = '450px';
   galleryContainer.style.maxHeight = '70vh';
+  galleryContainer.style.display = 'block';
+  galleryContainer.style.margin = '0';
+  galleryContainer.style.flex = 'none';
 
   function showSlide(idx) {
     if (!slideEls.length) return;
@@ -338,6 +341,7 @@ async function renderPropertyDetails(property) {
     img.style.display = 'none';
     img.style.position = 'absolute';
     img.style.inset = '0';
+    img.style.flex = 'none';
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
     slideEls.push(img);
