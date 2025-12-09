@@ -83,14 +83,6 @@ export async function loadHeader() {
     // ⭐ ใส่ active ให้เมนูตาม data-page
     markActiveNav();
 
-    // หน้า home เอาเมนูออก เหลือแค่โลโก้
-    if (document.body?.dataset?.page === 'home') {
-      const links = container.querySelector('.nav-links');
-      const mobileToggle = container.querySelector('.mobile-nav-toggle');
-      links?.remove();
-      mobileToggle?.remove();
-    }
-
     // Scroll style on all pages (match landing behavior)
     const navEl = container.querySelector('.header');
     if (navEl) {

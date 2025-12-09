@@ -1,11 +1,88 @@
 <!-- /partials/header.html -->
 <header class="header rl-nav" role="banner">
-  <div class="container rl-container">
-    <nav class="nav" role="navigation" aria-label="หลัก">
-      <a href="/index.html" class="logo" aria-label="กลับหน้าแรก">
-        <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="logo-img">
-        <span class="logo-text">Praweena Property</span>
-      </a>
-    </nav>
+  <style>
+    /* Scoped header styles */
+    .rl-nav {
+      background: #fdfbf7;
+      border-bottom: 1px solid #eee4d8;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.06);
+    }
+    .rl-nav .nav-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 0.25rem 0;
+    }
+    .rl-nav .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-weight: 800;
+      color: #2b2a28;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+    .rl-nav .brand-logo { height: 42px; width: auto; display: block; }
+    .rl-nav .nav-links {
+      display: flex;
+      justify-content: center;
+      gap: 2.2rem;
+      font-weight: 700;
+      color: #6b645d;
+    }
+    .rl-nav .nav-links a {
+      color: inherit;
+      text-decoration: none;
+      padding: 0.35rem 0;
+      transition: color 0.2s ease;
+    }
+    .rl-nav .nav-links a:hover,
+    .rl-nav .nav-links a.active {
+      color: #2b2a28;
+    }
+    .rl-nav .nav-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      color: #6b645d;
+    }
+    .rl-nav .nav-actions a {
+      text-decoration: none;
+      color: inherit;
+    }
+    .rl-nav .cta-btn {
+      background: #2b2a28;
+      color: #fff !important;
+      padding: 0.55rem 1.25rem;
+      border-radius: 999px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+      transition: transform 0.18s ease, box-shadow 0.2s ease;
+    }
+    .rl-nav .cta-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 36px rgba(0,0,0,0.25); }
+    @media (max-width: 900px) {
+      .rl-nav .nav-row { grid-template-columns: 1fr auto; }
+      .rl-nav .nav-links { display: none; }
+      .rl-nav .nav-actions { display: none; }
+    }
+  </style>
+  <div class="container rl-container nav-row">
+    <a href="/index.html" class="brand" aria-label="กลับหน้าแรก">
+      <img src="/assets/img/logo.png" alt="Praweena Property Logo" class="brand-logo">
+      <span>PRAWEENA PROPERTY</span>
+    </a>
+
+    <div class="nav-links">
+      <a href="/index.html" data-nav="home">หน้าแรก</a>
+      <a href="/index.html#listings" data-nav="listings">บ้านของเรา</a>
+      <a href="/index.html#why" data-nav="why">ผลงานรีโนเวท</a>
+      <a href="/index.html#reviews" data-nav="about">เกี่ยวกับเรา</a>
+    </div>
+
+    <div class="nav-actions">
+      <a href="/admin.html">เข้าสู่ระบบ</a>
+      <a href="/index.html#lead-form" class="cta-btn">นัดชมบ้าน</a>
+    </div>
   </div>
 </header>
