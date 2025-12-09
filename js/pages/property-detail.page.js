@@ -94,14 +94,23 @@ function setupLightbox(imageUrls) {
 
   function openLightbox(index) {
     overlay.classList.add('show');
+    document.body.classList.add('no-scroll');
     gallery.scrollTo({ left: gallery.offsetWidth * index, behavior: 'auto' });
   }
-  function closeLightbox() { overlay.classList.remove('show'); }
+  function closeLightbox() {
+    overlay.classList.remove('show');
+    document.body.classList.remove('no-scroll');
+  }
 
   prevBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' }); });
   nextBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: gallery.offsetWidth, behavior: 'smooth' }); });
   $('.lightbox-close').addEventListener('click', closeLightbox);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+  // Ensure overlay can receive keyboard events
+  overlay.setAttribute('tabindex', '-1');
 
   return openLightbox;
 }
