@@ -321,7 +321,10 @@ async function renderPropertyDetails(property) {
   function showSlide(idx) {
     if (!slideEls.length) return;
     currentSlide = (idx + slideEls.length) % slideEls.length;
-    slideEls.forEach((img, i) => { img.style.display = i === currentSlide ? 'block' : 'none'; });
+    slideEls.forEach((img, i) => {
+      img.classList.toggle('is-active', i === currentSlide);
+      img.style.display = i === currentSlide ? 'block' : 'none';
+    });
     thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
   }
 
