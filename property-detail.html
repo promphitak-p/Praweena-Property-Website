@@ -76,8 +76,8 @@
     }
     .share-card .share-title { color: #2b2a28; }
     .rl-footer { margin-top: 2.5rem; }
-    /* Force slider mode for gallery */
-    .image-gallery {
+    /* Force slider mode for gallery (override legacy flex) */
+    body.rl-page .image-gallery {
       position: relative !important;
       overflow: hidden !important;
       height: 450px !important;
@@ -88,8 +88,8 @@
       flex: none !important;
       border: none !important;
     }
-    .detail-hero-main { height: 450px !important; }
-    .image-gallery .gallery-image {
+    body.rl-page .detail-hero-main { height: 450px !important; }
+    body.rl-page .image-gallery .gallery-image {
       position: absolute !important;
       inset: 0 !important;
       width: 100% !important;
@@ -100,7 +100,7 @@
       padding: 0 !important;
       flex: none !important;
     }
-    .image-gallery .gallery-image.is-active { display: block !important; }
+    body.rl-page .image-gallery .gallery-image.is-active { display: block !important; }
   </style>
   
   
