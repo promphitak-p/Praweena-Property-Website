@@ -337,7 +337,10 @@ async function renderPropertyDetails(property) {
   mainImg.style.width = '100%';
   mainImg.style.height = '100%';
   mainImg.style.objectFit = 'cover';
-  mainImg.style.display = 'block';
+  mainImg.style.setProperty('display', 'block', 'important');
+  mainImg.style.setProperty('opacity', '1', 'important');
+  mainImg.style.setProperty('visibility', 'visible', 'important');
+  mainImg.style.setProperty('pointerEvents', 'auto', 'important');
   mainImg.style.margin = '0';
   mainImg.style.padding = '0';
   mainImg.addEventListener('click', () => openLightbox(currentSlide));
@@ -350,6 +353,11 @@ async function renderPropertyDetails(property) {
     mainImg.src = url;
     mainImg.setAttribute('loading', currentSlide === 0 ? 'eager' : 'lazy');
     mainImg.setAttribute('fetchpriority', currentSlide === 0 ? 'high' : 'auto');
+    mainImg.classList.add('is-active');
+    mainImg.style.setProperty('display', 'block', 'important');
+    mainImg.style.setProperty('opacity', '1', 'important');
+    mainImg.style.setProperty('visibility', 'visible', 'important');
+    mainImg.style.setProperty('pointerEvents', 'auto', 'important');
     thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
   }
 
