@@ -95,12 +95,18 @@
       width: 100% !important;
       height: 100% !important;
       object-fit: cover !important;
-      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
       margin: 0 !important;
       padding: 0 !important;
       flex: none !important;
     }
-    body.rl-page .image-gallery .gallery-image.is-active { display: block !important; }
+    body.rl-page .image-gallery .gallery-image.is-active {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
     /* Thumbnails explicit sizing */
     body.rl-page .thumbnail-container {
       display: flex !important;
