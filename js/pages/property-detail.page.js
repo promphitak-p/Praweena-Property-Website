@@ -320,15 +320,15 @@ async function renderPropertyDetails(property) {
   galleryContainer.style.padding = '0';
   galleryContainer.style.border = 'none';
 
-  function showSlide(idx) {
-    if (!slideEls.length) return;
-    currentSlide = (idx + slideEls.length) % slideEls.length;
-    slideEls.forEach((img, i) => {
-      img.classList.toggle('is-active', i === currentSlide);
-      img.style.display = i === currentSlide ? 'block' : 'none';
-    });
-    thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
-  }
+function showSlide(idx) {
+  if (!slideEls.length) return;
+  currentSlide = (idx + slideEls.length) % slideEls.length;
+  slideEls.forEach((img, i) => {
+    img.classList.toggle('is-active', i === currentSlide);
+    img.style.setProperty('display', i === currentSlide ? 'block' : 'none', 'important');
+  });
+  thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
+}
 
   allImages.forEach((url, index) => {
     const img = el('img', {
@@ -343,7 +343,7 @@ async function renderPropertyDetails(property) {
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'cover';
-    img.style.display = 'none';
+    img.style.setProperty('display', 'none', 'important');
     img.style.position = 'absolute';
     img.style.inset = '0';
     img.style.flex = 'none';
