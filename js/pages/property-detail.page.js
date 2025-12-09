@@ -316,7 +316,6 @@ async function renderPropertyDetails(property) {
 
   const openLightbox = setupLightbox(allImages);
   const thumbEls = [];
-  const slideEls = [];
   let currentSlide = 0;
 
   galleryContainer.style.position = 'relative';
@@ -329,39 +328,32 @@ async function renderPropertyDetails(property) {
   galleryContainer.style.padding = '0';
   galleryContainer.style.border = 'none';
 
-function showSlide(idx) {
-  if (!slideEls.length) return;
-  currentSlide = (idx + slideEls.length) % slideEls.length;
-  slideEls.forEach((img, i) => {
-    img.classList.toggle('is-active', i === currentSlide);
-    img.style.setProperty('display', i === currentSlide ? 'block' : 'none', 'important');
+  const mainImg = el('img', {
+    className: 'gallery-image',
+    attributes: { alt: 'Property image', loading: 'eager', fetchpriority: 'high' }
   });
-  thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
-}
+  mainImg.style.position = 'absolute';
+  mainImg.style.inset = '0';
+  mainImg.style.width = '100%';
+  mainImg.style.height = '100%';
+  mainImg.style.objectFit = 'cover';
+  mainImg.style.display = 'block';
+  mainImg.style.margin = '0';
+  mainImg.style.padding = '0';
+  mainImg.addEventListener('click', () => openLightbox(currentSlide));
+  galleryContainer.append(mainImg);
+
+  function showSlide(idx) {
+    if (!allImages.length) return;
+    currentSlide = (idx + allImages.length) % allImages.length;
+    const url = allImages[currentSlide];
+    mainImg.src = url;
+    mainImg.setAttribute('loading', currentSlide === 0 ? 'eager' : 'lazy');
+    mainImg.setAttribute('fetchpriority', currentSlide === 0 ? 'high' : 'auto');
+    thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
+  }
 
   allImages.forEach((url, index) => {
-    const img = el('img', {
-      className: 'gallery-image',
-      attributes: {
-        src: url,
-        alt: 'Property image',
-        loading: index === 0 ? 'eager' : 'lazy',
-        fetchpriority: index === 0 ? 'high' : 'auto'
-      }
-    });
-    img.style.width = '100%';
-    img.style.height = '100%';
-    img.style.objectFit = 'cover';
-    img.style.setProperty('display', 'none', 'important');
-    img.style.position = 'absolute';
-    img.style.inset = '0';
-    img.style.flex = 'none';
-    img.style.margin = '0';
-    img.style.padding = '0';
-    img.addEventListener('click', () => openLightbox(index));
-    galleryContainer.append(img);
-    slideEls.push(img);
-
     const thumb = el('img', { className: 'thumbnail-image', attributes: { src: url, alt: `Thumbnail ${index + 1}`, loading: 'lazy' } });
     thumb.addEventListener('click', () => showSlide(index));
     thumbnailContainer.append(thumb);
