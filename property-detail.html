@@ -101,6 +101,29 @@
       flex: none !important;
     }
     body.rl-page .image-gallery .gallery-image.is-active { display: block !important; }
+    /* Thumbnails explicit sizing */
+    body.rl-page .thumbnail-container {
+      display: flex !important;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 0 0;
+      margin: 0;
+    }
+    body.rl-page .thumbnail-container .thumbnail-image {
+      width: 90px !important;
+      height: 70px !important;
+      object-fit: cover !important;
+      border-radius: 12px !important;
+      border: 1px solid #eae1d5 !important;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.05) !important;
+      opacity: 0.6;
+      flex: 0 0 auto !important;
+    }
+    body.rl-page .thumbnail-container .thumbnail-image.active,
+    body.rl-page .thumbnail-container .thumbnail-image:hover {
+      opacity: 1;
+      border-color: #f37335 !important;
+    }
   </style>
   
   
