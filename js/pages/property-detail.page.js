@@ -317,6 +317,8 @@ async function renderPropertyDetails(property) {
   galleryContainer.style.display = 'block';
   galleryContainer.style.margin = '0';
   galleryContainer.style.flex = 'none';
+  galleryContainer.style.padding = '0';
+  galleryContainer.style.border = 'none';
 
   function showSlide(idx) {
     if (!slideEls.length) return;
@@ -345,6 +347,8 @@ async function renderPropertyDetails(property) {
     img.style.position = 'absolute';
     img.style.inset = '0';
     img.style.flex = 'none';
+    img.style.margin = '0';
+    img.style.padding = '0';
     img.addEventListener('click', () => openLightbox(index));
     galleryContainer.append(img);
     slideEls.push(img);
