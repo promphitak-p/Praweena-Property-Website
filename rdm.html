@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบสุ่มรายรับรายจ่าย (Mobile Friendly)</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --warning: #d97706;
+            --bg: #f8fafc; --card: #ffffff;
+            --holiday-bg: #fff1f2; --holiday-text: #e11d48;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: var(--bg); 
+            margin: 0; padding: 15px; 
+            color: #333; 
+            font-size: 16px; /* Base font size for mobile */
+        }
+
+        .container { 
+            max-width: 800px; margin: 0 auto; 
+            background: var(--card); padding: 25px; 
+            border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+        }
+
+        h1 { 
+            text-align: center; color: var(--primary); 
+            margin-bottom: 25px; font-size: 1.5rem; line-height: 1.3;
+        }
+
+        /* --- UI Styles --- */
+        .input-group { 
+            margin-bottom: 20px; padding: 15px; 
+            border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; 
+        }
+        .input-group h3 { 
+            margin-top: 0; margin-bottom: 15px; 
+            color: #475569; border-bottom: 2px solid #f1f5f9; 
+            padding-bottom: 10px; font-size: 1.1rem;
+        }
+        
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; }
+        
+        /* Input Fields: ใหญ่ขึ้นสำหรับนิ้วมือ */
+        input, select { 
+            width: 100%; padding: 12px; 
+            border: 1px solid #cbd5e1; border-radius: 8px; 
+            font-size: 1rem; background-color: #fff;
+            margin-bottom: 5px;
+        }
+        
+        /* Grids */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .grid-7 { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px; }
+        .month-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; }
+        
+        .checkbox-label { 
+            display: flex; align-items: center; gap: 8px; 
+            cursor: pointer; font-weight: normal; font-size: 0.95rem; 
+            padding: 5px; border-radius: 4px;
+        }
+        .checkbox-label:active { background-color: #f1f5f9; }
+        .checkbox-label input { transform: scale(1.3); width: auto; margin: 0; }
+
+        /* Buttons */
+        button { 
+            padding: 14px 20px; border: none; border-radius: 8px; 
+            font-size: 1rem; cursor: pointer; font-weight: 600; 
+            transition: 0.2s; width: auto;
+        }
+        button:active { opacity: 0.8; transform: scale(0.98); }
+        
+        .btn-generate { background-color: var(--primary); color: white; width: 100%; font-size: 1.2rem; margin-top: 10px; }
+        .btn-fetch { background-color: var(--warning); color: white; font-size: 0.9rem; padding: 10px; width: 100%; margin-top: 5px;}
+        .btn-add { background-color: var(--success); color: white; width: 100%; }
+        .btn-remove { background-color: #ef4444; color: white; padding: 5px 10px; font-size: 0.8rem; margin-left: auto; border-radius: 4px; }
+
+        /* Lists */
+        #manualHolidayList, #holidayListArea { margin-top: 10px; padding: 10px; border-radius: 6px; display: none; max-height: 150px; overflow-y: auto; font-size: 0.9rem; }
+        #manualHolidayList { background: #f0fdf4; border: 1px dashed #16a34a; }
+        #holidayListArea { background: #fffbeb; border: 1px solid #fcd34d; }
+        .list-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px dashed #ddd; }
+
+        /* --- MOBILE RESPONSIVE TWEAKS --- */
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .grid-2 { grid-template-columns: 1fr; gap: 10px; } /* เรียงลงมาแนวตั้ง */
+            .grid-3 { grid-template-columns: 1fr; gap: 10px; } /* เรียงลงมาแนวตั้ง */
+            
+            /* ปรับปุ่มใน Header Modal */
+            .modal-header { flex-direction: column; gap: 10px; padding: 15px; }
+            .modal-header button { width: 100%; }
+            
+            /* ตารางวันให้ชิดกันหน่อยในมือถือ */
+            .grid-7 { grid-template-columns: repeat(4, 1fr); } 
+        }
+
+        /* --- MODAL --- */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); overflow-y: auto; }
+        .modal-header { position: sticky; top: 0; background: #0f172a; color: white; padding: 15px 20px; display: flex; justify-content: center; gap: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10000; }
+        
+        #printArea {
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 20px 0; gap: 20px; 
+            /* อนุญาตให้เลื่อนซ้ายขวาได้สำหรับดู A4 บนมือถือ */
+            overflow-x: auto; 
+            width: 100%;
+        }
+
+        /* --- A4 Paper --- */
+        .a4-page {
+            width: 210mm; /* Fixed A4 Width */
+            min-height: 297mm; 
+            background: white;
+            /* Margin & Padding for Visual */
+            margin-bottom: 20px; 
+            padding: 10mm 10mm; /* ขอบกระดาษ */
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            position: relative;
+            /* ป้องกันการย่อส่วนบนมือถือ ให้ Scroll เอา */
+            flex-shrink: 0; 
+        }
+
+        /* --- PRINT MODE --- */
+        #printArea.print-mode { padding: 0 !important; gap: 0 !important; background: white !important; display: block !important; }
+        #printArea.print-mode .a4-page { box-shadow: none !important; margin: 0 !important; border: none !important; min-height: auto !important; page-break-after: always; }
+        #printArea.print-mode .a4-page:last-child { page-break-after: avoid !important; }
+
+        /* Table Styles */
+        .section-header { font-size: 16pt; font-weight: bold; text-align: center; margin: 0 0 10px 0; color: #000; line-height: 1.2; }
+        table { width: 100%; border-collapse: collapse; font-size: 11pt; table-layout: fixed; }
+        th, td { border: 1px solid #94a3b8; padding: 4px 6px; text-align: right; color: #000; overflow: hidden; white-space: nowrap; }
+        col.col-date { width: 12%; } col.col-desc { width: 43%; text-align: left; } col.col-num { width: 15%; }
+        th { background-color: #e2e8f0 !important; text-align: center; font-weight: bold; -webkit-print-color-adjust: exact; }
+        td.text-left { text-align: left; white-space: normal; }
+        
+        .text-center { text-align: center; } .text-green { color: #15803d; font-weight: bold; } .text-red { color: #b91c1c; font-weight: bold; }
+        tr.holiday-row { background-color: #fef2f2 !important; -webkit-print-color-adjust: exact; }
+        tr.holiday-row td.desc { color: #be123c; font-style: italic; }
+        tr.holiday-row .text-green { color: #cbd5e1; font-weight: normal; }
+
+        .btn-close { background: #64748b; } .btn-pdf { background: #dc2626; } .btn-excel { background: #15803d; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container">
+        <h1>📊 โปรแกรมสุ่มรายรับรายจ่าย</h1>
+
+        <div class="input-group">
+            <h3>1. กำหนดปีและเป้าหมาย</h3>
+            <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #bfdbfe;">
+                <label style="color:#1e40af;">📅 ปี พ.ศ.</label>
+                <input type="number" id="inputYearTH" inputmode="numeric">
+            </div>
+            <div class="grid-2">
+                <div><label>รายรับรวม</label><input type="number" id="targetIncome" value="30000" inputmode="numeric"></div>
+                <div><label>รายจ่ายรวม</label><input type="number" id="targetExpense" value="25000" inputmode="numeric"></div>
+            </div>
+            <div style="margin-top:15px;">
+                <label>📉 ความแกว่ง</label>
+                <select id="varianceLevel">
+                    <option value="10">น้อย (±10%)</option>
+                    <option value="30" selected>ปานกลาง (±30%)</option>
+                    <option value="60">มาก (±60%)</option>
+                    <option value="90">สูงมาก (±90%)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <h3>2. วันหยุด</h3>
+            <div class="grid-7" style="margin-bottom:10px;">
+                <label class="checkbox-label"><input type="checkbox" name="wh" value="0" checked>อา.</label>
+                <label class="checkbox-label"><input type="checkbox" name="wh" value="1">จ.</label>
+                <label class="checkbox-label"><input type="checkbox" name="wh" value="2">อ.</label>
+                <label class="checkbox-label"><input type="checkbox" name="wh" value="3">พ.</label>
+                <label class="checkbox-label"><input type="checkbox" name="wh" value="4">พฤ.</label>
+                <label class="checkbox-label"><input type="checkbox" name="wh" value="5">ศ.</label>
+                <label class="checkbox-label"><input type="checkbox" name="wh" value="6" checked>ส.</label>
+            </div>
+            
+            <div style="margin-bottom:15px;">
+                <label>วันหยุดราชการ:</label>
+                <button class="btn-fetch" onclick="loadHolidays()">📅 ดึงข้อมูลวันหยุด (Offline)</button>
+                <div id="holidayListArea"></div>
+            </div>
+
+            <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:15px; border:1px solid #e2e8f0;">
+                <label style="color:var(--success);">➕ เพิ่มวันหยุดเอง:</label>
+                <div class="grid-3" style="align-items:end;">
+                    <select id="manDay"></select> <select id="manMonth"></select> <input type="text" id="manName" placeholder="ชื่อวันหยุด">
+                </div>
+                <button class="btn-add" style="margin-top:8px;" onclick="addManualHoliday()">เพิ่มรายการ</button>
+                <div id="manualHolidayList"></div>
+            </div>
+            
+            <div style="margin-top:15px;">
+                <label>สุ่มวันหยุดพิเศษ (วัน/เดือน):</label>
+                <input type="number" id="extraHolidays" value="0" inputmode="numeric">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <h3>3. เลือกเดือน</h3>
+            <div class="month-grid" id="monthSelector"></div>
+        </div>
+
+        <button class="btn-generate" onclick="generateData()">🚀 สร้างตาราง (Preview)</button>
+    </div>
+
+    <div id="printModal" class="modal">
+        <div class="modal-header">
+            <button class="btn-close" onclick="closeModal()">❌ ปิด</button>
+            <div style="flex:1;"></div>
+            <button class="btn-excel" onclick="exportToExcel()">📊 Excel</button>
+            <button class="btn-pdf" onclick="exportToPDF()">📄 PDF</button>
+        </div>
+        <div id="printArea"></div>
+    </div>
+
+    <script>
+        const monthsTH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const today = new Date();
+        document.getElementById('inputYearTH').value = today.getFullYear() + 543;
+
+        function getYearAD() { return (parseInt(document.getElementById('inputYearTH').value) || (today.getFullYear()+543)) - 543; }
+
+        const holidaysDB = {
+            2024: [
+                {date:"2024-01-01", localName:"วันขึ้นปีใหม่"}, {date:"2024-02-26", localName:"วันมาฆบูชา (ชดเชย)"}, {date:"2024-04-06", localName:"วันจักรี"}, {date:"2024-04-08", localName:"วันจักรี (ชดเชย)"},
+                {date:"2024-04-13", localName:"วันสงกรานต์"}, {date:"2024-04-14", localName:"วันสงกรานต์"}, {date:"2024-04-15", localName:"วันสงกรานต์"}, {date:"2024-04-16", localName:"วันสงกรานต์ (ชดเชย)"},
+                {date:"2024-05-01", localName:"วันแรงงาน"}, {date:"2024-05-04", localName:"วันฉัตรมงคล"}, {date:"2024-05-06", localName:"วันฉัตรมงคล (ชดเชย)"}, {date:"2024-05-22", localName:"วันวิสาขบูชา"},
+                {date:"2024-06-03", localName:"วันเฉลิมฯ พระราชินี"}, {date:"2024-07-20", localName:"วันอาสาฬหบูชา"}, {date:"2024-07-22", localName:"วันเข้าพรรษา (ชดเชย)"}, {date:"2024-07-28", localName:"วันเฉลิมฯ ร.10"}, {date:"2024-07-29", localName:"วันเฉลิมฯ ร.10 (ชดเชย)"},
+                {date:"2024-08-12", localName:"วันแม่แห่งชาติ"}, {date:"2024-10-13", localName:"วันนวมินทรมหาราช"}, {date:"2024-10-14", localName:"วันนวมินทรมหาราช (ชดเชย)"}, {date:"2024-10-23", localName:"วันปิยมหาราช"},
+                {date:"2024-12-05", localName:"วันพ่อแห่งชาติ"}, {date:"2024-12-10", localName:"วันรัฐธรรมนูญ"}, {date:"2024-12-31", localName:"วันสิ้นปี"}
+            ],
+            2025: [
+                {date:"2025-01-01", localName:"วันขึ้นปีใหม่"}, {date:"2025-02-12", localName:"วันมาฆบูชา"}, {date:"2025-04-06", localName:"วันจักรี"}, {date:"2025-04-07", localName:"วันจักรี (ชดเชย)"},
+                {date:"2025-04-13", localName:"วันสงกรานต์"}, {date:"2025-04-14", localName:"วันสงกรานต์"}, {date:"2025-04-15", localName:"วันสงกรานต์"}, {date:"2025-04-16", localName:"วันสงกรานต์ (ชดเชย)"},
+                {date:"2025-05-01", localName:"วันแรงงาน"}, {date:"2025-05-04", localName:"วันฉัตรมงคล"}, {date:"2025-05-05", localName:"วันฉัตรมงคล (ชดเชย)"}, {date:"2025-05-11", localName:"วันวิสาขบูชา"}, {date:"2025-05-12", localName:"วันวิสาขบูชา (ชดเชย)"},
+                {date:"2025-06-03", localName:"วันเฉลิมฯ พระราชินี"}, {date:"2025-07-10", localName:"วันอาสาฬหบูชา"}, {date:"2025-07-11", localName:"วันเข้าพรรษา"}, {date:"2025-07-28", localName:"วันเฉลิมฯ ร.10"},
+                {date:"2025-08-12", localName:"วันแม่แห่งชาติ"}, {date:"2025-10-13", localName:"วันนวมินทรมหาราช"}, {date:"2025-10-23", localName:"วันปิยมหาราช"}, {date:"2025-12-05", localName:"วันพ่อแห่งชาติ"}, {date:"2025-12-10", localName:"วันรัฐธรรมนูญ"}, {date:"2025-12-31", localName:"วันสิ้นปี"}
+            ],
+            2026: [
+               {date:"2026-01-01", localName:"วันขึ้นปีใหม่"}, {date:"2026-03-03", localName:"วันมาฆบูชา"}, {date:"2026-04-06", localName:"วันจักรี"}, {date:"2026-04-13", localName:"วันสงกรานต์"}, {date:"2026-04-14", localName:"วันสงกรานต์"}, {date:"2026-04-15", localName:"วันสงกรานต์"},
+               {date:"2026-05-01", localName:"วันแรงงาน"}, {date:"2026-05-04", localName:"วันฉัตรมงคล"}, {date:"2026-05-31", localName:"วันวิสาขบูชา"}, {date:"2026-06-01", localName:"วันวิสาขบูชา (ชดเชย)"},
+               {date:"2026-06-03", localName:"วันเฉลิมฯ พระราชินี"}, {date:"2026-07-29", localName:"วันอาสาฬหบูชา"}, {date:"2026-07-30", localName:"วันเข้าพรรษา"}, {date:"2026-07-28", localName:"วันเฉลิมฯ ร.10"},
+               {date:"2026-08-12", localName:"วันแม่แห่งชาติ"}, {date:"2026-10-13", localName:"วันนวมินทรมหาราช"}, {date:"2026-10-23", localName:"วันปิยมหาราช"}, {date:"2026-12-05", localName:"วันพ่อแห่งชาติ"}, {date:"2026-12-10", localName:"วันรัฐธรรมนูญ"}, {date:"2026-12-31", localName:"วันสิ้นปี"}
+            ]
+        };
+
+        const mSel = document.getElementById('monthSelector');
+        monthsTH.forEach((m, i) => mSel.innerHTML += `<label class="checkbox-label"><input type="checkbox" value="${i}" ${i===today.getMonth()?'checked':''}> ${m}</label>`);
+        
+        const dSel = document.getElementById('manDay'); for(let i=1;i<=31;i++) dSel.innerHTML+=`<option>${i}</option>`;
+        const moSel = document.getElementById('manMonth'); monthsTH.forEach((m,i)=> moSel.innerHTML+=`<option value="${i}">${m}</option>`);
+
+        let manHolidays = [];
+        function addManualHoliday() {
+            const d = parseInt(document.getElementById('manDay').value);
+            const m = parseInt(document.getElementById('manMonth').value);
+            const n = document.getElementById('manName').value.trim() || "วันหยุดพิเศษ";
+            manHolidays.push({d, m, n}); renderManHolidays();
+        }
+        function renderManHolidays() {
+            const div = document.getElementById('manualHolidayList');
+            div.style.display = manHolidays.length ? 'block' : 'none';
+            div.innerHTML = manHolidays.map((h, i) => `<div class="list-item"><span>📍 ${h.d} ${monthsTH[h.m]} : ${h.n}</span><button class="btn-remove" onclick="manHolidays.splice(${i},1);renderManHolidays()">ลบ</button></div>`).join('');
+        }
+
+        let loadedHolidays = [];
+        function loadHolidays() {
+            const y = getYearAD();
+            const div = document.getElementById('holidayListArea');
+            div.style.display = 'block';
+            if (holidaysDB[y]) {
+                loadedHolidays = holidaysDB[y];
+                div.innerHTML = `<div style="padding:8px; background:#d1fae5; color:#065f46; font-weight:bold; border-radius:4px; font-size:0.9rem;">✅ พบข้อมูลปี ${y} (Offline)</div>` + 
+                loadedHolidays.map(h => {
+                    const d = new Date(h.date);
+                    return `<div class="list-item"><label class="checkbox-label"><input type="checkbox" class="online-cb" data-date="${h.date}" data-name="${h.localName}" checked> ${d.getDate()} ${monthsTH[d.getMonth()]}: ${h.localName}</label></div>`;
+                }).join('');
+            } else {
+                div.innerHTML = `<div style="padding:8px; background:#fee2e2; color:#991b1b; font-weight:bold; border-radius:4px; font-size:0.9rem;">❌ ไม่พบข้อมูลปี ${y} ในฐานข้อมูล</div>`;
+            }
+        }
+
+        let excelDataStore = [];
+        function distribute(target, days, variance) {
+            if(days <= 0) return [];
+            const avg = Math.floor(target/days);
+            const v = variance/100;
+            let nums = [], sum = 0;
+            for(let i=0; i<days; i++) {
+                let val = Math.floor(Math.random() * (avg*(1+v) - avg*(1-v) + 1)) + Math.floor(avg*(1-v));
+                if(val<0) val=0; nums.push(val); sum+=val;
+            }
+            let diff = target - sum;
+            while(diff !== 0) {
+                const i = Math.floor(Math.random()*days);
+                if(diff > 0) { nums[i]++; diff--; } else if(nums[i] > 0) { nums[i]--; diff++; }
+            }
+            return nums;
+        }
+
+        function generateData() {
+            const yAD = getYearAD();
+            const yTH = yAD + 543;
+            const inc = parseInt(document.getElementById('targetIncome').value);
+            const exp = parseInt(document.getElementById('targetExpense').value);
+            const extra = parseInt(document.getElementById('extraHolidays').value);
+            const variance = parseInt(document.getElementById('varianceLevel').value);
+            
+            const weekHols = Array.from(document.querySelectorAll('input[name="wh"]:checked')).map(c=>parseInt(c.value));
+            const selMonths = document.querySelectorAll('#monthSelector input:checked');
+            const activeHols = {};
+            document.querySelectorAll('.online-cb:checked').forEach(c => activeHols[c.dataset.date] = c.dataset.name);
+
+            if(!selMonths.length) { alert("กรุณาเลือกเดือน"); return; }
+
+            excelDataStore = [];
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = '';
+
+            selMonths.forEach(cb => {
+                const mIdx = parseInt(cb.value);
+                const mName = monthsTH[mIdx];
+                const daysInMonth = new Date(yAD, mIdx+1, 0).getDate();
+                
+                let dayList = [];
+                let workIndices = [];
+
+                for(let d=1; d<=daysInMonth; d++) {
+                    const dateObj = new Date(yAD, mIdx, d);
+                    const dayW = dateObj.getDay();
+                    const mm = String(mIdx+1).padStart(2,'0');
+                    const dd = String(d).padStart(2,'0');
+                    const dateStr = `${yAD}-${mm}-${dd}`;
+                    
+                    let status = { d, isHol: false, desc: 'รายรับ-รายจ่ายทั่วไป' };
+                    if(activeHols[dateStr]) { status.isHol = true; status.desc = activeHols[dateStr]; }
+                    else if(weekHols.includes(dayW)) { status.isHol = true; status.desc = 'วันหยุดประจำสัปดาห์'; }
+                    else { workIndices.push(d-1); }
+                    
+                    const manHol = manHolidays.find(h => h.d === d && h.m === mIdx);
+                    if(manHol) { status.isHol = true; status.desc = manHol.n; }
+                    
+                    dayList.push(status);
+                }
+
+                let exCount = extra;
+                while(exCount > 0 && workIndices.length) {
+                    const rnd = Math.floor(Math.random()*workIndices.length);
+                    const idx = workIndices[rnd];
+                    dayList[idx].isHol = true; dayList[idx].desc = "วันหยุดพิเศษ (ลา)";
+                    workIndices.splice(rnd, 1);
+                    exCount--;
+                }
+
+                const curInc = distribute(Math.floor(inc*(0.98+Math.random()*0.04)), workIndices.length, variance);
+                const curExp = distribute(Math.floor(exp*(0.98+Math.random()*0.04)), daysInMonth, variance);
+                
+                let incPtr = 0, sumI = 0, sumE = 0;
+                let rows = [];
+
+                let html = `<div class="a4-page">`;
+                html += `<div class="section-header">เดือน${mName} ${yTH}</div>`;
+                html += `<table>
+                    <colgroup>
+                        <col class="col-date">
+                        <col class="col-desc">
+                        <col class="col-num">
+                        <col class="col-num">
+                        <col class="col-num">
+                    </colgroup>
+                    <thead><tr><th>วันที่</th><th>รายการ</th><th>รายรับ</th><th>รายจ่าย</th><th>คงเหลือ</th></tr></thead>
+                    <tbody>`;
+
+                dayList.forEach((st, i) => {
+                    let vIn = 0; if(!st.isHol) { vIn = curInc[incPtr++]; }
+                    let vOut = curExp[i];
+                    let bal = vIn - vOut;
+                    sumI+=vIn; sumE+=vOut;
+
+                    const cls = st.isHol ? 'holiday-row' : '';
+                    html += `<tr class="${cls}"><td class="text-center">${st.d}</td><td class="text-left desc">${st.desc}</td><td class="text-green">${vIn>0?vIn.toLocaleString():'-'}</td><td class="text-red">${vOut.toLocaleString()}</td><td>${bal.toLocaleString()}</td></tr>`;
+                    rows.push({date:`${st.d} ${mName} ${yTH}`, desc:st.desc, in:vIn, out:vOut, bal:bal, hol:st.isHol});
+                });
+
+                const net = sumI - sumE;
+                html += `<tr style="background:#e2e8f0; font-weight:bold;"><td colspan="2" class="text-center">รวมทั้งสิ้น</td><td class="text-green">${sumI.toLocaleString()}</td><td class="text-red">${sumE.toLocaleString()}</td><td>${net.toLocaleString()}</td></tr></tbody></table></div>`;
+
+                printArea.innerHTML += html;
+                excelDataStore.push({name: mName, rows});
+            });
+
+            document.getElementById('printModal').style.display = 'block';
+        }
+
+        function closeModal() { document.getElementById('printModal').style.display = 'none'; }
+
+        function exportToPDF() {
+            const element = document.getElementById('printArea');
+            element.classList.add('print-mode');
+
+            const opt = {
+                // Margin 0 เพราะเราจัดการขอบด้วย CSS Padding แล้ว
+                margin: 0,
+                filename: 'รายรับรายจ่าย.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'], after: '.a4-page' }
+            };
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.classList.remove('print-mode');
+            });
+        }
+
+        function exportToExcel() {
+            if(!excelDataStore.length) return;
+            const wb = XLSX.utils.book_new();
+            const styles = {
+                head: { fill:{fgColor:{rgb:"E2E8F0"}}, font:{bold:true}, alignment:{horizontal:"center"}, border:{bottom:{style:"thin"}} },
+                norm: { border:{top:{style:"thin"},bottom:{style:"thin"},left:{style:"thin"},right:{style:"thin"}} },
+                hol:  { fill:{fgColor:{rgb:"FEF2F2"}}, font:{italic:true, color:{rgb:"BE123C"}} },
+                inc:  { font:{color:{rgb:"15803D"}, bold:true} },
+                exp:  { font:{color:{rgb:"B91C1C"}, bold:true} }
+            };
+            excelDataStore.forEach(sh => {
+                const wsData = [[{v:"วันที่",s:styles.head},{v:"รายการ",s:styles.head},{v:"รายรับ",s:styles.head},{v:"รายจ่าย",s:styles.head},{v:"คงเหลือ",s:styles.head}]];
+                sh.rows.forEach(r => {
+                    let sBase = styles.norm;
+                    let sRow = r.hol ? {...sBase, ...styles.hol} : sBase;
+                    let sIn = r.hol ? {...sRow, font:{color:{rgb:"CBD5E1"}}} : {...sBase, ...styles.inc};
+                    if(r.type==='total') sRow = {...sBase, fill:{fgColor:{rgb:"E2E8F0"}}, font:{bold:true}};
+                    wsData.push([{v:r.date, s:{...sRow, alignment:{horizontal:"center"}}},{v:r.desc, s:sRow},{v:r.in, t:'n', s:sIn},{v:r.out, t:'n', s:{...sBase, ...styles.exp}},{v:r.bal, t:'n', s:sRow}]);
+                });
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                ws['!cols'] = [{wch:15},{wch:35},{wch:12},{wch:12},{wch:12}];
+                XLSX.utils.book_append_sheet(wb, ws, sh.name);
+            });
+            XLSX.writeFile(wb, "รายการรับจ่าย.xlsx");
+        }
+    </script>
+</body>
+</html>
