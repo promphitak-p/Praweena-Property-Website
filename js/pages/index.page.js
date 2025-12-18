@@ -32,8 +32,21 @@ let heroActiveIndex = 0;
 function getStatusBadge(property = {}) {
   const status = (property.status || '').toLowerCase();
   if (status === 'sold') return { label: 'ขายแล้ว', className: 'status-sold' };
-  if (status === 'renovating' || status === 'progress') return { label: 'กำลังรีโนเวท', className: 'status-progress' };
-  return { label: 'รีโนเวทพร้อมขาย', className: 'status-renovated' };
+
+  // ลูกค้าจะเห็น "สถานะ" เฉพาะเมื่อบ้านพร้อมแล้วเท่านั้น
+  const stage = String(property.renovation_stage || '').trim().toLowerCase();
+  const customerVisible = property.customer_status_visible === true;
+  const isReadyForCustomer = stage === 'ready' && customerVisible;
+
+  if (isReadyForCustomer) {
+    return { label: 'พร้อมเข้าอยู่', className: 'status-renovated' };
+  }
+
+  // New logic: Show under renovation
+  if (stage === 'in_progress' || stage === 'planning' || stage === 'demolition' || stage === 'structural') {
+    return { label: 'กำลังรีโนเวท', className: 'status-pending' };
+  }
+  return { label: 'บ้านรีโนเวท', className: 'status-renovated' };
 }
 
 /**
@@ -65,7 +78,8 @@ function renderPropertyCard(property, opts = {}) {
 
   const badge = getStatusBadge(property);
   const pillText = isNew ? 'เข้าใหม่' : badge.label;
-  media.append(el('div', { className: 'property-pill', textContent: pillText }));
+  const pillClass = isNew ? 'property-pill status-new' : `property-pill ${badge.className}`;
+  media.append(el('div', { className: pillClass, textContent: pillText }));
   media.append(el('button', { className: 'property-heart', attributes: { type: 'button', 'aria-label': 'favorite' }, textContent: '♥' }));
 
   const body = el('div', { className: 'property-card__body' });
@@ -136,6 +150,9 @@ async function loadProperties() {
 
   clear(grid);
   if (featuredGrid) clear(featuredGrid);
+  const projectGrid = $('#project-grid');
+  if (projectGrid) clear(projectGrid);
+
   if (error) {
     console.error('Failed to load properties:', error);
     grid.append(el('p', { textContent: 'เกิดข้อผิดพลาดในการโหลดข้อมูล' }));
@@ -148,15 +165,46 @@ async function loadProperties() {
     return;
   }
 
-  renderHeroSlides(data.slice(0, 3));
-  renderFeaturedList(data.slice(0, 3));
+  // Split into Ready vs Others
+  const readyList = data.filter(p => {
+    const s = getStatusBadge(p);
+    return s.className === 'status-renovated' || s.className === 'status-sold';
+  });
+  const projectList = data.filter(p => {
+    const s = getStatusBadge(p);
+    return s.className !== 'status-renovated' && s.className !== 'status-sold';
+  });
 
-  const newCount = 4;
-  const newArrivals = data.slice(0, newCount);
+  // Render Ready
+  if (readyList.length === 0) {
+    grid.append(el('p', { textContent: 'ไม่มีบ้านพร้อมอยู่ขณะนี้' }));
+  } else {
+    const listToRender = showAllListings ? readyList : readyList.slice(0, 3);
+    const newCount = 4;
+    listToRender.forEach((property, idx) => {
+      grid.append(renderPropertyCard(property, { isNew: idx < newCount, delay: idx * 70 }));
+    });
+  }
 
-  // Featured/new arrivals (top 3-4)
+  // Render Projects
+  if (projectGrid) {
+    if (projectList.length === 0) {
+      projectGrid.parentElement.style.display = 'none'; // Hide section if empty
+    } else {
+      projectGrid.parentElement.style.display = 'block';
+      projectList.forEach((property, idx) => {
+        projectGrid.append(renderPropertyCard(property, { variant: 'default', delay: idx * 70 }));
+      });
+    }
+  }
+
+  // Hero uses mixed or just featured? Let's use Ready ones for Hero if possible, else mixed.
+  const heroCandidates = readyList.length ? readyList : data;
+  renderHeroSlides(heroCandidates.slice(0, 3));
+
   if (featuredGrid) {
-    const featured = newArrivals.slice(0, 3);
+    // Restore featured grid logic if element exists
+    const featured = heroCandidates.slice(0, 3);
     if (!featured.length) {
       featuredGrid.append(el('p', { textContent: 'กำลังเตรียมบ้านแนะนำ...' }));
     } else {
@@ -165,11 +213,6 @@ async function loadProperties() {
       });
     }
   }
-
-  const listToRender = showAllListings ? data : data.slice(0, 3);
-  listToRender.forEach((property, idx) => {
-    grid.append(renderPropertyCard(property, { isNew: idx < newCount, delay: idx * 70 }));
-  });
 }
 
 function setupLeadForm() {

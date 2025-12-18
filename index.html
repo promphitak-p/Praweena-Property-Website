@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,8 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Re:Living | บ้านรีโนเวทพร้อมอยู่">
   <meta property="og:description" content="รีโนเวทครบ วัสดุพรีเมียม เลย์เอาท์ใหม่ พร้อมทีมดูแลเอกสารและสินเชื่อ">
-  <meta property="og:image" content="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1200">
+  <meta property="og:image"
+    content="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1200">
   <meta property="og:locale" content="th_TH">
 
   <script src="/js/env-loader.js"></script>
@@ -27,7 +29,9 @@
   <link rel="stylesheet" href="/assets/css/main.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap"
+    rel="stylesheet">
 
   <style>
     /* New landing look (scoped) */
@@ -37,7 +41,12 @@
       color: #2b2a28;
     }
 
-    .rl-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+    .rl-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
     .rl-nav {
       position: fixed;
       inset: 0 auto auto 0;
@@ -46,177 +55,875 @@
       transition: box-shadow 0.25s ease, background 0.25s ease, padding 0.25s ease;
       padding: 1.25rem 0;
     }
-    .rl-nav.is-scrolled { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); box-shadow: 0 10px 35px rgba(0,0,0,0.06); padding: 0.85rem 0; }
-    .rl-nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-    .rl-brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; letter-spacing: 0.02em; color: #2b2a28; }
-    .rl-brand-mark { width: 42px; height: 42px; border-radius: 14px; background: #1f1c1a; color: #fff; display: grid; place-items: center; font-weight: 800; }
-    .rl-brand-logo { height: 38px; width: auto; display: block; }
-    .rl-nav-links { display: flex; align-items: center; gap: 1.25rem; font-weight: 600; color: #6b645d; }
-    .rl-nav-links a { color: inherit; text-decoration: none; transition: color 0.2s ease; }
-    .rl-nav-links a:hover { color: #f37335; }
-    .rl-nav-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+    .rl-nav.is-scrolled {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+      padding: 0.85rem 0;
+    }
+
+    .rl-nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .rl-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #2b2a28;
+    }
+
+    .rl-brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: #1f1c1a;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .rl-brand-logo {
+      height: 38px;
+      width: auto;
+      display: block;
+    }
+
+    .rl-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-weight: 600;
+      color: #6b645d;
+    }
+
+    .rl-nav-links a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .rl-nav-links a:hover {
+      color: #f37335;
+    }
+
+    .rl-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
     .rl-btn {
-      border: none; cursor: pointer; font-weight: 700; border-radius: 999px; padding: 0.8rem 1.35rem;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.8rem 1.35rem;
       transition: transform 0.18s ease, box-shadow 0.22s ease, background 0.22s ease, color 0.22s ease;
     }
-    .rl-btn--ghost { background: transparent; color: #5b544c; }
-    .rl-btn--solid { background: #2b2a28; color: #fff; box-shadow: 0 12px 24px rgba(0,0,0,0.18); }
-    .rl-btn--solid:hover { background: #1d1b19; transform: translateY(-2px); }
-    .rl-btn--accent { background: linear-gradient(135deg, #f89b29, #f37335); color: #fff; box-shadow: 0 14px 40px rgba(243,115,53,0.35); }
-    .rl-btn--accent:hover { transform: translateY(-2px); }
 
-    .rl-nav-toggle { display: none; background: transparent; border: none; color: #2b2a28; }
-    .rl-nav-menu-mobile { display: none; }
+    .rl-btn--ghost {
+      background: transparent;
+      color: #5b544c;
+    }
+
+    .rl-btn--solid {
+      background: #2b2a28;
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .rl-btn--solid:hover {
+      background: #1d1b19;
+      transform: translateY(-2px);
+    }
+
+    .rl-btn--accent {
+      background: linear-gradient(135deg, #f89b29, #f37335);
+      color: #fff;
+      box-shadow: 0 14px 40px rgba(243, 115, 53, 0.35);
+    }
+
+    .rl-btn--accent:hover {
+      transform: translateY(-2px);
+    }
+
+    .rl-nav-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: #2b2a28;
+    }
+
+    .rl-nav-menu-mobile {
+      display: none;
+    }
 
     @media (max-width: 900px) {
-      .rl-nav-links, .rl-nav-actions { display: none; }
-      .rl-nav-toggle { display: block; }
-      .rl-nav-menu-mobile { display: grid; gap: 1rem; padding: 1.2rem; background: #fff; border-radius: 1rem; box-shadow: 0 14px 30px rgba(0,0,0,0.1); margin-top: 0.9rem; }
-      .rl-nav-menu-mobile a { color: #5b544c; font-weight: 600; }
-      .rl-nav-menu-mobile .rl-btn { width: 100%; }
+
+      .rl-nav-links,
+      .rl-nav-actions {
+        display: none;
+      }
+
+      .rl-nav-toggle {
+        display: block;
+      }
+
+      .rl-nav-menu-mobile {
+        display: grid;
+        gap: 1rem;
+        padding: 1.2rem;
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1);
+        margin-top: 0.9rem;
+      }
+
+      .rl-nav-menu-mobile a {
+        color: #5b544c;
+        font-weight: 600;
+      }
+
+      .rl-nav-menu-mobile .rl-btn {
+        width: 100%;
+      }
     }
 
     /* Hero */
-    .rl-hero { padding: 8rem 0 5rem; position: relative; overflow: hidden; }
-    .rl-hero-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 2.5rem; align-items: center; }
-    @media (min-width: 1024px) { .rl-hero-grid { grid-template-columns: 1.05fr 0.95fr; } }
-    .rl-chip { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.9rem; border-radius: 999px; background: #fff1e6; color: #f37335; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; }
-    .rl-hero h1 { font-size: clamp(2.6rem, 5vw, 4rem); line-height: 1.05; color: #201b17; margin: 0.65rem 0 1rem; }
-    .rl-hero h1 span { color: #bcb4a7; }
-    .rl-hero p { color: #6b645d; font-size: 1.1rem; max-width: 36rem; line-height: 1.7; }
+    .rl-hero {
+      padding: 8rem 0 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rl-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: 2.5rem;
+      align-items: center;
+    }
+
+    @media (min-width: 1024px) {
+      .rl-hero-grid {
+        grid-template-columns: 1.05fr 0.95fr;
+      }
+    }
+
+    .rl-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      background: #fff1e6;
+      color: #f37335;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.8rem;
+    }
+
+    .rl-hero h1 {
+      font-size: clamp(2.6rem, 5vw, 4rem);
+      line-height: 1.05;
+      color: #201b17;
+      margin: 0.65rem 0 1rem;
+    }
+
+    .rl-hero h1 span {
+      color: #bcb4a7;
+    }
+
+    .rl-hero p {
+      color: #6b645d;
+      font-size: 1.1rem;
+      max-width: 36rem;
+      line-height: 1.7;
+    }
+
     .rl-search {
       margin-top: 1.4rem;
-      display: grid; grid-template-columns: 1fr auto; gap: 0.75rem;
-      background: #fff; padding: 0.9rem; border-radius: 1.4rem;
-      box-shadow: 0 24px 50px rgba(0,0,0,0.08);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      background: #fff;
+      padding: 0.9rem;
+      border-radius: 1.4rem;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.08);
     }
-    .rl-search-field { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.9rem; border-radius: 1rem; border: 1px solid #f1e8dd; }
-    .rl-search-field input { border: none; outline: none; width: 100%; font-size: 1rem; color: #4a433c; }
-    .rl-search-btn { border: none; background: linear-gradient(135deg, #f89b29, #f37335); color: #fff; font-weight: 700; padding: 0 1.6rem; border-radius: 1rem; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 16px 36px rgba(243,115,53,0.35); cursor: pointer; transition: transform 0.18s ease; }
-    .rl-search-btn:hover { transform: translateY(-1px); }
-    .rl-hero-metrics { display: flex; align-items: center; gap: 2.5rem; padding-top: 1.4rem; }
-    .rl-hero-metrics div span:first-child { display: block; font-weight: 800; font-size: 2rem; color: #2b2a28; }
-    .rl-hero-metrics div span:last-child { color: #8a837c; font-size: 0.95rem; }
 
-    .rl-hero-media { position: relative; border-radius: 2.3rem; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.16); }
-    .rl-hero-media img { width: 100%; height: 640px; object-fit: cover; display: block; transition: transform 0.8s ease; }
-    .rl-hero-media:hover img { transform: scale(1.03); }
-    .rl-hero-badge {
-      position: absolute; inset: auto auto 1.5rem 1.5rem;
-      color: #fff;
-      display: grid; gap: 0.3rem;
+    .rl-search-field {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 1rem;
+      border: 1px solid #f1e8dd;
     }
-    .rl-hero-badge h3 { margin: 0; font-size: 1.4rem; }
-    .rl-hero-badge p { margin: 0; color: rgba(255,255,255,0.85); }
-    .rl-blob { position: absolute; border-radius: 999px; filter: blur(60px); opacity: 0.35; z-index: 0; }
-    .rl-blob--orange { width: 240px; height: 240px; background: #f89b29; top: -60px; right: -30px; }
-    .rl-blob--gray { width: 240px; height: 240px; background: #d9d3c8; bottom: -80px; left: -50px; }
+
+    .rl-search-field input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: 1rem;
+      color: #4a433c;
+    }
+
+    .rl-search-btn {
+      border: none;
+      background: linear-gradient(135deg, #f89b29, #f37335);
+      color: #fff;
+      font-weight: 700;
+      padding: 0 1.6rem;
+      border-radius: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: 0 16px 36px rgba(243, 115, 53, 0.35);
+      cursor: pointer;
+      transition: transform 0.18s ease;
+    }
+
+    .rl-search-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .rl-hero-metrics {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      padding-top: 1.4rem;
+    }
+
+    .rl-hero-metrics div span:first-child {
+      display: block;
+      font-weight: 800;
+      font-size: 2rem;
+      color: #2b2a28;
+    }
+
+    .rl-hero-metrics div span:last-child {
+      color: #8a837c;
+      font-size: 0.95rem;
+    }
+
+    .rl-hero-media {
+      position: relative;
+      border-radius: 2.3rem;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+    }
+
+    .rl-hero-media img {
+      width: 100%;
+      height: 640px;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.8s ease;
+    }
+
+    .rl-hero-media:hover img {
+      transform: scale(1.03);
+    }
+
+    .rl-hero-badge {
+      position: absolute;
+      inset: auto auto 1.5rem 1.5rem;
+      color: #fff;
+      display: grid;
+      gap: 0.3rem;
+    }
+
+    .rl-hero-badge h3 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+
+    .rl-hero-badge p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .rl-blob {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(60px);
+      opacity: 0.35;
+      z-index: 0;
+    }
+
+    .rl-blob--orange {
+      width: 240px;
+      height: 240px;
+      background: #f89b29;
+      top: -60px;
+      right: -30px;
+    }
+
+    .rl-blob--gray {
+      width: 240px;
+      height: 240px;
+      background: #d9d3c8;
+      bottom: -80px;
+      left: -50px;
+    }
 
     /* Sections */
-    .rl-section { padding: 5rem 0; position: relative; }
-    .rl-section-title { text-align: center; margin-bottom: 3rem; }
-    .rl-section-title h2 { font-size: clamp(2rem, 3.4vw, 2.8rem); margin-bottom: 0.5rem; color: #2b2a28; }
-    .rl-section-title p { color: #7b746d; }
+    .rl-section {
+      padding: 5rem 0;
+      position: relative;
+    }
+
+    .rl-section-title {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .rl-section-title h2 {
+      font-size: clamp(2rem, 3.4vw, 2.8rem);
+      margin-bottom: 0.5rem;
+      color: #2b2a28;
+    }
+
+    .rl-section-title p {
+      color: #7b746d;
+    }
 
     /* Why cards */
-    .rl-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .rl-grid {
+      display: grid;
+      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
     .rl-card {
-      background: #fff; border-radius: 1.6rem; padding: 1.5rem; box-shadow: 0 16px 38px rgba(0,0,0,0.08);
+      background: #fff;
+      border-radius: 1.6rem;
+      padding: 1.5rem;
+      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.08);
       transition: transform 0.2s ease, box-shadow 0.24s ease;
     }
-    .rl-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,0.1); }
-    .rl-card-icon {
-      width: 52px; height: 52px; border-radius: 1rem; display: grid; place-items: center; background: #fff5ea; color: #f37335; margin-bottom: 1rem;
+
+    .rl-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.1);
     }
-    .rl-card h3 { margin: 0 0 0.5rem; }
-    .rl-card p { margin: 0; color: #7b746d; line-height: 1.6; }
+
+    .rl-card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 1rem;
+      display: grid;
+      place-items: center;
+      background: #fff5ea;
+      color: #f37335;
+      margin-bottom: 1rem;
+    }
+
+    .rl-card h3 {
+      margin: 0 0 0.5rem;
+    }
+
+    .rl-card p {
+      margin: 0;
+      color: #7b746d;
+      line-height: 1.6;
+    }
 
     /* Listings */
-    .rl-listings-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
-    .rl-listings-head p { color: #7b746d; margin: 0; }
-    .property-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
-    .property-card { background: #fff; border-radius: 1.6rem; box-shadow: 0 18px 45px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.25s ease, box-shadow 0.25s ease; }
-    .property-card:hover { transform: translateY(-6px); box-shadow: 0 22px 55px rgba(0,0,0,0.12); }
-    .property-card__media { position: relative; height: 240px; overflow: hidden; display: block; }
-    .property-card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
-    .property-card:hover .property-card__media img { transform: scale(1.06); }
-    .property-pill { position: absolute; inset: 16px auto auto 16px; display: inline-flex; gap: 0.4rem; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.9); border-radius: 999px; font-weight: 700; color: #2b2a28; }
-    .property-heart { position: absolute; inset: 14px 14px auto auto; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,0.7); display: grid; place-items: center; cursor: pointer; transition: background 0.2s ease; }
-    .property-heart:hover { background: #f37335; color: #fff; }
-    .property-card__body { padding: 1.2rem 1.2rem 1.4rem; display: grid; gap: 0.55rem; }
-    .property-card__title { font-size: 1.1rem; font-weight: 800; color: #2b2a28; text-decoration: none; }
-    .property-card__address { color: #8a837c; font-size: 0.95rem; display: flex; gap: 0.4rem; align-items: center; }
-    .property-card__price { font-weight: 800; color: #f37335; font-size: 1.2rem; }
-    .property-card__meta-row { display: flex; flex-wrap: wrap; gap: 0.65rem; color: #6b645d; font-weight: 600; }
-    .meta-chip { background: #f7f2ea; padding: 0.35rem 0.65rem; border-radius: 0.9rem; font-size: 0.92rem; border: 1px solid #efe4d7; }
+    .rl-listings-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .rl-listings-head p {
+      color: #7b746d;
+      margin: 0;
+    }
+
+    .property-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .property-card {
+      background: #fff;
+      border-radius: 1.6rem;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .property-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 22px 55px rgba(0, 0, 0, 0.12);
+    }
+
+    .property-card__media {
+      position: relative;
+      height: 240px;
+      overflow: hidden;
+      display: block;
+    }
+
+    .property-card__media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+
+    .property-card:hover .property-card__media img {
+      transform: scale(1.06);
+    }
+
+    .property-pill {
+      position: absolute;
+      inset: 16px auto auto 16px;
+      display: inline-flex;
+      gap: 0.4rem;
+      padding: 0.4rem 0.8rem;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      font-weight: 700;
+      color: #2b2a28;
+    }
+
+    .property-heart {
+      position: absolute;
+      inset: 14px 14px auto auto;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.7);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .property-heart:hover {
+      background: #f37335;
+      color: #fff;
+    }
+
+    .property-card__body {
+      padding: 1.2rem 1.2rem 1.4rem;
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .property-card__title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #2b2a28;
+      text-decoration: none;
+    }
+
+    .property-card__address {
+      color: #8a837c;
+      font-size: 0.95rem;
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .property-card__price {
+      font-weight: 800;
+      color: #f37335;
+      font-size: 1.2rem;
+    }
+
+    .property-card__meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      color: #6b645d;
+      font-weight: 600;
+    }
+
+    .meta-chip {
+      background: #f7f2ea;
+      padding: 0.35rem 0.65rem;
+      border-radius: 0.9rem;
+      font-size: 0.92rem;
+      border: 1px solid #efe4d7;
+    }
 
     /* Before after */
-    .rl-compare { position: relative; height: 440px; border-radius: 1.8rem; overflow: hidden; box-shadow: 0 22px 50px rgba(0,0,0,0.12); cursor: ew-resize; user-select: none; }
-    .rl-compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .rl-compare .rl-before { width: 50%; overflow: hidden; position: absolute; inset: 0; }
-    .rl-compare .rl-before img { width: 100%; height: 100%; object-fit: cover; }
-    .rl-handle { position: absolute; inset: 0; width: 2px; background: #fff; box-shadow: 0 0 14px rgba(0,0,0,0.3); }
-    .rl-handle-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 42px; height: 42px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 14px 40px rgba(0,0,0,0.18); color: #6b645d; }
-    .rl-handle-dot svg { width: 18px; height: 18px; }
-    .rl-badge { position: absolute; top: 14px; padding: 0.4rem 0.75rem; border-radius: 999px; font-weight: 700; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-    .rl-badge--after { right: 14px; background: rgba(255,255,255,0.9); color: #2b2a28; }
-    .rl-badge--before { left: 14px; background: rgba(0,0,0,0.7); color: #fff; }
+    .rl-compare {
+      position: relative;
+      height: 440px;
+      border-radius: 1.8rem;
+      overflow: hidden;
+      box-shadow: 0 22px 50px rgba(0, 0, 0, 0.12);
+      cursor: ew-resize;
+      user-select: none;
+    }
+
+    .rl-compare img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .rl-compare .rl-before {
+      width: 50%;
+      overflow: hidden;
+      position: absolute;
+      inset: 0;
+    }
+
+    .rl-compare .rl-before img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .rl-handle {
+      position: absolute;
+      inset: 0;
+      width: 2px;
+      background: #fff;
+      box-shadow: 0 0 14px rgba(0, 0, 0, 0.3);
+    }
+
+    .rl-handle-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+      color: #6b645d;
+    }
+
+    .rl-handle-dot svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .rl-badge {
+      position: absolute;
+      top: 14px;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      font-weight: 700;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .rl-badge--after {
+      right: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #2b2a28;
+    }
+
+    .rl-badge--before {
+      left: 14px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+    }
 
     /* Testimonials */
-    .rl-reviews { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    .rl-review-card { background: #fff; border-radius: 1.6rem; padding: 1.4rem; box-shadow: 0 14px 36px rgba(0,0,0,0.08); }
-    .rl-stars { color: #fbbf24; display: flex; gap: 0.15rem; }
-    .rl-review-card p { color: #6b645d; margin: 0.8rem 0 1rem; line-height: 1.6; }
-    .rl-reviewer { display: flex; align-items: center; gap: 0.75rem; }
-    .rl-avatar { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: #eee; }
+    .rl-reviews {
+      display: grid;
+      gap: 1.2rem;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .rl-review-card {
+      background: #fff;
+      border-radius: 1.6rem;
+      padding: 1.4rem;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+    }
+
+    .rl-stars {
+      color: #fbbf24;
+      display: flex;
+      gap: 0.15rem;
+    }
+
+    .rl-review-card p {
+      color: #6b645d;
+      margin: 0.8rem 0 1rem;
+      line-height: 1.6;
+    }
+
+    .rl-reviewer {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .rl-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #eee;
+    }
 
     /* CTA */
-    .rl-cta { text-align: center; background: #fff; border-radius: 2rem; padding: 3rem 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
-    .rl-cta h2 { margin: 0 0 0.8rem; font-size: clamp(2rem, 3vw, 2.6rem); }
-    .rl-cta p { margin: 0 0 1.5rem; color: #7b746d; }
-    .rl-cta-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
+    .rl-cta {
+      text-align: center;
+      background: #fff;
+      border-radius: 2rem;
+      padding: 3rem 2rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+    }
+
+    .rl-cta h2 {
+      margin: 0 0 0.8rem;
+      font-size: clamp(2rem, 3vw, 2.6rem);
+    }
+
+    .rl-cta p {
+      margin: 0 0 1.5rem;
+      color: #7b746d;
+    }
+
+    .rl-cta-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      justify-content: center;
+    }
 
     /* Footer */
-    .rl-footer { background: #fff; border-top: 1px solid #eee; padding: 3rem 0 2rem; }
-    .rl-footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
-    .rl-footer h4 { margin-bottom: 0.7rem; }
-    .rl-footer p, .rl-footer a { color: #7b746d; }
-    .rl-footer-bottom { margin-top: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; color: #a39c95; font-size: 0.95rem; }
+    .rl-footer {
+      background: #fff;
+      border-top: 1px solid #eee;
+      padding: 3rem 0 2rem;
+    }
+
+    .rl-footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .rl-footer h4 {
+      margin-bottom: 0.7rem;
+    }
+
+    .rl-footer p,
+    .rl-footer a {
+      color: #7b746d;
+    }
+
+    .rl-footer-bottom {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      color: #a39c95;
+      font-size: 0.95rem;
+    }
 
     /* Reveal animation */
-    .rl-reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
-    .rl-reveal.is-visible { opacity: 1; transform: translateY(0); }
+    .rl-reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .rl-reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
 
     @media (max-width: 720px) {
-      .rl-hero { padding-top: 7rem; }
-      .rl-hero-media img { height: 460px; }
-      .rl-hero-metrics { gap: 1.5rem; }
-      .rl-search { grid-template-columns: 1fr; }
-      .rl-compare { height: 360px; }
+      .rl-hero {
+        padding-top: 7rem;
+      }
+
+      .rl-hero-media img {
+        height: 460px;
+      }
+
+      .rl-hero-metrics {
+        gap: 1.5rem;
+      }
+
+      .rl-search {
+        grid-template-columns: 1fr;
+      }
+
+      .rl-compare {
+        height: 360px;
+      }
     }
 
     /* Override legacy card styles to ensure content shows */
-    .property-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; align-items: stretch; }
-    .property-card { display: flex; flex-direction: column; background: #fff; border-radius: 1.6rem; box-shadow: 0 18px 45px rgba(0,0,0,0.08); overflow: hidden; height: auto !important; background: #fff !important; }
-    .property-card__media { position: relative; height: 260px !important; min-height: 220px; overflow: hidden; background: transparent !important; }
-    .property-card__media::before { content: none !important; }
-    .property-card__image { width: 100% !important; height: 100% !important; object-fit: cover; display: block; }
-    .property-card__body { display: flex !important; flex-direction: column; gap: 0.6rem; padding: 1.1rem 1.2rem; min-height: 160px; background: #fff; color: #2b2a28; }
-    .property-card__title { font-size: 1.1rem; font-weight: 800; color: #2b2a28; text-decoration: none; line-height: 1.3; }
-    .property-card__address { color: #8a837c; font-size: 0.95rem; }
-    .property-card__price { font-weight: 800; color: #f37335; font-size: 1.2rem; }
-    .property-card__meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .meta-chip { background: #f7f2ea; padding: 0.35rem 0.65rem; border-radius: 0.9rem; font-size: 0.92rem; border: 1px solid #efe4d7; }
-    .property-heart { position: absolute; inset: 14px 14px auto auto; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,0.7); display: grid; place-items: center; cursor: pointer; }
-    .property-pill { position: absolute; inset: 16px auto auto 16px; display: inline-flex; gap: 0.4rem; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.9); border-radius: 999px; font-weight: 700; color: #2b2a28; }
+    .property-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      align-items: stretch;
+    }
+
+    .property-card {
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: 1.6rem;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      height: auto !important;
+      background: #fff !important;
+    }
+
+    .property-card__media {
+      position: relative;
+      height: 260px !important;
+      min-height: 220px;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .property-card__media::before {
+      content: none !important;
+    }
+
+    .property-card__image {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+      display: block;
+    }
+
+    .property-card__body {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 1.1rem 1.2rem;
+      min-height: 160px;
+      background: #fff;
+      color: #2b2a28;
+    }
+
+    .property-card__title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #2b2a28;
+      text-decoration: none;
+      line-height: 1.3;
+    }
+
+    .property-card__address {
+      color: #8a837c;
+      font-size: 0.95rem;
+    }
+
+    .property-card__price {
+      font-weight: 800;
+      color: #f37335;
+      font-size: 1.2rem;
+    }
+
+    .property-card__meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .meta-chip {
+      background: #f7f2ea;
+      padding: 0.35rem 0.65rem;
+      border-radius: 0.9rem;
+      font-size: 0.92rem;
+      border: 1px solid #efe4d7;
+    }
+
+    .property-heart {
+      position: absolute;
+      inset: 14px 14px auto auto;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.7);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .property-pill {
+      position: absolute;
+      inset: 16px auto auto 16px;
+      display: inline-flex;
+      gap: 0.4rem;
+      padding: 0.4rem 0.8rem;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      font-weight: 700;
+      color: #2b2a28;
+      font-size: 0.85rem;
+    }
+
+    .property-pill.status-pending {
+      background: #fff5e6;
+      color: #d97706;
+      border: 1px solid #fcd34d;
+    }
+
+    .property-pill.status-renovated {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #6ee7b7;
+    }
+
+    .property-pill.status-sold {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
 
     /* Hard reset for card visuals in case legacy CSS overrides */
     .property-card,
-    .property-card * { opacity: 1 !important; filter: none !important; mix-blend-mode: normal !important; color: inherit; }
-    .property-card__media img { opacity: 1 !important; filter: none !important; mix-blend-mode: normal !important; background: transparent !important; }
-    .property-card__body { color: #2b2a28 !important; }
+    .property-card * {
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      color: inherit;
+    }
+
+    .property-card__media img {
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      background: transparent !important;
+    }
+
+    .property-card__body {
+      color: #2b2a28 !important;
+    }
   </style>
 </head>
+
 <body class="rl-page" data-page="home">
   <nav class="rl-nav" id="rl-nav">
     <div class="rl-container rl-nav-inner">
@@ -231,11 +938,14 @@
         <a href="#reviews">เกี่ยวกับเรา</a>
       </div>
       <div class="rl-nav-actions">
-        <button class="rl-btn rl-btn--ghost">เข้าสู่ระบบ</button>
         <button class="rl-btn rl-btn--solid" data-interest="นัดชมบ้าน">นัดชมบ้าน</button>
       </div>
       <button class="rl-nav-toggle" id="rl-nav-toggle" aria-label="toggle menu">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
       </button>
     </div>
     <div class="rl-container rl-nav-menu-mobile" id="rl-nav-mobile">
@@ -251,18 +961,18 @@
     <section class="rl-hero" id="hero">
       <div class="rl-container rl-hero-grid">
         <div class="rl-reveal">
-          <div class="rl-chip">New Collection 2024</div>
-          <h1>ให้บ้านเก่า <br><span>เล่าเรื่องใหม่</span></h1>
-          <p>ค้นหาบ้านรีโนเวทสไตล์มินิมอล ที่ออกแบบมาเพื่อการใช้ชีวิตที่ลงตัว พร้อมเข้าอยู่ ในทำเลศักยภาพทั่วกรุงเทพฯ</p>
+          <div class="rl-chip">Renovation Standard 2024</div>
+          <h1>มาตรฐานใหม่ <br><span>ของการรีโนเวท</span></h1>
+          <p>เรามุ่งมั่นยกระดับมาตรฐานบ้านมือสอง ด้วยการตรวจสอบโครงสร้าง ออกแบบใหม่ และปรับปรุงระบบสําคัญทั้งหลัง
+            เพื่อให้คุณได้บ้านที่ "พร้อม" จริงๆ</p>
           <div class="rl-search">
-            <div class="rl-search-field">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bcb4a7" stroke-width="2"><path d="M21 10.5a8.5 8.5 0 1 1-8.5-8.5 8.5 8.5 0 0 1 8.5 8.5Z"/><path d="m16 16 5 5"/></svg>
-              <input type="text" placeholder="ทำเลที่ต้องการ..." id="hero-search-input">
+            <div class="rl-search-field"
+              style="grid-column: 1 / -1; border:none; padding:0; display:flex; gap:1rem; flex-wrap:wrap;">
+              <a href="#why" class="rl-btn rl-btn--solid"
+                style="flex:1; justify-content:center; text-align:center; text-decoration:none;">ดูมาตรฐานงานรีโนเวท</a>
+              <a href="#listings" class="rl-btn rl-btn--ghost"
+                style="flex:1; background:#f7f2ea; justify-content:center; text-align:center; text-decoration:none;">ค้นหาบ้านที่เสร็จแล้ว</a>
             </div>
-            <button class="rl-search-btn" id="hero-search-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10.5a8.5 8.5 0 1 1-8.5-8.5 8.5 8.5 0 0 1 8.5 8.5Z"/><path d="m16 16 5 5"/></svg>
-              ค้นหา
-            </button>
           </div>
           <div class="rl-hero-metrics">
             <div><span>150+</span><span>บ้านพร้อมขาย</span></div>
@@ -270,11 +980,12 @@
           </div>
         </div>
         <div class="rl-hero-media rl-reveal">
-          <img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1200" alt="Hero Home">
+          <img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1200"
+            alt="Hero Home">
           <div class="rl-hero-badge">
-            <p>โครงการแนะนำ</p>
-            <h3>บ้านอิสระ อารีย์-สัมพันธ์</h3>
-            <p>เริ่มต้น 7.9 ลบ.</p>
+            <p>โครงการตัวอย่าง</p>
+            <h3>งานรีโนเวททั้งระบบ</h3>
+            <p>เปลี่ยนบ้านเก่า เป็นบ้านใหม่</p>
           </div>
           <div class="rl-blob rl-blob--orange"></div>
           <div class="rl-blob rl-blob--gray"></div>
@@ -292,21 +1003,32 @@
         <div class="rl-grid">
           <div class="rl-card rl-reveal">
             <div class="rl-card-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m20 6-11 9-5-4"/><path d="m9 21 3-3-3-3-3 3 3 3Z"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m20 6-11 9-5-4" />
+                <path d="m9 21 3-3-3-3-3 3 3 3Z" />
+              </svg>
             </div>
             <h3>ตรวจสภาพโครงสร้าง</h3>
             <p>วิศวกรตรวจสอบโครงสร้างหลักและการรั่วซึมอย่างละเอียด</p>
           </div>
           <div class="rl-card rl-reveal">
             <div class="rl-card-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5 12 4l9 5.5"/><path d="M3 14.5 12 20l9-5.5"/><path d="m3 9.5 9 5 9-5"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9.5 12 4l9 5.5" />
+                <path d="M3 14.5 12 20l9-5.5" />
+                <path d="m3 9.5 9 5 9-5" />
+              </svg>
             </div>
             <h3>ดีไซน์มินิมอล ทันสมัย</h3>
             <p>ออกแบบภายในใหม่โดย Architect เน้นฟังก์ชันและการคุมโทน</p>
           </div>
           <div class="rl-card rl-reveal">
             <div class="rl-card-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11V8a3 3 0 1 1 6 0v3"/><path d="M6.3 20h11.4a2 2 0 0 0 1.92-2.56l-1.2-4A2 2 0 0 0 16.52 12H7.48a2 2 0 0 0-1.9 1.44l-1.2 4A2 2 0 0 0 6.3 20Z"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11V8a3 3 0 1 1 6 0v3" />
+                <path
+                  d="M6.3 20h11.4a2 2 0 0 0 1.92-2.56l-1.2-4A2 2 0 0 0 16.52 12H7.48a2 2 0 0 0-1.9 1.44l-1.2 4A2 2 0 0 0 6.3 20Z" />
+              </svg>
             </div>
             <h3>รับประกันหลังการขาย</h3>
             <p>ดูแลซ่อมแซมฟรี 6 เดือน สบายใจหายห่วง</p>
@@ -318,27 +1040,42 @@
     <!-- Listings -->
     <section class="rl-section" id="listings" style="background:#f7f3ec;">
       <div class="rl-container">
+
         <div class="rl-listings-head rl-reveal">
           <div>
-            <p class="rl-chip" style="background:#fff; color:#f37335;">บ้านรีโนเวทพร้อมอยู่</p>
-            <h2 style="margin:0.6rem 0 0.25rem;">คัดสรรบ้านคุณภาพในทำเลที่ดีที่สุด</h2>
-            <p>ข้อมูลดึงอัตโนมัติจากฐานข้อมูล</p>
+            <div class="rl-chip" style="background:#fff; color:#f37335;">Ready to Move</div>
+            <h2 style="margin:0.6rem 0 0.25rem;">บ้านรีโนเวทพร้อมอยู่</h2>
+            <p>ออกแบบใหม่ทั้งหลัง พร้อมเข้าอยู่ทันที</p>
           </div>
           <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
             <a href="#lead-form" class="rl-btn rl-btn--ghost">ให้เราหาให้คุณ</a>
-            <button id="show-all-properties" class="rl-btn rl-btn--accent" type="button">ดูบ้านทั้งหมด</button>
+            <button id="show-all-properties" class="rl-btn rl-btn--accent" type="button">ดูทั้งหมด</button>
           </div>
         </div>
         <div id="property-grid" class="property-grid"></div>
+
+        <div class="rl-reveal" style="margin-top:5rem;">
+          <div class="rl-listings-head">
+            <div>
+              <div class="rl-chip" style="background:#fff5e6; color:#d97706;">Coming Soon</div>
+              <h2 style="margin:0.6rem 0 0.25rem;">โครงการกำลังรีโนเวท</h2>
+              <p>ติดตามความคืบหน้า และจองสิทธิ์ก่อนใคร</p>
+            </div>
+          </div>
+          <div id="project-grid" class="property-grid"></div>
+        </div>
+
       </div>
     </section>
 
     <!-- Before / After -->
     <section class="rl-section" style="background:#1f1c1a; color:#fff;">
-      <div class="rl-container rl-grid" style="align-items:center; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+      <div class="rl-container rl-grid"
+        style="align-items:center; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
         <div class="rl-reveal">
           <h2>เปลี่ยนบ้านโทรม <br><span style="color:#f37335;">ให้เป็นบ้านในฝัน</span></h2>
-          <p style="color:#c7c0b8;">เราไม่เพียงแค่ทาสีใหม่ แต่เราปรับปรุงระบบน้ำ ระบบไฟ และจัดวาง Layout ใหม่เพื่อให้เหมาะกับไลฟ์สไตล์คนรุ่นใหม่ พร้อมวัสดุเกรดพรีเมียมที่ทนทานและสวยงาม</p>
+          <p style="color:#c7c0b8;">เราสนับสนุนงานรีโนเวทอย่างเต็มรูปแบบ เมื่อบ้านพร้อมแล้วเท่านั้น
+            เราถึงจะเปิดให้สิทธิ์จองและเข้าอยู่ เพื่อความมั่นใจสูงสุดของคุณ</p>
           <ul style="list-style:none; padding:0; margin-top:1rem; color:#e6e0d8; display:grid; gap:0.65rem;">
             <li>✔ เปลี่ยนระบบสายไฟใหม่ทั้งหลัง</li>
             <li>✔ แก้ไขปัญหารั่วซึมและหลังคา</li>
@@ -347,15 +1084,20 @@
         </div>
         <div class="rl-reveal">
           <div class="rl-compare" id="rl-compare">
-            <img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=1200" alt="After">
+            <img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=1200"
+              alt="After">
             <div class="rl-before" id="rl-before">
-              <img src="https://images.unsplash.com/photo-1503594384566-461fe158e797?auto=format&fit=crop&q=80&w=1200" alt="Before">
+              <img src="https://images.unsplash.com/photo-1503594384566-461fe158e797?auto=format&fit=crop&q=80&w=1200"
+                alt="Before">
             </div>
             <div class="rl-badge rl-badge--after">AFTER</div>
             <div class="rl-badge rl-badge--before">BEFORE</div>
             <div class="rl-handle" id="rl-handle">
               <div class="rl-handle-dot">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18-6-6 6-6"/><path d="m15 6 6 6-6 6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m9 18-6-6 6-6" />
+                  <path d="m15 6 6 6-6 6" />
+                </svg>
               </div>
             </div>
           </div>
@@ -376,7 +1118,8 @@
             <p>"บ้านสวยมาก งานรีโนเวทละเอียดเหมือนได้บ้านมือหนึ่งเลยค่ะ"</p>
             <div class="rl-reviewer">
               <div class="rl-avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ploy" alt=""></div>
-              <div><strong>คุณพลอย</strong><br><span style="color:#a39c95; font-size:0.9rem;">เจ้าของบ้านรุ่นใหม่</span></div>
+              <div><strong>คุณพลอย</strong><br><span style="color:#a39c95; font-size:0.9rem;">เจ้าของบ้านรุ่นใหม่</span>
+              </div>
             </div>
           </div>
           <div class="rl-review-card rl-reveal">
@@ -384,7 +1127,8 @@
             <p>"ชอบสไตล์การตกแต่งที่อบอุ่น บริการดีตั้งแต่วันแรกจนโอนบ้าน"</p>
             <div class="rl-reviewer">
               <div class="rl-avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=nut" alt=""></div>
-              <div><strong>คุณนัท</strong><br><span style="color:#a39c95; font-size:0.9rem;">Freelance Designer</span></div>
+              <div><strong>คุณนัท</strong><br><span style="color:#a39c95; font-size:0.9rem;">Freelance Designer</span>
+              </div>
             </div>
           </div>
         </div>
@@ -450,4 +1194,5 @@
 
   <script type="module" src="/js/pages/index.page.js"></script>
 </body>
+
 </html>

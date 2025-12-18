@@ -64,3 +64,34 @@ $$ language plpgsql;
 create trigger on_property_update
   before update on public.properties
   for each row execute procedure public.handle_property_update();
+
+-- ------------------------------------------------------------
+-- Renovation workflow + customer status (optional fields)
+-- ------------------------------------------------------------
+alter table public.properties
+  add column if not exists renovation_stage text,
+  add column if not exists customer_status_visible boolean default false,
+  add column if not exists customer_status_text text;
+
+-- Optional: constrain values (safe to re-run)
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'properties_renovation_stage_check'
+  ) then
+    alter table public.properties
+      add constraint properties_renovation_stage_check
+      check (renovation_stage is null or renovation_stage in (
+        'planning',
+        'survey',
+        'demo',
+        'structure',
+        'systems',
+        'finishes',
+        'staging',
+        'ready'
+      ));
+  end if;
+end $$;

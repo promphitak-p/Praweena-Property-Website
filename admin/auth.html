@@ -1,72 +1,295 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>เข้าสู่ระบบ - Praweena Property</title>
-  
+
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">  
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
   <link rel="manifest" href="/assets/favicon/site.webmanifest">
   <link rel="stylesheet" href="/assets/css/main.css">
-  
-  <script src="/js/env-loader.js"></script>
-  
-  
-  <!-- 🔹 ให้ load-header.js มาแทน header ตายตัว -->
-  <div id="app-header"></div>
-</head>
-<body>
 
-  <div class="auth-container">
-    <h2>Praweena Property</h2>
-    <div class="auth-toggle">
-      <a href="#" class="active" data-form="login">เข้าสู่ระบบ</a>
-      <a href="#" data-form="register">สมัครสมาชิก</a>
-      <a href="#" data-form="reset">ลืมรหัสผ่าน</a>
+  <script src="/js/env-loader.js"></script>
+
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2053&auto=format&fit=crop') no-repeat center center/cover;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Overlay */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(4px);
+      z-index: 0;
+    }
+
+    .auth-card {
+      position: relative;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2.5rem;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .auth-logo {
+      width: 64px;
+      height: auto;
+      margin-bottom: 1rem;
+      border-radius: 12px;
+    }
+
+    .auth-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .auth-subtitle {
+      color: #6b7280;
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Tabs */
+    .auth-tabs {
+      display: flex;
+      background: #f3f4f6;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .auth-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .auth-tab.active {
+      background: #fff;
+      color: #b8860b;
+      /* Gold brand */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .auth-tab:hover:not(.active) {
+      color: #374151;
+    }
+
+    /* Forms */
+    .auth-form {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .auth-form.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      background: #fff;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #d4af37;
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #d4af37, #b8860b);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 6px -1px rgba(184, 134, 11, 0.25);
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 15px -3px rgba(184, 134, 11, 0.35);
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    .error-message {
+      display: none;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .back-home {
+      position: absolute;
+      top: 1.5rem;
+      left: 1.5rem;
+      z-index: 20;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.5rem 1rem;
+      border-radius: 99px;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s;
+    }
+
+    .back-home:hover {
+      background: rgba(0, 0, 0, 0.5);
+    }
+  </style>
+
+  <a href="/" class="back-home">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    กลับหน้าหลัก
+  </a>
+
+  <div class="auth-card">
+    <div class="auth-header">
+      <img src="/assets/img/logo.png" alt="Logo" class="auth-logo">
+      <h1 class="auth-title">Praweena Property</h1>
+      <p class="auth-subtitle">ระบบจัดการบ้านรีโนเวท</p>
     </div>
 
+    <div class="auth-tabs auth-toggle">
+      <a href="#" class="auth-tab active" data-form="login">เข้าสู่ระบบ</a>
+      <a href="#" class="auth-tab" data-form="register">สมัครใหม่</a>
+      <!-- <a href="#" class="auth-tab" data-form="reset">ลืมรหัส</a> -->
+    </div>
+
+    <!-- Login Form -->
     <form id="login-form" class="auth-form active">
       <div class="form-group">
-        <label for="login-email">อีเมล</label>
-        <input type="email" id="login-email" name="email" class="form-control" required>
+        <label class="form-label">อีเมล</label>
+        <input type="email" name="email" class="form-input" placeholder="name@example.com" required>
       </div>
       <div class="form-group">
-        <label for="login-password">รหัสผ่าน</label>
-        <input type="password" id="login-password" name="password" class="form-control" required>
+        <label class="form-label">รหัสผ่าน</label>
+        <input type="password" name="password" class="form-input" placeholder="••••••••" required>
       </div>
-      <button type="submit" class="btn btn-full">เข้าสู่ระบบ</button>
+      <div style="text-align:right; margin-bottom:1rem;">
+        <a href="#" class="auth-toggle-link" onclick="document.querySelector('[data-form=reset]').click()"
+          style="color:#6b7280; font-size:0.85rem; text-decoration:none;">ลืมรหัสผ่าน?</a>
+      </div>
+      <button type="submit" class="btn-submit">เข้าสู่ระบบ</button>
       <div class="error-message"></div>
     </form>
 
+    <!-- Register Form -->
     <form id="register-form" class="auth-form">
       <div class="form-group">
-        <label for="register-email">อีเมล</label>
-        <input type="email" id="register-email" name="email" class="form-control" required>
+        <label class="form-label">อีเมล</label>
+        <input type="email" name="email" class="form-input" placeholder="name@example.com" required>
       </div>
       <div class="form-group">
-        <label for="register-password">รหัสผ่าน</label>
-        <input type="password" id="register-password" name="password" class="form-control" required minlength="6">
+        <label class="form-label">ตั้งรหัสผ่าน</label>
+        <input type="password" name="password" class="form-input" placeholder="ตย. 123456" minlength="6" required>
       </div>
-      <button type="submit" class="btn btn-full">สมัครสมาชิก</button>
-       <div class="error-message"></div>
+      <button type="submit" class="btn-submit">สมัครสมาชิก</button>
+      <div class="error-message"></div>
     </form>
 
+    <!-- Reset Form -->
     <form id="reset-form" class="auth-form">
-      <p class="auth-description">กรอกอีเมลของคุณเพื่อรับลิงก์สำหรับรีเซ็ตรหัสผ่าน</p>
-      <div class="form-group">
-        <label for="reset-email">อีเมล</label>
-        <input type="email" id="reset-email" name="email" class="form-control" required>
+      <div style="text-align:center; margin-bottom:1.5rem;">
+        <p style="color:#4b5563; font-size:0.9rem;">กรอกอีเมลของคุณเพื่อรับลิงก์ตั้งค่ารหัสผ่านใหม่</p>
       </div>
-      <button type="submit" class="btn btn-full">ส่งลิงก์รีเซ็ตรหัสผ่าน</button>
-       <div class="error-message"></div>
+      <div class="form-group">
+        <label class="form-label">อีเมล</label>
+        <input type="email" name="email" class="form-input" placeholder="name@example.com" required>
+      </div>
+      <button type="submit" class="btn-submit">ส่งลิงก์รีเซ็ตรหัส</button>
+      <div style="text-align:center; margin-top:1rem;">
+        <a href="#" class="auth-toggle-link" onclick="document.querySelector('[data-form=login]').click()"
+          style="color:#b8860b; font-size:0.9rem; font-weight:600; text-decoration:none;">กลับไปเข้าสู่ระบบ</a>
+      </div>
+      <div class="error-message"></div>
     </form>
+
+    <!-- Hidden toggle trigger for reset link (custom handling) -->
+    <a href="#" data-form="reset" style="display:none;" class="auth-toggle-reset"></a>
   </div>
 
-    <!-- โหลด header -->
-  <script type="module" src="/js/layout/load-header.js"></script>
+  <!-- โหลด header (ยกเลิกใช้หน้า login) -->
+  <!-- <script type="module" src="/js/layout/load-header.js"></script> -->
   <script type="module" src="/js/pages/auth.page.js"></script>
-</body>
-</html>
+  </body>
 
+</html>

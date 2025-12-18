@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
   <title>รายชื่อผู้สนใจ (Leads) - Praweena Property</title>
 
-  <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="/assets/css/main.css?v=admin-filt">
   <script src="/js/env-loader.js"></script>
   <!-- Styles -->
-  
-  
+
+
 
   <!-- Favicons -->
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png" />
@@ -20,10 +21,7 @@
 </head>
 
 <body data-page="leads">
-  <!-- 🔹 ให้ load-header.js มาแทน header ตายตัว -->
-  <div id="app-header"></div>
-
-  <main class="container">
+  <main class="container" style="padding-top: 2rem; padding-bottom: 50px;">
     <div class="page-header">
       <div class="page-header-left">
         <a href="/admin.html" class="btn btn-secondary">← กลับเมนูหลัก</a>
@@ -37,8 +35,26 @@
       </div>
     </div>
 
-    <!-- controls (สวิตช์เรียงล่าสุดก่อน จะถูกเติมโดย JS) -->
-    <div id="leads-controls"></div>
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-input">
+        <input type="text" id="search-input" class="form-control" placeholder="🔍 ค้นหาชื่อ หรือ เบอร์โทร...">
+      </div>
+      <div class="filter-select">
+        <select id="status-filter" class="form-control">
+          <option value="">ทั้งหมด (All Status)</option>
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="qualified">Qualified</option>
+          <option value="won">Won</option>
+          <option value="lost">Lost</option>
+        </select>
+      </div>
+      <div class="filter-toggle">
+        <input type="checkbox" id="sort-newest" checked>
+        <label for="sort-newest" style="margin:0; cursor:pointer; font-size:0.9rem;">ล่าสุดก่อน</label>
+      </div>
+    </div>
 
     <div class="table-wrapper">
       <table id="leads-table">
@@ -55,12 +71,51 @@
         <tbody></tbody>
       </table>
     </div>
+
+    <!-- Lead Detail Modal -->
+    <div id="lead-modal" class="modal">
+      <div class="modal-content lead-modal-content">
+        <button id="lead-modal-close" class="modal-close">&times;</button>
+
+        <div class="lead-modal-header">
+          <div id="lead-modal-status" class="lead-status-badge">New</div>
+          <h2 id="lead-modal-name">ชื่อผู้สนใจ</h2>
+          <p id="lead-modal-date" class="text-muted">วันที่ติดต่อ: -</p>
+        </div>
+
+        <div class="lead-modal-body">
+          <div class="lead-info-grid">
+            <div class="lead-info-item">
+              <label>เบอร์โทรศัพท์</label>
+              <div class="phone-wrapper">
+                <a href="#" id="lead-modal-phone-link" class="phone-link">-</a>
+                <button id="lead-modal-copy-phone" class="btn-icon" title="Copy">📋</button>
+              </div>
+            </div>
+            <div class="lead-info-item">
+              <label>ประกาศที่สนใจ</label>
+              <div id="lead-modal-property">-</div>
+            </div>
+          </div>
+
+          <div class="lead-message-section">
+            <label>ข้อความจากลูกค้า</label>
+            <div id="lead-modal-message" class="message-box">
+              -
+            </div>
+          </div>
+
+          <div class="lead-modal-actions">
+            <a id="lead-modal-call-btn" href="#" class="btn btn-primary btn-lg w-100">📞 โทรหาลูกค้า</a>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
-    <!-- โหลด header -->
-  <script type="module" src="/js/layout/load-header.js"></script>
+
   <!-- JS (module จะ import guard, services, mobileNav เอง) -->
   <script type="module" src="/js/pages/leads.page.js"></script>
 </body>
-</html>
 
+</html>

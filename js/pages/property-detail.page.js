@@ -82,9 +82,13 @@ function setupLightbox(imageUrls) {
     `;
     document.body.append(overlay);
   }
-  const gallery = $('.lightbox-gallery');
-  const prevBtn = $('.lightbox-prev');
-  const nextBtn = $('.lightbox-next');
+  // Ensure hidden and in DOM
+  overlay.style.display = 'none';
+  if (!overlay.isConnected) document.body.append(overlay);
+
+  const gallery = overlay.querySelector('.lightbox-gallery');
+  const prevBtn = overlay.querySelector('.lightbox-prev');
+  const nextBtn = overlay.querySelector('.lightbox-next');
   gallery.innerHTML = '';
 
   imageUrls.forEach(url => {
@@ -93,18 +97,21 @@ function setupLightbox(imageUrls) {
   });
 
   function openLightbox(index) {
-    overlay.classList.add('show');
+    overlay.style.display = 'flex';
+    // Small delay to allow display:flex to apply before adding class for opacity transition (if needed)
+    requestAnimationFrame(() => overlay.classList.add('show'));
     document.body.classList.add('no-scroll');
     gallery.scrollTo({ left: gallery.offsetWidth * index, behavior: 'auto' });
   }
   function closeLightbox() {
     overlay.classList.remove('show');
     document.body.classList.remove('no-scroll');
+    setTimeout(() => { if (!overlay.classList.contains('show')) overlay.style.display = 'none'; }, 300); // Wait for transition
   }
 
   prevBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' }); });
   nextBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: gallery.offsetWidth, behavior: 'smooth' }); });
-  $('.lightbox-close').addEventListener('click', closeLightbox);
+  overlay.querySelector('.lightbox-close').addEventListener('click', closeLightbox);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
   overlay.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeLightbox();
@@ -311,7 +318,8 @@ async function renderPropertyDetails(property) {
   `;
   galleryWrapper.append(heroOverlay);
 
-  const allImages = [property.cover_url, ...(property.gallery || [])].filter(Boolean);
+  // กรอง URL ซ้ำออก เพราะ cover_url อาจซ้ำกับ gallery ได้
+  const allImages = [...new Set([property.cover_url, ...(property.gallery || [])].filter(Boolean))];
   if (!allImages.length) allImages.push('/assets/img/placeholder.jpg');
 
   const openLightbox = setupLightbox(allImages);
@@ -343,8 +351,20 @@ async function renderPropertyDetails(property) {
   mainImg.style.setProperty('pointerEvents', 'auto', 'important');
   mainImg.style.margin = '0';
   mainImg.style.padding = '0';
-  mainImg.addEventListener('click', () => openLightbox(currentSlide));
+  mainImg.style.padding = '0';
+  mainImg.style.cursor = 'pointer';
+  mainImg.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openLightbox(currentSlide);
+  });
   galleryContainer.append(mainImg);
+
+  // Make the entire container and overlay clickable
+  galleryContainer.style.cursor = 'pointer';
+  galleryContainer.addEventListener('click', () => openLightbox(currentSlide));
+
+  heroOverlay.style.cursor = 'pointer';
+  heroOverlay.addEventListener('click', () => openLightbox(currentSlide));
 
   function showSlide(idx) {
     if (!allImages.length) return;
@@ -379,9 +399,36 @@ async function renderPropertyDetails(property) {
   galleryWrapper.prepend(galleryContainer);
   showSlide(0);
 
-  // Text/info card
   const infoCard = el('div', { className: 'detail-card detail-hero-info' });
   const title = el('h1', { className: 'detail-title', textContent: property.title, });
+
+  // Renovation Status Badge
+  const stage = (property.renovation_stage || '').toLowerCase();
+  let statusBadge = null;
+  const statusMap = {
+    'planning': 'วางแผนงาน',
+    'survey': 'สำรวจออกแบบ',
+    'demo': 'กำลังรื้อถอน',
+    'structure': 'งานโครงสร้าง',
+    'systems': 'งานระบบ',
+    'finishes': 'งานตกแต่งภายใน',
+    'staging': 'เก็บงาน/ตรวจรับ'
+  };
+
+  if (stage && stage !== 'ready' && statusMap[stage]) {
+    statusBadge = el('div', {
+      className: 'detail-status-badge',
+      style: 'background:#fff5e6; color:#d97706; padding:0.5rem 1rem; border-radius:8px; display:inline-block; font-weight:700; margin-bottom:0.5rem; border:1px solid #fcd34d;',
+      textContent: `🚧 สถานะ: ${statusMap[stage]}`
+    });
+  } else if (stage === 'ready' && property.customer_status_visible) {
+    statusBadge = el('div', {
+      className: 'detail-status-badge',
+      style: 'background:#ecfdf5; color:#059669; padding:0.5rem 1rem; border-radius:8px; display:inline-block; font-weight:700; margin-bottom:0.5rem; border:1px solid #6ee7b7;',
+      textContent: property.customer_status_text || 'พร้อมเข้าอยู่'
+    });
+  }
+
   const price = el('h2', { className: 'detail-price', textContent: formatPrice(property.price) });
   const address = el('p', { className: 'detail-address', textContent: `${property.address || ''} ${property.district || ''} ${property.province || ''}`.trim() });
 
@@ -394,6 +441,7 @@ async function renderPropertyDetails(property) {
   ].filter(Boolean);
   specs.forEach(txt => specsRow.append(el('span', { className: 'meta-chip', textContent: txt })));
 
+  if (statusBadge) infoCard.append(statusBadge);
   infoCard.append(title, address, price, specsRow);
   leftCol.append(infoCard, galleryWrapper, thumbnailContainer);
 
@@ -421,6 +469,7 @@ async function renderPropertyDetails(property) {
   } else {
     const mapId = 'map-' + (property.id || 'detail');
     const mapEl = el('div', { attributes: { id: mapId }, className: 'detail-map' });
+    mapEl.style.height = getResponsiveMapHeight() + 'px';
     mapWrap.append(mapEl);
 
     // ลิงก์เปิด Google Maps
@@ -635,7 +684,11 @@ async function renderPropertyDetails(property) {
 
   // ===== Lead form =====
   const formCard = el('div', { className: 'detail-card' });
-  const formHd = el('h3', { textContent: 'สนใจนัดชม / สอบถามข้อมูล' });
+  const isRenovating = (stage && stage !== 'ready');
+  const formTitleText = isRenovating ? 'สนใจจองสิทธิ์ / ติดตามความคืบหน้า' : 'สนใจนัดชม / สอบถามข้อมูล';
+  const btnText = isRenovating ? 'ลงทะเบียนสนใจ' : 'ส่งข้อมูล';
+
+  const formHd = el('h3', { textContent: formTitleText });
   const form = el('form', { attributes: { id: 'lead-form' } });
   form.innerHTML = `
     <input type="hidden" name="property_id" value="${escapeHtml(property.id || '')}">
@@ -647,8 +700,8 @@ async function renderPropertyDetails(property) {
     </div>
     <div class="form-group"><label>ชื่อ</label><input name="name" required class="form-control"></div>
     <div class="form-group"><label>เบอร์โทร</label><input name="phone" required class="form-control" pattern="^0\\d{8,9}$"></div>
-    <div class="form-group"><label>ข้อความเพิ่มเติม</label><textarea name="note" rows="3" class="form-control"></textarea></div>
-    <button type="submit" class="btn" style="width:100%;">ส่งข้อมูล</button>
+    <div class="form-group"><label>ข้อความเพิ่มเติม</label><textarea name="note" rows="3" class="form-control" placeholder="${isRenovating ? 'เช่น สนใจจอง, สอบถามกำหนดเสร็จ' : ''}"></textarea></div>
+    <button type="submit" class="btn" style="width:100%;">${btnText}</button>
   `;
   if (!form.dataset.boundSubmit) {       // ผูกครั้งเดียว
     form.addEventListener('submit', handleLeadSubmit);
@@ -708,137 +761,4 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProperty();   // ✅ แค่โหลดประกาศอย่างเดียว
 });
 
-async function loadRenovationBook(propertyId) {
-  const specsContainer = document.getElementById('detail-specs');
-  const contractorsContainer = document.getElementById('detail-contractors');
 
-  if (!propertyId) {
-    if (specsContainer) {
-      specsContainer.innerHTML = `
-        <p style="color:#9ca3af;">ยังไม่มีข้อมูลรีโนเวทสำหรับบ้านหลังนี้</p>
-      `;
-    }
-    if (contractorsContainer) {
-      contractorsContainer.innerHTML = `
-        <p style="color:#9ca3af;">ยังไม่มีข้อมูลทีมช่างสำหรับบ้านหลังนี้</p>
-      `;
-    }
-    return;
-  }
-
-  // ------- สเปกรีโนเวท -------
-  if (specsContainer) {
-    specsContainer.innerHTML = `
-      <p style="color:#6b7280;">กำลังโหลดข้อมูลสเปกรีโนเวท...</p>
-    `;
-
-    try {
-      const specs = await listSpecsByProperty(propertyId);
-
-      if (!specs.length) {
-        specsContainer.innerHTML = `
-          <p style="color:#9ca3af;">ยังไม่ได้บันทึกสเปกรีโนเวทสำหรับบ้านหลังนี้</p>
-        `;
-      } else {
-        const table = document.createElement('table');
-        table.className = 'table-compact';
-
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-          <tr>
-            <th>โซน</th>
-            <th>ประเภท</th>
-            <th>วัสดุ / ยี่ห้อ / รุ่น</th>
-            <th>หมายเหตุ</th>
-          </tr>
-        `;
-        table.appendChild(thead);
-
-        const tbody = document.createElement('tbody');
-
-        specs.forEach((s) => {
-          const tr = document.createElement('tr');
-          const material = [
-            s.brand,
-            s.model_or_series,
-            s.color_code && `(${s.color_code})`,
-          ]
-            .filter(Boolean)
-            .join(' / ');
-
-          tr.innerHTML = `
-            <td>${escapeHtml(s.zone || '')}</td>
-            <td>${escapeHtml(s.item_type || '')}</td>
-            <td>${escapeHtml(material || '-')}</td>
-            <td>${escapeHtml(s.note || '')}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        table.appendChild(tbody);
-        specsContainer.innerHTML = '';
-        specsContainer.appendChild(table);
-      }
-    } catch (err) {
-      console.error(err);
-      specsContainer.innerHTML = `
-        <p style="color:#b91c1c;">โหลดข้อมูลสเปกไม่สำเร็จ</p>
-      `;
-    }
-  }
-
-  // ------- ทีมช่าง -------
-  if (contractorsContainer) {
-    contractorsContainer.innerHTML = `
-      <p style="color:#6b7280;">กำลังโหลดข้อมูลทีมช่าง...</p>
-    `;
-
-    try {
-      const links = await listContractorsForProperty(propertyId);
-
-      if (!links.length) {
-        contractorsContainer.innerHTML = `
-          <p style="color:#9ca3af;">ยังไม่ได้บันทึกทีมช่างสำหรับบ้านหลังนี้</p>
-        `;
-      } else {
-        const table = document.createElement('table');
-        table.className = 'table-compact';
-
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-          <tr>
-            <th>ทีมงาน</th>
-            <th>สายงาน</th>
-            <th>ขอบเขตงาน</th>
-          </tr>
-        `;
-        table.appendChild(thead);
-
-        const tbody = document.createElement('tbody');
-
-        links.forEach((link) => {
-          const c = link.contractor || {};
-          const name = escapeHtml(c.name || 'ทีมช่าง');
-          const trade = escapeHtml(c.trade || '');
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${name}</td>
-            <td>${trade}</td>
-            <td>${escapeHtml(link.scope || '')}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        table.appendChild(tbody);
-        contractorsContainer.innerHTML = '';
-        contractorsContainer.appendChild(table);
-      }
-    } catch (err) {
-      console.error(err);
-      contractorsContainer.innerHTML = `
-        <p style="color:#b91c1c;">โหลดข้อมูลทีมช่างไม่สำเร็จ</p>
-      `;
-    }
-  }
-}

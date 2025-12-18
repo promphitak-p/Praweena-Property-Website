@@ -615,6 +615,16 @@ async function handleSubmit(e) {
     payload.youtube_video_ids = JSON.stringify(currentYoutube);
 
     payload.published = !!payload.published;
+    payload.customer_status_visible = !!payload.customer_status_visible;
+
+    // บังคับตามเงื่อนไข: ให้ลูกค้าเห็นสถานะได้เฉพาะเมื่อบ้าน "พร้อมเข้าอยู่"
+    const stage = String(payload.renovation_stage || '').trim().toLowerCase();
+    if (stage !== 'ready') {
+      payload.customer_status_visible = false;
+      if (!String(payload.customer_status_text || '').trim()) {
+        payload.customer_status_text = null;
+      }
+    }
 
     const { data, error } = await upsertProperty(payload);
     if (error) throw error;
@@ -712,7 +722,7 @@ function fillFormFromProperty(p = {}) {
   const keys = [
     'id', 'title', 'slug', 'price', 'size_text', 'beds', 'baths',
     'parking', 'district', 'province', 'status', 'address', 'property_type',
-    'latitude', 'longitude'
+    'latitude', 'longitude', 'renovation_stage', 'customer_status_text'
   ];
   keys.forEach(k => {
     if (propertyForm.elements[k] !== undefined) {
@@ -721,6 +731,9 @@ function fillFormFromProperty(p = {}) {
   });
   if (propertyForm.elements.published) {
     propertyForm.elements.published.checked = !!p.published;
+  }
+  if (propertyForm.elements.customer_status_visible) {
+    propertyForm.elements.customer_status_visible.checked = !!p.customer_status_visible;
   }
 
   // ✅ ถ้ามีรูปเก่า โหลดมาให้
@@ -751,7 +764,7 @@ function fillFormFromProperty(p = {}) {
 async function loadProperties(query = '') {
   const tbody = document.querySelector('#properties-table tbody');
   clear(tbody);
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">กำลังโหลด...</td></tr>';
 
   try {
     const filters = {};
@@ -761,17 +774,21 @@ async function loadProperties(query = '') {
 
     clear(tbody);
     if (!data || !data.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ไม่มีข้อมูล</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">ไม่มีข้อมูล</td></tr>';
       return;
     }
 
     data.forEach(p => {
       const tr = document.createElement('tr');
+      const stage = String(p.renovation_stage || '').trim();
+      const stageLabel = stage ? stage : '-';
 
       tr.innerHTML = `
         <td data-label="หัวข้อ">${p.title || '-'}</td>
         <td data-label="ราคา">${formatPrice(Number(p.price) || 0)}</td>
         <td data-label="สถานะ">${p.published ? '✅' : '❌'}</td>
+        <td data-label="รีโนเวท">${stageLabel}</td>
+        <td data-label="โชว์ลูกค้า">${p.customer_status_visible ? '✅' : '—'}</td>
         <td data-label="อัปเดตล่าสุด">${p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-'}</td>
         <td data-label="จัดการ">
           <button class="btn btn-secondary btn-sm edit-btn">แก้ไข</button>
@@ -792,7 +809,7 @@ async function loadProperties(query = '') {
     });
   } catch (err) {
     console.error(err);
-    tbody.innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">โหลดไม่สำเร็จ</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="color:red;text-align:center;">โหลดไม่สำเร็จ</td></tr>';
   }
 }
 // ================== Init ==================

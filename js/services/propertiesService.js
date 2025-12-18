@@ -165,20 +165,41 @@ export async function upsertProperty(payload) {
     .select()
     .single();
 
-  // ถ้า schema ยังไม่มี property_type ให้บันทึกต่อโดยตัด field นี้ออก (ป้องกัน error บน DB เดิม)
-  const missingType =
-    attempt?.error &&
-    (attempt.error.code === '42703' || (attempt.error.message || '').includes('property_type'));
+  // -------- Fallback สำหรับ schema ที่ยังไม่อัปเดต --------
+  // ถ้า DB ขาดคอลัมน์บางตัว ให้ retry โดยตัด field ที่ไม่รองรับออก (ป้องกัน error บน DB เดิม)
+  const optionalFields = [
+    'property_type',
+    'youtube_video_ids',
+    'renovations',
+    'latitude',
+    'longitude',
+    'lat',
+    'lng',
+    'renovation_stage',
+    'customer_status_visible',
+    'customer_status_text',
+  ];
 
-  if (missingType) {
+  const isMissingColumn =
+    attempt?.error &&
+    (attempt.error.code === '42703' ||
+      /column .* does not exist/i.test(String(attempt.error.message || '')));
+
+  if (isMissingColumn) {
     const fallbackBody = { ...body };
-    delete fallbackBody.property_type;
-    console.warn('property_type column missing; upserting without it. Please add property_type to properties table.');
-    return await supabase
-      .from('properties')
-      .upsert(fallbackBody)
-      .select()
-      .single();
+    const msg = String(attempt.error.message || '');
+    const m = msg.match(/column \"([^\"]+)\"/i);
+    const missingCol = m?.[1] || null;
+
+    if (missingCol && Object.prototype.hasOwnProperty.call(fallbackBody, missingCol)) {
+      delete fallbackBody[missingCol];
+      console.warn(`Missing column "${missingCol}"; retrying upsert without it.`);
+    } else {
+      optionalFields.forEach((k) => delete fallbackBody[k]);
+      console.warn('Schema is missing one or more optional columns; retrying upsert with optional fields removed.');
+    }
+
+    return await supabase.from('properties').upsert(fallbackBody).select().single();
   }
 
   return attempt;

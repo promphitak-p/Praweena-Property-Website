@@ -25,19 +25,14 @@ export async function getContractById(id) {
   return data;
 }
 
-export async function listContracts() {
+export async function listContracts(showDeleted = false) {
   /**
    * เงื่อนไขสำคัญ:
    * - contracts.lead_id เป็น FK -> leads.id (uuid)
    * - contracts.property_id เป็น FK -> properties.id (bigint)
-   *
-   * NOTE:
-   * ชื่อคอลัมน์ใน leads อาจไม่ใช่ full_name / name ตามเดิม
-   * เพื่อกันพังเวลา schema เปลี่ยน ให้ดึง leads(*) และ properties(*) ทั้งแถว
-   * แล้วไปเลือก field ที่มีจริงในหน้า render อีกที
    */
 
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABLE)
     .select(`
       *,
@@ -46,14 +41,30 @@ export async function listContracts() {
     `)
     .order('created_at', { ascending: false });
 
+  if (!showDeleted) {
+    query = query.is('deleted_at', null); // Filter out soft-deleted items by default
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data || [];
 }
 
 export async function deleteContract(id) {
+  // Soft Delete: Update deleted_at instead of hard delete
   const { error } = await supabase
     .from(TABLE)
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) throw error;
+  return true;
+}
+
+export async function restoreContract(id) {
+  const { error } = await supabase
+    .from(TABLE)
+    .update({ deleted_at: null })
     .eq('id', id);
 
   if (error) throw error;

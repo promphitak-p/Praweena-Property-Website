@@ -7,27 +7,471 @@
   <title>แดชบอร์ด - Praweena Property</title>
 
   <link rel="stylesheet" href="/assets/css/main.css">
+  <script src="/js/env-loader.js"></script>
+
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- App CSS -->
-  <script src="/js/env-loader.js"></script>
-
-  <!-- Favicon -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
-  <link rel="manifest" href="/assets/favicon/site.webmanifest">
-
   <!-- Cropper.js -->
   <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
   <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+  <style>
+    /* Gold Theme & Modern Minimal overrides */
+    :root {
+      --gold-primary: #d4af37;
+      --gold-dark: #b8860b;
+      --gold-light: #f3e5ab;
+      --bg-soft: #f9fafb;
+    }
+
+    body {
+      background-color: var(--bg-soft);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .page-header h1 {
+      color: #111827;
+      font-weight: 800;
+    }
+
+    /* Buttons */
+    .btn {
+      border-radius: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn:not(.btn-secondary):not(.btn-danger) {
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 6px -1px rgba(184, 134, 11, 0.2);
+    }
+
+    .btn:not(.btn-secondary):not(.btn-danger):hover {
+      box-shadow: 0 10px 15px -3px rgba(184, 134, 11, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--gold-primary);
+      color: var(--gold-dark);
+      background: #fffcf5;
+    }
+
+    /* Search Input */
+    .filter-input .form-control {
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 0.75rem 1rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .filter-input .form-control:focus {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    }
+
+    /* Table modernization */
+    .table-wrapper {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+      margin-top: 1.5rem;
+    }
+
+    #properties-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    #properties-table thead th {
+      background: #fdfbf7;
+      color: #4b5563;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      padding: 1rem;
+      border-bottom: 2px solid #f3e5ab;
+    }
+
+    #properties-table tbody td {
+      padding: 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+      color: #374151;
+    }
+
+    #properties-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    #properties-table tbody tr:hover {
+      background-color: #fcfcfc;
+    }
+
+    /* Responsive Table (Mobile Cards) */
+    @media (max-width: 768px) {
+      .table-wrapper {
+        background: transparent;
+        box-shadow: none;
+        border: none;
+        overflow: visible;
+      }
+
+      #properties-table thead {
+        display: none;
+      }
+
+      #properties-table tbody,
+      #properties-table tr,
+      #properties-table td {
+        display: block;
+        width: 100%;
+      }
+
+      #properties-table tr {
+        background: #fff;
+        border-radius: 16px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        padding: 1.25rem;
+        position: relative;
+      }
+
+      #properties-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f9fafb;
+      }
+
+      #properties-table td:last-child {
+        border-bottom: none;
+        margin-top: 1rem;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+
+      #properties-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #9ca3af;
+        font-size: 0.9rem;
+        text-align: left;
+      }
+
+      /* Highlight title */
+      #properties-table td[data-label="หัวข้อ"] {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.5rem;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      #properties-table td[data-label="หัวข้อ"]::before {
+        display: none;
+      }
+
+      /* Price formatting */
+      #properties-table td[data-label="ราคา"] {
+        color: var(--gold-dark);
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+    }
+
+    /* Force Modal Styles & Improvements */
+    .modal {
+      display: none;
+      /* Hidden by default */
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 0;
+      /* Remove default padding, use inner layout */
+      border-radius: 20px;
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      position: relative;
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+
+    .modal.open .modal-content {
+      transform: scale(1);
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    /* Close Button */
+    .modal-close {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: #f3f4f6;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #6b7280;
+      font-size: 1.5rem;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+
+    .modal-close:hover {
+      background: #e5e7eb;
+      color: #111;
+    }
+
+    /* Enhanced Filter Bar */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 16px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      border: 1px solid #f3e5ab;
+      /* Subtle gold border */
+    }
+
+    .filter-input {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    /* Prominent Add Button */
+    #add-property-btn {
+      background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      box-shadow: 0 4px 10px rgba(184, 134, 11, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #add-property-btn::before {
+      content: '+';
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    #add-property-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(184, 134, 11, 0.4);
+    }
+
+    /* Form Styling inside Modal */
+    .form-section {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid #f3f4f6;
+      padding-bottom: 1.5rem;
+    }
+
+    .form-section:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .form-section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      /* Default to 1 column everywhere */
+      gap: 1.25rem;
+    }
+
+    /* Only switch to 2 columns on large screens (Laptop/PC) */
+    @media (min-width: 1024px) {
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Remove media query for grid-templates as auto-fit handles it */
+
+    .form-group {
+      margin-bottom: 1rem;
+      min-width: 0;
+      /* Prevent grid overflow */
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.4rem;
+      white-space: nowrap;
+      /* Prevent ugly wrapping */
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      background: #f9fafb;
+      transition: all 0.2s;
+    }
+
+    .form-control:focus {
+      background: #fff;
+      border-color: #d4af37;
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+      outline: none;
+    }
+
+    /* Map Box */
+    #modal-map {
+      border: 2px solid #fff;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+    }
+
+    /* POI List */
+    .poi-inline-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+      height: 200px;
+      overflow-y: auto;
+      background: #f9fafb;
+      padding: 0.75rem;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .poi-inline-list li {
+      margin: 0;
+    }
+
+    .poi-inline-list li label {
+      display: flex !important;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      /* Increased padding */
+      border-radius: 8px;
+      /* Softer corners */
+      background: #fff;
+      border: 1px solid #f3f4f6;
+      transition: all 0.2s;
+    }
+
+    .poi-inline-list li label:hover {
+      border-color: #d4af37;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Upload Areas */
+    .upload-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      background: #f9fafb;
+      transition: all 0.2s;
+    }
+
+    .upload-area:hover {
+      border-color: #d4af37;
+      background: #fffcf5;
+    }
+
+    /* Modal Actions */
+    .modal-actions {
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      margin: 2rem -2rem 0 -2rem;
+      /* expand to edges */
+      padding: 1rem 2rem;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      z-index: 20;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+    }
+
+    .modal-header h3 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #111;
+      margin: 0;
+    }
+  </style>
 </head>
 
 <body data-page="dashboard">
-  <!-- 🔹 ให้ load-header.js มาแทน header ตายตัว -->
-  <div id="app-header"></div>
+
 
   <main class="container">
     <div class="page-header">
@@ -40,13 +484,13 @@
       </div>
     </div>
 
-    <!-- Search + Add -->
+    <!-- Filter + Add Button -->
     <div class="filter-bar">
       <div class="filter-input">
         <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ...">
       </div>
       <div class="filter-actions">
-        <button class="btn" id="add-property-btn">เพิ่มประกาศใหม่</button>
+        <button id="add-property-btn" class="btn">เพิ่มประกาศใหม่</button>
       </div>
     </div>
 
@@ -57,6 +501,8 @@
             <th>หัวข้อ</th>
             <th>ราคา</th>
             <th>สถานะ</th>
+            <th>รีโนเวท</th>
+            <th>โชว์ลูกค้า</th>
             <th>อัปเดตล่าสุด</th>
             <th>จัดการ</th>
           </tr>
@@ -68,203 +514,255 @@
     </div>
   </main>
 
-  <!-- Modal: ฟอร์มประกาศ -->
+  <!-- Modal: ฟอร์มประกาศ (Redesigned) -->
   <div id="property-modal" class="modal">
     <div class="modal-content">
-      <span class="modal-close">&times;</span>
-      <h3 id="modal-title">เพิ่มประกาศใหม่</h3>
+      <button class="modal-close">&times;</button>
 
-      <form id="property-form">
-        <input type="hidden" name="id" />
+      <div class="modal-body">
+        <div class="modal-header" style="margin-bottom: 2rem;">
+          <h3 id="modal-title">เพิ่มประกาศใหม่</h3>
+          <p style="color:#6b7280; margin:0.25rem 0 0 0;">กรอกข้อมูลรายละเอียดบ้านด้านล่าง</p>
+        </div>
 
-        <div class="grid grid-cols-2">
-          <div class="form-group">
-            <label>หัวข้อ</label>
-            <input type="text" name="title" class="form-control" required>
-          </div>
+        <form id="property-form">
+          <input type="hidden" name="id" />
 
-          <div class="form-group">
-            <label>Slug</label>
-            <input type="text" name="slug" class="form-control" placeholder="จะสร้างให้อัตโนมัติถ้าเว้นว่าง">
-          </div>
-
-          <div class="form-group">
-            <label>ราคา</label>
-            <input type="number" name="price" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>ประเภททรัพย์</label>
-            <select name="property_type" class="form-control">
-              <option value="">-- เลือกประเภท --</option>
-              <option value="บ้านเดี่ยว">บ้านเดี่ยว</option>
-              <option value="ทาวน์เฮ้าส์">ทาวน์เฮ้าส์</option>
-              <option value="คอนโด">คอนโด</option>
-              <option value="ที่ดิน">ที่ดิน</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>ขนาด (เช่น 120 ตร.ม.)</label>
-            <input type="text" name="size_text" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>ห้องนอน</label>
-            <input type="number" name="beds" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>ห้องน้ำ</label>
-            <input type="number" name="baths" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>ที่จอดรถ</label>
-            <input type="number" name="parking" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>อำเภอ</label>
-            <input type="text" name="district" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>จังหวัด</label>
-            <input type="text" name="province" class="form-control" value="สุราษฎร์ธานี">
-          </div>
-
-          <div class="form-group">
-            <label>สถานะ</label>
-            <select name="status" class="form-control">
-              <option value="available">ว่าง (Available)</option>
-              <option value="sold">ขายแล้ว (Sold)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>ที่อยู่</label>
-            <input type="text" name="address" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>ละติจูด</label>
-            <input type="number" step="any" name="latitude" class="form-control">
-          </div>
-
-          <div class="form-group">
-            <label>ลองจิจูด</label>
-            <input type="number" step="any" name="longitude" class="form-control">
-          </div>
-
-          <div id="modal-map" class="mt-4" style="height:300px;border-radius:8px;z-index:10;"></div>
-
-          <!-- ใต้ div id="modal-map" ... -->
-          <div class="form-group col-span-2">
-            <label>สถานที่ใกล้เคียงที่จะแสดง</label>
-            <ul id="poi-candidate-list" class="poi-inline-list">
-              <!-- JS จะใส่ให้ -->
-            </ul>
-
-            <!-- ✅ ฟอร์มเพิ่มสถานที่ใกล้เคียงด้วยตัวเอง -->
-            <div id="poi-manual-box"
-              class="mt-4 px-4 py-3"
-              style="border-radius:12px;border:1px solid #e5e7eb;background:#f9fafb;">
-              <p class="mb-2" style="font-weight:600;font-size:.9rem;">
-                เพิ่มสถานที่ใกล้เคียงด้วยตัวเอง
-              </p>
-
-              <div class="form-group">
-                <label>ชื่อสถานที่ *</label>
-                <input id="poi-name-input" type="text" class="form-control" placeholder="เช่น โรงเรียนสุราษฎร์พิทยา">
+          <!-- Section 1: ข้อมูลทั่วไป -->
+          <div class="form-section">
+            <h4 class="form-section-title">📝 ข้อมูลทั่วไป</h4>
+            <div class="form-grid">
+              <div class="form-group" style="grid-column: span 2;">
+                <label>ชื่อประกาศ</label>
+                <input type="text" name="title" class="form-control" required
+                  placeholder="เช่น ขายบ้านเดี่ยว 2 ชั้น สไตล์โมเดิร์น...">
               </div>
 
               <div class="form-group">
-                <label>ประเภท (type)</label>
-                <input id="poi-type-input" type="text" class="form-control"
-                  placeholder="เช่น school, market, hospital, government">
-                <small style="color:#6b7280;font-size:.8rem;">
-                  ใช้คำอังกฤษสั้น ๆ จะช่วยให้ระบบจัดไอคอน/สีได้ เช่น school, hospital, market
-                </small>
+                <label>Slug (URL)</label>
+                <input type="text" name="slug" class="form-control" placeholder="จะสร้างให้อัตโนมัติถ้าเว้นว่าง">
               </div>
 
-              <div class="form-row" style="display:flex;gap:.75rem;">
-                <div class="form-group" style="flex:1;">
-                  <label>ระยะทาง (กม.)</label>
-                  <input id="poi-distance-input" type="number" step="0.01" min="0" class="form-control"
-                    placeholder="เช่น 0.80">
-                </div>
-                <div class="form-group" style="flex:1;">
-                  <label>Latitude</label>
-                  <input id="poi-lat-input" type="number" step="0.000001" class="form-control"
-                    placeholder="เว้นว่างได้ ถ้าใช้พิกัดบ้าน">
-                </div>
-                <div class="form-group" style="flex:1;">
-                  <label>Longitude</label>
-                  <input id="poi-lng-input" type="number" step="0.000001" class="form-control"
-                    placeholder="เว้นว่างได้ ถ้าใช้พิกัดบ้าน">
-                </div>
+              <div class="form-group">
+                <label>ราคา (บาท)</label>
+                <input type="number" name="price" class="form-control" placeholder="เช่น 2500000">
               </div>
 
-            <small class="text-muted" style="font-size:.8rem;">
-              ถ้าไม่กรอก Latitude / Longitude ระบบจะใช้พิกัดบ้านคำนวณระยะทางให้อัตโนมัติ
-            </small>
+              <div class="form-group">
+                <label>ประเภททรัพย์</label>
+                <select name="property_type" class="form-control">
+                  <option value="">-- เลือกประเภท --</option>
+                  <option value="บ้านเดี่ยว">บ้านเดี่ยว</option>
+                  <option value="ทาวน์เฮ้าส์">ทาวน์เฮ้าส์</option>
+                  <option value="คอนโด">คอนโด</option>
+                  <option value="ที่ดิน">ที่ดิน</option>
+                </select>
+              </div>
 
-            <div class="mt-3 text-right">
-              <button id="poi-add-manual-btn" class="btn btn-sm btn-secondary">
-                + เพิ่มสถานที่นี้เข้าในรายการ
-              </button>
+              <div class="form-group">
+                <label>พื้นที่ใช้สอย</label>
+                <input type="text" name="size_text" class="form-control" placeholder="เช่น 150 ตร.ม.">
+              </div>
+
+              <div class="form-group">
+                <label>ห้องนอน</label>
+                <input type="number" name="beds" class="form-control" placeholder="0">
+              </div>
+
+              <div class="form-group">
+                <label>ห้องน้ำ</label>
+                <input type="number" name="baths" class="form-control" placeholder="0">
+              </div>
+
+              <div class="form-group">
+                <label>ที่จอดรถ</label>
+                <input type="number" name="parking" class="form-control" placeholder="0">
+              </div>
             </div>
           </div>
 
-          <small class="text-muted">*ติ๊กออกได้ถ้าไม่ต้องการแสดงบางแห่ง</small>
-        </div>
+          <!-- Section 2: ที่ตั้งและแผนที่ -->
+          <div class="form-section">
+            <h4 class="form-section-title">📍 ที่ตั้งและแผนที่</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>อำเภอ</label>
+                <input type="text" name="district" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>จังหวัด</label>
+                <input type="text" name="province" class="form-control" value="สุราษฎร์ธานี">
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label>ที่อยู่ / ซอย / ถนน</label>
+                <input type="text" name="address" class="form-control" placeholder="ระบุรายละเอียดที่อยู่...">
+              </div>
 
-          <label>รูปภาพหน้าปก</label>
-          <input type="file" id="cover-upload" accept="image/*">
+              <div class="form-group">
+                <label>ละติจูด (Latitude)</label>
+                <input type="number" step="any" name="latitude" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>ลองจิจูด (Longitude)</label>
+                <input type="number" step="any" name="longitude" class="form-control">
+              </div>
+            </div>
 
-          <label>รูปภาพแกลลอรี่ (เลือกได้หลายรูป)</label>
-          <input type="file" id="gallery-upload" accept="image/*" multiple>
-          <div id="gallery-preview" class="mt-2"></div>
+            <!-- Internal Legal Info -->
+            <div
+              style="margin-top: 1.5rem; background: #f9fafb; padding: 1rem; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <h5 style="margin-bottom: 0.75rem; font-size: 0.95rem; font-weight: 600; color: #374151;">🔒
+                ข้อมูลโฉนด/ทะเบียน (Internal Use)</h5>
+              <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                <div class="form-group">
+                  <label>เลขที่โฉนด</label>
+                  <input type="text" name="title_deed_no" class="form-control" placeholder="เช่น 12345">
+                </div>
+                <div class="form-group">
+                  <label>เลขที่ระวาง</label>
+                  <input type="text" name="parcel_number" class="form-control" placeholder="เช่น 5036 II 8412">
+                </div>
+                <div class="form-group">
+                  <label>เลขที่บ้าน</label>
+                  <input type="text" name="house_number" class="form-control" placeholder="เช่น 99/999">
+                </div>
+              </div>
+            </div>
 
-          <label>YouTube Video IDs / URLs</label>
-          <div class="flex gap-2 items-center">
-            <input type="text" id="youtube-input" class="form-control" placeholder="เช่น https://youtu.be/..." />
-            <button id="youtube-add-btn" class="btn btn-secondary" type="button">+ เพิ่ม</button>
+            <div style="margin-top: 1rem;">
+              <small
+                style="display:block; margin-bottom:0.5rem; color:#6b7280;">ลากหมุดในแผนที่เพื่อระบุตำแหน่งที่แม่นยำ</small>
+              <div id="modal-map" style="height:320px; z-index:1;"></div>
+            </div>
+
+            <!-- POI List -->
+            <div style="margin-top: 1.5rem;">
+              <label style="font-weight:600;display:block;margin-bottom:0.5rem;">สถานที่ใกล้เคียง
+                (ระบบจะค้นหาให้อัตโนมัติ)</label>
+              <ul id="poi-candidate-list" class="poi-inline-list">
+                <!-- JS Fill -->
+              </ul>
+
+              <!-- Manual POI add -->
+              <div id="poi-manual-box" class="upload-area" style="margin-top:1rem; text-align:left; padding:1rem;">
+                <p style="font-weight:600; margin-bottom:0.5rem; font-size:0.9rem;">+ เพิ่มสถานที่ใกล้เคียงเอง
+                  (ถ้าไม่พบในรายการ)</p>
+                <div class="form-grid" style="grid-template-columns: 2fr 1fr; gap:0.5rem;">
+                  <input id="poi-name-input" type="text" class="form-control" placeholder="ชื่อสถานที่">
+                  <select id="poi-type-input" class="form-control">
+                    <option value="other">ทั่วไป</option>
+                    <option value="school">โรงเรียน</option>
+                    <option value="market">ตลาด/ร้านค้า</option>
+                    <option value="hospital">โรงพยาบาล</option>
+                  </select>
+                </div>
+                <div style="margin-top:0.5rem; text-align:right;">
+                  <button type="button" id="poi-add-manual-btn" class="btn btn-secondary btn-sm">เพิ่มรายการ</button>
+                </div>
+                <!-- Hidden inputs for logic compatibility -->
+                <input type="hidden" id="poi-distance-input">
+                <input type="hidden" id="poi-lat-input">
+                <input type="hidden" id="poi-lng-input">
+              </div>
+            </div>
           </div>
-          <ul id="youtube-list" class="mt-2"></ul>
 
+          <!-- Section 3: รูปภาพและวิดีโอ -->
+          <div class="form-section">
+            <h4 class="form-section-title">🖼️ รูปภาพและวิดีโอ</h4>
 
-          <div class="form-group">
-            <label><input type="checkbox" name="published" class="mr-2">เผยแพร่ทันที</label>
+            <label style="margin-top:1rem;">รูปภาพแกลลอรี่ (เลือกหลายรูปได้)</label>
+            <div class="upload-area">
+              <input type="file" id="gallery-upload" accept="image/*" multiple style="display:none;"
+                onchange="this.nextElementSibling.innerText = this.files.length + ' ไฟล์ถูกเลือก'">
+              <button type="button" class="btn btn-secondary"
+                onclick="document.getElementById('gallery-upload').click()">+ เลือกรูปภาพ</button>
+              <p style="margin-top:0.5rem; color:#6b7280; font-size:0.9rem;">ยังไม่ได้เลือกไฟล์</p>
+            </div>
+            <div id="gallery-preview" class="mt-2" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1rem;">
+            </div>
+
+            <label style="margin-top:1.5rem;">YouTube Link</label>
+            <div style="display:flex; gap:0.5rem;">
+              <input type="text" id="youtube-input" class="form-control" placeholder="https://youtu.be/...">
+              <button id="youtube-add-btn" class="btn btn-secondary" type="button">เพิ่ม</button>
+            </div>
+            <ul id="youtube-list" style="margin-top:0.5rem; list-style:none; padding:0;"></ul>
           </div>
 
-          <div style="text-align:right;">
+          <!-- Section 4: สถานะ -->
+          <div class="form-section">
+            <h4 class="form-section-title">📢 สถานะประกาศ</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>สถานะบ้าน</label>
+                <select name="status" class="form-control">
+                  <option value="available">🟢 ว่าง (Available)</option>
+                  <option value="sold">🔴 ขายแล้ว (Sold)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>สถานะรีโนเวท</label>
+                <select name="renovation_stage" class="form-control">
+                  <option value="">-- ไม่ระบุ --</option>
+                  <option value="planning">วางแผน</option>
+                  <option value="survey">สำรวจ/ประเมิน</option>
+                  <option value="demo">รื้อถอน</option>
+                  <option value="structure">งานโครงสร้าง</option>
+                  <option value="systems">ระบบน้ำ/ไฟ</option>
+                  <option value="finishes">งานตกแต่ง</option>
+                  <option value="staging">เก็บงาน/จัดบ้าน</option>
+                  <option value="ready">พร้อมเข้าอยู่</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:1rem;">
+              <label>ข้อความถึงลูกค้า (เมื่อพร้อมเข้าอยู่)</label>
+              <textarea name="customer_status_text" class="form-control" rows="2"
+                placeholder="เช่น นัดชมบ้านได้เลย, พร้อมโอน..."></textarea>
+            </div>
+
+            <div style="display:flex; gap:1.5rem; margin-top:1rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="customer_status_visible">
+                <span>แสดงสถานะให้ลูกค้าเห็น</span>
+              </label>
+
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="published">
+                <span>เผยแพร่ประกาศนี้ทันที</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Actions Footer -->
+          <div class="modal-actions">
             <button type="button" class="btn btn-secondary modal-cancel">ยกเลิก</button>
-            <button type="submit" class="btn">บันทึก</button>
+            <button type="submit" class="btn">บันทึกข้อมูล</button>
           </div>
-      </form>
+
+        </form>
+      </div>
     </div>
   </div>
 
-  <!-- Modal แสดงผลสถานที่ใกล้เคียง -->
+  <!-- Modal แสดงผลสถานที่ใกล้เคียง (View Only) -->
   <div id="poi-modal" class="modal">
     <div class="modal-content" style="max-width:480px;">
       <span class="modal-close" id="poi-modal-close">&times;</span>
-      <h3 id="poi-modal-title">สถานที่ใกล้เคียง</h3>
+      <h3 id="poi-modal-title" style="margin-top:0;">สถานที่ใกล้เคียง</h3>
       <div id="poi-modal-body" style="margin-top:1rem;line-height:1.6;"></div>
       <div style="text-align:right;margin-top:1.5rem;">
         <button class="btn btn-secondary" id="poi-modal-ok">ปิด</button>
       </div>
     </div>
-
   </div>
 
-  <!-- โหลด header -->
-  <script type="module" src="/js/layout/load-header.js"></script>
+
   <!-- Page JS -->
   <script type="module" src="/js/pages/dashboard.page.js"></script>
 </body>
 
 </html>
-

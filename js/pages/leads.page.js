@@ -23,7 +23,8 @@ const pageContainer = document.querySelector('main.container');
 
 // ----- Config -----
 const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'];
-let newestFirst = true; // toggle ลำดับ
+let allLeads = []; // Store fetched leads here
+let currentFilter = { text: '', status: '', newestFirst: true };
 
 // ป้องกันยิง notify ซ้ำเมื่อเปลี่ยนเร็ว ๆ
 const notifyingSet = new Set();
@@ -61,83 +62,147 @@ function buildStatusSelect(lead, onChange) {
   return sel;
 }
 
-// ----- Render -----
+// ----- Modal Logic -----
+const modal = $('#lead-modal');
+const modalCloseBtn = $('#lead-modal-close');
+
+function closeLeadModal() {
+  if (modal) modal.classList.remove('open');
+}
+
+function openLeadModal(lead) {
+  if (!modal) return;
+
+  // Populate Fields
+  $('#lead-modal-name').textContent = lead.name || 'ไม่ระบุชื่อ';
+  $('#lead-modal-date').textContent = `วันที่ติดต่อ: ${fmtDate(lead.created_at)}`;
+
+  // Status Badge
+  const statusEl = $('#lead-modal-status');
+  statusEl.textContent = lead.status || 'new';
+  statusEl.dataset.status = lead.status || 'new';
+
+  // Phone
+  const phoneLink = $('#lead-modal-phone-link');
+  if (lead.phone) {
+    phoneLink.textContent = lead.phone;
+    phoneLink.href = `tel:${lead.phone}`;
+  } else {
+    phoneLink.textContent = '-';
+    phoneLink.removeAttribute('href');
+  }
+
+  // Copy Phone Button Binding
+  const copyBtn = $('#lead-modal-copy-phone');
+  copyBtn.onclick = async (e) => {
+    e.stopPropagation();
+    if (lead.phone) {
+      try {
+        await navigator.clipboard.writeText(lead.phone);
+        toast('คัดลอกเบอร์โทรแล้ว', 1000, 'success');
+      } catch { }
+    }
+  };
+
+  // Property
+  const propEl = $('#lead-modal-property');
+  const p = propertyCellInfo(lead);
+  clear(propEl);
+  if (p.slug) {
+    propEl.append(el('a', {
+      attributes: { href: `/property-detail.html?slug=${p.slug}`, target: '_blank' },
+      textContent: p.title
+    }));
+  } else {
+    propEl.textContent = p.title;
+  }
+
+  // Message
+  const msgEl = $('#lead-modal-message');
+  msgEl.textContent = lead.note || '-';
+
+  // Call Button
+  const callBtn = $('#lead-modal-call-btn');
+  if (lead.phone) {
+    callBtn.href = `tel:${lead.phone}`;
+    callBtn.classList.remove('disabled');
+  } else {
+    callBtn.removeAttribute('href');
+    callBtn.classList.add('disabled');
+  }
+
+  modal.classList.add('open');
+}
+
+// ----- Render Helpers -----
 function renderRow(lead) {
   const tr = el('tr', { attributes: { 'data-id': lead.id } });
+
+  // Make row clickable
+  tr.addEventListener('click', (e) => {
+    // Ignore clicks on interactive elements inside the row
+    if (e.target.closest('a, button, select')) return;
+    openLeadModal(lead);
+  });
+
+  tr.style.cursor = 'pointer'; // Indicate clickability
 
   const tdDate = el('td', { textContent: fmtDate(lead.created_at) });
   const tdName = el('td', { textContent: lead.name || '-' });
 
-  // โทร + คัดลอกเบอร์
+  // Phone
   const tdPhone = el('td');
   if (lead.phone) {
     const phoneLink = el('a', { attributes: { href: `tel:${lead.phone}` }, textContent: lead.phone });
-    const copyBtn = el('button', { className: 'btn-copy-phone', textContent: 'คัดลอก' });
+    const copyBtn = el('button', { className: 'btn-copy-phone', textContent: 'Copy', style: 'margin-left:5px;font-size:0.8rem;' });
     copyBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
+      e.stopPropagation(); // Prevent modal opening
       try {
         await navigator.clipboard.writeText(lead.phone);
-        toast('คัดลอกเบอร์เรียบร้อย ✅', 1500, 'success');
-      } catch {
-        toast('คัดลอกไม่สำเร็จ ❌', 2000, 'error');
-      }
+        toast('คัดลอกแล้ว', 1000, 'success');
+      } catch { }
     });
-    tdPhone.append(phoneLink, ' ', copyBtn);
+    tdPhone.append(phoneLink, copyBtn);
   } else {
     tdPhone.textContent = '-';
   }
 
+  // Property
   const tdProp = el('td');
   const p = propertyCellInfo(lead);
   if (p.slug) {
-    const url = `/property-detail.html?slug=${encodeURIComponent(p.slug)}`;
-    tdProp.append(el('a', { attributes: { href: url, target: '_blank', rel: 'noopener noreferrer' }, textContent: p.title }));
+    tdProp.append(el('a', { attributes: { href: `/property-detail.html?slug=${p.slug}`, target: '_blank' }, textContent: p.title }));
   } else {
     tdProp.textContent = p.title;
   }
 
   const tdNote = el('td', { textContent: lead.note || '-' });
 
-const tdStatus = el('td');
+  // Status
+  const tdStatus = el('td');
+  const select = buildStatusSelect(lead, async (newStatus, elSel) => {
+    const prev = lead.status || 'new';
+    if (newStatus === prev) return;
 
-const select = buildStatusSelect(lead, async (newStatus, elSel) => {
-  const prev = lead.status || 'new';
-  if (newStatus === prev) return;
+    // Optimistic Update
+    lead.status = newStatus;
+    const { error } = await updateLead(lead.id, { status: newStatus });
+    if (error) {
+      lead.status = prev;
+      elSel.value = prev;
+      toast(`Error: ${error.message}`, 3000, 'error');
+      return;
+    }
+    toast('สถานะอัปเดตเรียบร้อย', 1500, 'success');
 
-  // optimistic UI
-  lead.status = newStatus;
-  const { error } = await updateLead(lead.id, { status: newStatus });
-  if (error) {
-    lead.status = prev;
-    elSel.value = prev;
-    toast(`อัปเดตสถานะไม่สำเร็จ: ${error.message}`, 3500, 'error');
-    return;
-  }
-  toast('อัปเดตสถานะสำเร็จ', 1800, 'success');
-
-  // 🔔 แจ้ง LINE (กันยิงซ้ำด้วย Set)
-  const key = `lead-${lead.id}-${prev}->${newStatus}`;
-  if (notifyingSet.has(key)) return;
-  notifyingSet.add(key);
-
-  try {
-    await notifyLeadStatusChange({
-      lead_id: lead.id,
-      name: lead.name,
-      phone: lead.phone,
-      old_status: prev,
-      new_status: newStatus,
-      ...propertyCellInfo(lead) // เอา title/slug ไปด้วย
-    });
-  } catch (e) {
-    console.warn('notifyLeadStatusChange failed', e);
-  } finally {
-    setTimeout(() => notifyingSet.delete(key), 1500);
-  }
-});
-
-tdStatus.append(select);
-
+    // Notify
+    if (!notifyingSet.has(lead.id)) {
+      notifyingSet.add(lead.id);
+      notifyLeadStatusChange({ ...lead, old_status: prev, new_status: newStatus }).finally(() => setTimeout(() => notifyingSet.delete(lead.id), 2000));
+    }
+  });
+  select.addEventListener('click', e => e.stopPropagation()); // Prevent modal opening
+  tdStatus.append(select);
 
   tr.append(tdDate, tdName, tdPhone, tdProp, tdNote, tdStatus);
   tableBody.append(tr);
@@ -146,44 +211,99 @@ tdStatus.append(select);
 function renderSkeleton() {
   clear(tableBody);
   const tr = el('tr');
-  tr.append(el('td', {
-    attributes: { colspan: 6 },
-    innerHTML: `<div class="skeleton" style="height:48px;border-radius:10px;"></div>`
-  }));
+  tr.append(el('td', { attributes: { colspan: 6 }, innerHTML: `<div class="skeleton" style="height:48px;"></div>` }));
   tableBody.append(tr);
 }
 
 function renderEmpty() {
   clear(tableBody);
   const tr = el('tr');
-  tr.append(el('td', {
-    attributes: { colspan: 6 },
-    style: 'text-align:center;color:#6b7280;padding:1rem;',
-    textContent: 'ยังไม่มีผู้สนใจติดต่อเข้ามา'
-  }));
+  tr.append(el('td', { attributes: { colspan: 6 }, style: 'text-align:center;padding:1.5rem;', textContent: 'ยังไม่มีข้อมูล' }));
   tableBody.append(tr);
 }
 
-// ----- Controls (toggle newest first) -----
-function ensureControls() {
-  let ctr = $('#leads-controls');
-  if (!ctr) {
-    ctr = el('div', { attributes: { id: 'leads-controls' }, style: 'margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;' });
-    const label = el('label', { style: 'display:inline-flex;align-items:center;gap:.4rem;user-select:none;' });
-    const cb = el('input', { attributes: { type: 'checkbox' } });
-    cb.checked = true;
-    cb.addEventListener('change', async () => {
-      newestFirst = cb.checked;
-      await loadAndRender();
+// ----- Filter Logic -----
+function filterAndSort() {
+  let rows = [...allLeads];
+
+  // 1. Text Filter (Name, Phone, Note)
+  if (currentFilter.text) {
+    const q = currentFilter.text.toLowerCase();
+    rows = rows.filter(r => {
+      const txt = (r.name || '') + (r.phone || '') + (r.note || '') + (r.properties?.title || '');
+      return txt.toLowerCase().includes(q);
     });
-    label.append(cb, el('span', { textContent: 'ดูล่าสุดก่อน (สลับลำดับ)' }));
-    ctr.append(label);
-    pageContainer?.insertBefore(ctr, pageContainer.querySelector('.table-wrapper'));
+  }
+
+  // 2. Status Filter
+  if (currentFilter.status) {
+    rows = rows.filter(r => (r.status || 'new') === currentFilter.status);
+  }
+
+  // 3. Sort
+  rows.sort((a, b) => {
+    const da = new Date(a.created_at).getTime();
+    const db = new Date(b.created_at).getTime();
+    return currentFilter.newestFirst ? db - da : da - db;
+  });
+
+  return rows;
+}
+
+function renderFiltered() {
+  const rows = filterAndSort();
+  clear(tableBody);
+
+  if (!rows.length) {
+    if (allLeads.length > 0) {
+      // มีข้อมูลแต่กรองแล้วไม่เจอ
+      const tr = el('tr');
+      tr.append(el('td', {
+        attributes: { colspan: 6 },
+        style: 'text-align:center;color:#6b7280;padding:2rem;',
+        textContent: 'ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา'
+      }));
+      tableBody.append(tr);
+    } else {
+      // ไม่มีข้อมูลเลย
+      renderEmpty();
+    }
+    return;
+  }
+
+  rows.forEach(renderRow);
+}
+
+// ----- Controls -----
+function setupControls() {
+  const searchInput = $('#search-input');
+  const statusFilter = $('#status-filter');
+  const sortCheck = $('#sort-newest');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentFilter.text = e.target.value;
+      renderFiltered();
+    });
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+      currentFilter.status = e.target.value;
+      renderFiltered();
+    });
+  }
+
+  if (sortCheck) {
+    sortCheck.addEventListener('change', (e) => {
+      currentFilter.newestFirst = e.target.checked;
+      renderFiltered();
+    });
   }
 }
 
 // ----- Data loading -----
-async function loadAndRender() {
+async function loadData() {
   renderSkeleton();
   let { data, error } = await listLeads();
   if (error) {
@@ -192,17 +312,8 @@ async function loadAndRender() {
     toast('เกิดข้อผิดพลาดขณะดึงข้อมูล: ' + error.message, 4000, 'error');
     return;
   }
-  const rows = Array.isArray(data) ? data : [];
-  rows.sort((a, b) => {
-    const da = new Date(a.created_at).getTime();
-    const db = new Date(b.created_at).getTime();
-    return newestFirst ? db - da : da - db;
-  });
-
-  if (!rows.length) return renderEmpty();
-
-  clear(tableBody);
-  rows.forEach(renderRow);
+  allLeads = Array.isArray(data) ? data : [];
+  renderFiltered();
 }
 
 // ----- Main -----
@@ -215,10 +326,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   signOutIfAny();
   setupMobileNav();
 
-  ensureControls();
-  await loadAndRender();
+  setupControls(); // Bind events
+  await loadData(); // Fetch and render
+
+  // Modal Close Events
+  if (modalCloseBtn) modalCloseBtn.onclick = closeLeadModal;
+  if (modal) {
+    modal.onclick = (e) => {
+      if (e.target === modal) closeLeadModal();
+    };
+    // Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) {
+        closeLeadModal();
+      }
+    });
+  }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') loadAndRender();
+    if (document.visibilityState === 'visible') loadData();
   });
 });

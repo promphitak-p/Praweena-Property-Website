@@ -10,10 +10,7 @@ import { toast } from '../ui/toast.js';
 
 let allProperties = [];
 let filteredProperties = [];
-const isMobileDevice = () => {
-  const ua = navigator.userAgent || navigator.vendor || window.opera || '';
-  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
-};
+// ---------------- render list ----------------
 let rbViewerModal = null;
 let rbViewerFrame = null;
 let rbViewerClose = null;
@@ -22,15 +19,25 @@ function getEl(id) {
   return document.getElementById(id);
 }
 
-// ---------------- render list ----------------
+function isMobileView() {
+  return window.innerWidth < 1024;
+}
+
 function renderPropertyList(items) {
   const container = $('#rb-property-list');
   if (!container) return;
 
   clear(container);
-  const mobileView = isMobileDevice();
-  container.classList.toggle('rb-property-list-grid', mobileView);
-  container.classList.toggle('rb-property-list-table-wrapper', !mobileView);
+  const mobileView = isMobileView();
+
+  // Toggle classes for CSS styling
+  if (mobileView) {
+    container.classList.add('rb-property-list-grid');
+    container.classList.remove('rb-property-list-table-wrapper');
+  } else {
+    container.classList.remove('rb-property-list-grid');
+    container.classList.add('rb-property-list-table-wrapper');
+  }
 
   if (!items || !items.length) {
     container.innerHTML = `
@@ -42,6 +49,7 @@ function renderPropertyList(items) {
   }
 
   if (mobileView) {
+    // Render as Cards (Mobile)
     items.forEach((p) => {
       const card = document.createElement('div');
       card.className = 'rb-property-card';
@@ -75,19 +83,19 @@ function renderPropertyList(items) {
           <button class="btn btn-sm btn-primary rb-open-book-btn" data-id="${p.id}">
             เปิดสมุดรีโนเวท
           </button>
-          ${
-            detailUrl !== '#'
-              ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">
+          ${detailUrl !== '#'
+          ? `<a class="btn btn-sm btn-sage" href="${detailUrl}" target="_blank">
                    ดูหน้าเว็บลูกค้า
                  </a>`
-              : ''
-          }
+          : ''
+        }
         </div>
       `;
 
       container.appendChild(card);
     });
   } else {
+    // Render as Table (Desktop)
     const table = document.createElement('table');
     table.className = 'rb-property-table';
     table.innerHTML = `
@@ -118,17 +126,16 @@ function renderPropertyList(items) {
         <td>${formatPrice(Number(p.price) || 0)}</td>
         <td style="color:${statusColor};font-weight:600;">${statusText}</td>
         <td>${updatedText}</td>
-        <td>
+        <td class="rb-actions-cell">
           <button class="btn btn-sm btn-primary rb-open-book-btn" data-id="${p.id}">
             เปิดสมุดรีโนเวท
           </button>
-          ${
-            detailUrl !== '#'
-              ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">
+          ${detailUrl !== '#'
+          ? `<a class="btn btn-sm btn-sage" href="${detailUrl}" target="_blank">
                    ดูหน้าเว็บลูกค้า
                  </a>`
-              : ''
-          }
+          : ''
+        }
         </td>
       `;
       tbody.appendChild(tr);
@@ -147,6 +154,19 @@ function renderPropertyList(items) {
     });
   });
 }
+
+// Re-render on resize (debounce)
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    // Only re-render if we actually crossed the breakpoint (optimization) or just re-render simple
+    // For simplicity, just re-render with current list
+    if (filteredProperties.length > 0 || (allProperties.length === 0)) {
+      renderPropertyList(filteredProperties);
+    }
+  }, 200);
+});
 
 // --------------- filter + search ---------------
 function normalize(str) {

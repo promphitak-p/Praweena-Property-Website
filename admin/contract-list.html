@@ -1,17 +1,18 @@
 <!-- contracts-list.html -->
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <title>รายการสัญญา - Praweena Property</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="stylesheet" href="/assets/css/main.css">
   <script src="/js/env-loader.js"></script>
-  
-  
-  
-  
+
+
+
+
   <!-- Favicon -->
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
@@ -19,35 +20,88 @@
   <link rel="manifest" href="/assets/favicon/site.webmanifest">
 
   <style>
-    .contracts-toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
-    .contracts-toolbar .search-wrap{position:relative;min-width:260px;flex:1;}
-    .contracts-toolbar .search-wrap input{padding-left:2.2rem;}
-    .contracts-toolbar .search-ic{
-      position:absolute;left:.7rem;top:50%;transform:translateY(-50%);
-      font-size:1rem;color:#888;
+    /* Filter Bar Overrides */
+    .filter-bar {
+      justify-content: flex-start;
+      align-items: center;
     }
 
-    .contracts-grid{
-      display:grid; gap:1rem;
-      grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
-      align-items:stretch;
+    /* Fix alignment */
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
     }
-    .contract-card{
-      background:var(--surface);
-      border:1px solid var(--border-color);
-      border-radius:16px;
-      box-shadow:var(--shadow-sm);
-      padding:1rem;
-      display:flex;flex-direction:column;gap:.5rem;
+
+    .search-wrap input.form-control {
+      padding-left: 2.2rem;
     }
-    .contract-title{font-weight:700;font-size:1.05rem;}
-    .contract-meta{font-size:.9rem;color:var(--text-light);line-height:1.5;}
-    .contract-actions{margin-top:auto;display:flex;gap:.5rem;}
-    .pill{
-      display:inline-flex;align-items:center;gap:.35rem;
-      font-size:.8rem;font-weight:600;padding:.2rem .55rem;border-radius:999px;
-      background:#f6f6f6;border:1px solid #eee;color:#444;
-      width:max-content;
+
+    .search-ic {
+      position: absolute;
+      left: 0.8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      color: #9ca3af;
+      pointer-events: none;
+    }
+
+    /* Ensure button matches input height */
+    .filter-actions .btn {
+      height: 46px;
+      /* Match form-control height typically */
+      display: flex;
+      align-items: center;
+    }
+
+    .contracts-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      align-items: stretch;
+    }
+
+    .contract-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .contract-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .contract-meta {
+      font-size: .9rem;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .contract-actions {
+      margin-top: auto;
+      display: flex;
+      gap: .5rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .8rem;
+      font-weight: 600;
+      padding: .2rem .55rem;
+      border-radius: 999px;
+      background: #f6f6f6;
+      border: 1px solid #eee;
+      color: #444;
+      width: max-content;
     }
   </style>
 </head>
@@ -55,49 +109,234 @@
 
 <body data-page="contracts">
   <!-- 🔹 ให้ load-header.js มาแทน header ตายตัว -->
-  <div id="app-header"></div>
 
-<main class="page">
-  <div class="container">
 
-    <div class="page-header" style="align-items:flex-start;">
-      <div class="page-header-left">
-        <a href="/admin.html" class="btn btn-secondary">← กลับเมนูหลัก</a>
-        <div>
-          <h1>รายการสัญญา</h1>
-          <div class="page-header-subtitle">ค้นหา / เปิดแก้ไข / ออกสัญญาใหม่</div>
+  <main class="page">
+    <div class="container">
+
+      <div class="page-header" style="align-items:flex-start;">
+        <div class="page-header-left">
+          <a href="/admin.html" class="btn btn-secondary">← กลับเมนูหลัก</a>
+          <div>
+            <h1>รายการสัญญา</h1>
+            <div class="page-header-subtitle">ค้นหา / เปิดแก้ไข / ออกสัญญาใหม่</div>
+          </div>
         </div>
       </div>
+
+      <div class="filter-bar">
+        <div class="filter-input search-wrap">
+          <span class="search-ic">🔎</span>
+          <input id="contract-search" class="form-control" placeholder="ค้นชื่อ ลูกค้า บ้าน เบอร์ วันที่…">
+        </div>
+        <div class="filter-select">
+          <select id="contract-filter-type" class="form-control minw-160">
+            <option value="">ทุกประเภท</option>
+            <option value="reservation">สัญญาจอง</option>
+            <option value="sale">สัญญาซื้อขาย</option>
+            <option value="lease">สัญญาเช่า</option>
+            <option value="bin" style="color:red;">🗑️ ถังขยะ</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button id="new-contract-btn" class="btn">+ ออกสัญญาใหม่</button>
+        </div>
+      </div>
+
+      <section id="contracts-grid" class="contracts-grid">
+        <!-- JS render -->
+      </section>
+
     </div>
+  </main>
 
-    <div class="filter-bar" style="justify-content:flex-start;">
-      <div class="filter-input search-wrap">
-        <span class="search-ic">🔎</span>
-        <input id="contract-search" class="form-control" placeholder="ค้นชื่อ ลูกค้า บ้าน เบอร์ วันที่…">
+  <!-- Contract Modal -->
+  <div id="contract-modal" class="modal">
+    <div class="modal-content lead-modal-content" style="max-width: 650px;">
+      <button class="modal-close" id="modal-close">×</button>
+
+      <div class="lead-modal-header">
+        <h2>แบบฟอร์มสัญญา</h2>
+        <p class="text-muted">บันทึกข้อมูลสัญญาและพิมพ์เอกสาร</p>
       </div>
-      <div class="filter-select">
-        <select id="contract-filter-type" class="form-control minw-160">
-          <option value="">ทุกประเภท</option>
-          <option value="reservation">สัญญาจอง</option>
-          <option value="sale">สัญญาซื้อขาย</option>
-          <option value="lease">สัญญาเช่า</option>
-        </select>
-      </div>
-      <div class="filter-actions">
-        <a href="/admin/contract-form.html" class="btn">+ ออกสัญญาใหม่</a>
+
+      <div class="form-vertical-stack" style="display:flex; flex-direction:column; gap:1.5rem;">
+
+        <!-- 1) ลูกค้า -->
+        <div class="form-section">
+          <h3 class="section-title">1. ข้อมูลลูกค้า</h3>
+          <div class="form-group ac-wrap" style="position:relative;">
+            <label>ค้นหาลูกค้า (ชื่อ/เบอร์/อีเมล)</label>
+            <input id="lead-search" type="text" class="form-control" placeholder="พิมพ์เพื่อค้นหา...">
+            <div id="lead-ac" class="ac-list"></div>
+          </div>
+
+          <input type="hidden" id="lead_id">
+
+          <div class="form-group">
+            <label>ชื่อลูกค้า</label>
+            <input id="lead_name" type="text" class="form-control">
+          </div>
+          <div class="grid grid-cols-2" style="gap:1rem;">
+            <div class="form-group">
+              <label>เบอร์โทร</label>
+              <input id="lead_phone" type="text" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>อีเมล</label>
+              <input id="lead_email" type="email" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>เลขบัตรประชาชน</label>
+            <input id="lead_idcard" type="text" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>ที่อยู่</label>
+            <textarea id="lead_address" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #eee; margin:0;">
+
+        <!-- 2) บ้าน -->
+        <div class="form-section">
+          <h3 class="section-title">2. ข้อมูลบ้าน</h3>
+          <div class="form-group">
+            <label>เลือกบ้าน</label>
+            <select id="property_id" class="form-control">
+              <option value="">-- เลือกบ้าน --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ชื่อบ้าน/โครงการ</label>
+            <input id="property_name" type="text" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>ราคาขาย</label>
+            <input id="property_price" type="number" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>ที่อยู่บ้าน</label>
+            <textarea id="property_address" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #eee; margin:0;">
+
+        <!-- 3) รายละเอียดสัญญา -->
+        <div class="form-section">
+          <h3 class="section-title">3. รายละเอียดสัญญา</h3>
+          <input type="hidden" id="contract_id">
+
+          <div class="grid grid-cols-2" style="gap:1rem;">
+            <div class="form-group">
+              <label>วันที่ทำสัญญา</label>
+              <input id="contract_date" type="date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>ประเภทสัญญา</label>
+              <select id="contract_type" class="form-control">
+                <option value="reservation_sale">สัญญาจอง (ซื้อขาย)</option>
+                <option value="reservation_lease">สัญญาจอง (เช่า)</option>
+                <option value="sale">สัญญาซื้อขาย</option>
+                <option value="lease">สัญญาเช่า</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2" style="gap:1rem;">
+            <div class="form-group">
+              <label>เงินจอง/มัดจำ</label>
+              <input id="deposit_amount" type="number" class="form-control" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>ยอดชำระแล้ว</label>
+              <input id="paid_amount" type="number" class="form-control" placeholder="0">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2" style="gap:1rem;">
+            <div class="form-group">
+              <label>ยอดคงเหลือ</label>
+              <input id="remain_amount" type="number" class="form-control" placeholder="0" readonly>
+            </div>
+            <div class="form-group">
+              <label>กำหนดโอน/นัดใหญ่</label>
+              <input id="transfer_date" type="date" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top:1rem;">
+            <label>เงื่อนไขเพิ่มเติม</label>
+            <textarea id="contract_note" class="form-control" rows="3"></textarea>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-row" style="justify-content:flex-end; padding-top:0; border-top:none;">
+          <button id="preview-contract-btn" class="btn btn-secondary">พรีวิว PDF</button>
+          <button id="save-contract-btn" class="btn">บันทึกสัญญา</button>
+        </div>
+
       </div>
     </div>
-
-    <section id="contracts-grid" class="contracts-grid">
-      <!-- JS render -->
-    </section>
-
   </div>
-</main>
+
+  <style>
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--gold-3);
+    }
+  </style>
+
+  <!-- Preview Modal (Nested or Separate? Separate is better to avoid z-index hell) -->
+  <div id="contract-preview-modal" class="modal preview-modal" style="z-index: 2100;">
+    <div class="modal-content" style="max-width: 800px;">
+      <button class="modal-close" id="preview-close">×</button>
+      <div id="preview-actions" class="preview-actions"
+        style="margin-bottom:1rem;display:flex;justify-content:flex-end;gap:0.5rem;">
+        <button id="close-preview-btn" class="btn btn-secondary">ปิดหน้าต่าง</button>
+        <button id="print-btn" class="btn">🖨️ พิมพ์ / Save PDF</button>
+      </div>
+      <div id="contract-preview" class="contract-preview" style="padding:2rem;background:#fff;"></div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal" style="z-index: 2200;">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2rem;">
+      <div style="margin-bottom: 1.5rem; font-size: 3rem;">🗑️</div>
+      <h3>ยืนยันการลบ?</h3>
+      <p class="text-muted" style="margin-bottom: 2rem;">
+        คุณต้องการลบสัญญานี้ใช่หรือไม่?<br>การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+      <div class="grid grid-cols-2" style="gap: 1rem;">
+        <button id="cancel-delete-btn" class="btn btn-secondary">ยกเลิก</button>
+        <button id="confirm-delete-btn" class="btn"
+          style="background: #dc2626; color: white; border-color: #dc2626;">ยืนยันลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restore Confirmation Modal -->
+  <div id="restore-modal" class="modal" style="z-index: 2200;">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2rem;">
+      <div style="margin-bottom: 1.5rem; font-size: 3rem;">♻️</div>
+      <h3>ยืนยันการคืนค่า?</h3>
+      <p class="text-muted" style="margin-bottom: 2rem;">คุณต้องการนำสัญญานี้กลับมาใช่หรือไม่?</p>
+      <div class="grid grid-cols-2" style="gap: 1rem;">
+        <button id="cancel-restore-btn" class="btn btn-secondary">ยกเลิก</button>
+        <button id="confirm-restore-btn" class="btn"
+          style="background: #22c55e; color: white; border-color: #22c55e;">ยืนยันคืนค่า</button>
+      </div>
+    </div>
+  </div>
 
   <!-- โหลด header -->
-  <script type="module" src="/js/layout/load-header.js"></script>
-<script type="module" src="/js/pages/contract-list.page.js"></script>
-</body>
-</html>
 
+  <script type="module" src="/js/pages/contract-list.page.js"></script>
+</body>
+
+</html>
