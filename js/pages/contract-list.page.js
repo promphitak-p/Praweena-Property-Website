@@ -175,25 +175,77 @@ function calcRemain() {
 }
 
 // Save
+// Helper for Custom Confirmation Modal
+function showConfirmModal(title, message, onConfirm) {
+  const modal = document.getElementById('confirmation-modal');
+  const titleEl = document.getElementById('confirm-title');
+  const msgEl = document.getElementById('confirm-message');
+  const btnOk = document.getElementById('btn-confirm-ok');
+  const btnCancel = document.getElementById('btn-confirm-cancel');
+
+  if (!modal) {
+    if (confirm(message)) onConfirm();
+    return;
+  }
+
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+
+  const close = () => {
+    modal.classList.remove('open');
+    btnOk.onclick = null;
+    btnCancel.onclick = null;
+  };
+
+  btnOk.onclick = () => {
+    close();
+    onConfirm();
+  };
+
+  btnCancel.onclick = close;
+  modal.classList.add('open');
+}
+
+// Save Listener with Custom Modal
 saveBtn.addEventListener('click', async () => {
-  try {
-    const payload = collectPayload();
-    if (!payload.lead_id) return toast('กรุณาเลือกลูกค้าก่อน');
-    if (!payload.property_id) return toast('กรุณาเลือกบ้านก่อน');
+  const doSave = async () => {
+    try {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'กำลังบันทึก...';
+      const payload = collectPayload(); // Re-collect or pass payload? Closure is simpler
+      await upsertContract(payload);
 
-    await upsertContract(payload);
+      const isBin = filterType.value === 'bin';
+      contracts = await listContracts(isBin);
+      render();
 
-    // Refresh list (checking current filter)
-    const isBin = filterType.value === 'bin';
-    contracts = await listContracts(isBin);
-    render();
+      toast('บันทึกสัญญาแล้ว ✅');
+      closeModal();
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกไม่สำเร็จ', 3000, 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'บันทึกสัญญา';
+    }
+  };
 
-    toast('บันทึกสัญญาแล้ว ✅');
-    closeModal();
+  const payload = collectPayload();
+  if (!payload.lead_id) return toast('กรุณาเลือกลูกค้าก่อน');
+  if (!payload.property_id) return toast('กรุณาเลือกบ้านก่อน');
 
-  } catch (err) {
-    console.error(err);
-    toast('บันทึกไม่สำเร็จ');
+  // Warning: Check for overpayment
+  const price = Number(property_price.value || 0);
+  const totalPaid = (payload.deposit_amount || 0) + (payload.paid_amount || 0);
+
+  if (price > 0 && totalPaid > price) {
+    showConfirmModal(
+      '⚠ ยอดชำระเกินราคาขาย',
+      `ยอดชำระรวม (${totalPaid.toLocaleString()}) สูงกว่าราคาขาย (${price.toLocaleString()})\n\nคุณแน่ใจหรือไม่ที่จะบันทึก?`,
+      doSave
+    );
+  } else {
+    await doSave();
   }
 });
 
@@ -297,6 +349,12 @@ function renderProperties(list) {
   if (!property_id) return;
   property_id.innerHTML = `<option value="">-- เลือกบ้าน --</option>`;
   list.forEach(p => {
+    // กรองบ้านที่ไม่ว่าง หรือยังไม่เปิดเผย
+    // 1. ต้อง Published
+    // 2. ต้องเปิดแสดงสถานะ (customer_status_visible)
+    const isAvailable = p.published && (p.customer_status_visible !== false);
+    if (!isAvailable) return;
+
     const title = pick(p, ['title', 'name', 'project_name'], 'บ้าน');
     const price = pick(p, ['price', 'sell_price'], 0);
     const opt = document.createElement('option');
@@ -510,8 +568,7 @@ function renderPreviewHtml(p) {
         </div>
         <div class="co-info">
           <h1>Praweena Property</h1>
-          <p>123/45 ถนนสุขุมวิท เขตคลองเตย กรุงเทพมหานคร 10110</p>
-          <p>โทร: 02-123-4567 | อีเมล: contact@praweenaproperty.com</p>
+          <p>โทร: 089-479-7824 อีเมล: praweenaproperty@gmail.com</p>
         </div>
       </div>
 

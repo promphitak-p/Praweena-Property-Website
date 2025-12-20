@@ -162,7 +162,7 @@ async function fetchOSMPOI(
 
   const overpass = "https://overpass-api.de/api/interpreter";
   const query = `
-    [out:json][timeout:25];
+    [out:json][timeout:5];
     (
       node(around:${radius},${lat},${lng})[amenity~"${amenityList}"];
       node(around:${radius},${lat},${lng})[shop~"${shopList}"];

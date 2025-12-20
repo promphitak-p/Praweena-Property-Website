@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>รายละเอียด - Praweena Property</title>
-  
+
   <meta id="meta-description" name="description" content="">
   <meta id="meta-keywords" name="keywords" content="">
   <meta id="meta-og-title" property="og:title" content="">
   <meta id="meta-og-description" property="og:description" content="">
   <meta id="meta-og-image" property="og:image" content="">
-  
+
   <!-- removed preload app.bundle.min.css -->
   <script src="/js/env-loader.js"></script>
   <link rel="stylesheet" href="/assets/css/main.css">
@@ -22,60 +23,116 @@
       color: #2b2a28;
       font-family: 'Plus Jakarta Sans', 'Sarabun', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+
     .detail-page {
-      padding: 2rem 0 3rem;
+      padding: 110px 1.5rem 3rem !important;
     }
+
     .detail-layout {
       background: transparent;
       gap: 1.75rem;
     }
+
     .detail-card {
-      border-radius: 18px;
-      border: 1px solid #eee4d8;
-      box-shadow: 0 18px 45px rgba(0,0,0,0.08);
-      background: #fff;
+      border-radius: 24px;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      background: #ffffff;
+      margin-bottom: 2rem;
+      padding: 2rem;
     }
+
     .detail-hero {
       border-radius: 22px;
       overflow: hidden;
-      box-shadow: 0 18px 45px rgba(0,0,0,0.08);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
       margin-top: 0.5rem;
+      position: relative;
     }
+
+    .hero-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 1.5rem;
+      background: transparent;
+      z-index: 5;
+      text-align: left;
+      pointer-events: none;
+    }
+
+    .hero-overlay-text strong {
+      color: #fff;
+      font-size: 1.25rem;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.9);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .hero-overlay-text span {
+      color: #fff;
+      font-size: 1rem;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.9);
+    }
+
     .detail-hero-main {
       height: 480px;
     }
+
     .detail-thumbs {
       gap: 0.5rem;
       padding: 0.75rem 0.25rem 0;
     }
+
     .thumbnail-image {
       border-radius: 12px;
       border: 1px solid #eae1d5;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
     }
+
     .detail-title {
       font-size: 1.6rem;
       font-weight: 800;
       color: #2b2a28;
     }
+
     .detail-price {
       color: #f37335;
       font-size: 1.4rem;
       font-weight: 800;
     }
-    .detail-address { color: #7b746d; }
+
+    .detail-address {
+      color: #7b746d;
+    }
+
     .detail-meta-row .meta-chip {
       background: #f7f2ea;
       border: 1px solid #efe4d7;
       color: #6b645d;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      margin-right: 0.5rem;
+      display: inline-block;
+      margin-top: 0.5rem;
     }
+
     .detail-map {
       border-radius: 18px;
       border: 1px solid #eee4d8;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
     }
-    .share-card .share-title { color: #2b2a28; }
-    .rl-footer { margin-top: 2.5rem; }
+
+    .share-card .share-title {
+      color: #2b2a28;
+    }
+
+    .rl-footer {
+      margin-top: 2.5rem;
+    }
+
     /* Force slider mode for gallery (override legacy flex) */
     body.rl-page .image-gallery {
       position: relative !important;
@@ -88,7 +145,11 @@
       flex: none !important;
       border: none !important;
     }
-    body.rl-page .detail-hero-main { height: 450px !important; }
+
+    body.rl-page .detail-hero-main {
+      height: 450px !important;
+    }
+
     body.rl-page .image-gallery .gallery-image {
       position: absolute !important;
       inset: 0 !important;
@@ -102,6 +163,7 @@
       padding: 0 !important;
       flex: none !important;
     }
+
     /* Thumbnails explicit sizing */
     body.rl-page .thumbnail-container {
       display: flex !important;
@@ -110,21 +172,24 @@
       padding: 8px 0 0;
       margin: 0;
     }
+
     body.rl-page .thumbnail-container .thumbnail-image {
       width: 90px !important;
       height: 70px !important;
       object-fit: cover !important;
       border-radius: 12px !important;
       border: 1px solid #eae1d5 !important;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.05) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05) !important;
       opacity: 0.6;
       flex: 0 0 auto !important;
     }
+
     body.rl-page .thumbnail-container .thumbnail-image.active,
     body.rl-page .thumbnail-container .thumbnail-image:hover {
       opacity: 1;
       border-color: #f37335 !important;
     }
+
     /* Form + calc styles align landing */
     .detail-card form .form-control,
     .detail-card input[type="text"],
@@ -139,8 +204,9 @@
       background: #fff;
       font-size: 0.95rem;
       color: #4a433c;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 6px 12px rgba(0,0,0,0.03);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 12px rgba(0, 0, 0, 0.03);
     }
+
     .detail-card form .form-control:focus,
     .detail-card input:focus,
     .detail-card textarea:focus,
@@ -149,6 +215,7 @@
       border-color: #f37335;
       box-shadow: 0 0 0 3px rgba(243, 115, 53, 0.2);
     }
+
     .detail-card form label {
       font-weight: 700;
       color: #2b2a28;
@@ -156,6 +223,7 @@
       margin-bottom: 0.25rem;
       font-size: 0.95rem;
     }
+
     .detail-card form button[type="submit"],
     .detail-card .btn {
       background: linear-gradient(135deg, #f89b29, #f37335);
@@ -168,44 +236,50 @@
       box-shadow: 0 12px 30px rgba(243, 115, 53, 0.25);
       transition: transform 0.18s ease, box-shadow 0.2s ease;
     }
+
     .detail-card form button[type="submit"]:hover,
     .detail-card .btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 16px 36px rgba(243, 115, 53, 0.32);
     }
+
     .detail-card form button[type="submit"]:active,
     .detail-card .btn:active {
       transform: translateY(0);
     }
+
     .detail-card form .form-group {
       margin-bottom: 0.9rem;
     }
+
     .detail-card h3,
     .detail-card h4 {
       margin: 0 0 0.6rem 0;
       color: #2b2a28;
     }
+
     /* Pay calc inputs */
     #paycalc input {
       text-align: center;
     }
+
     /* Remove card shadow */
     .card,
     .detail-card {
       box-shadow: none !important;
     }
   </style>
-  
-  
-  
+
+
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
+
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
   <link rel="manifest" href="/assets/favicon/site.webmanifest">
-  
+
 </head>
 
 <body class="rl-page" data-page="detail">
@@ -226,7 +300,12 @@
   </footer>
 
   <!-- โหลด header -->
-  <script type="module" src="/js/layout/load-header.js"></script>  
+  <script type="module" src="/js/layout/load-header.js"></script>
   <script type="module" src="/js/pages/property-detail.page.js"></script>
+
+  <button id="scroll-to-top" class="scroll-to-top" type="button" aria-label="เลื่อนขึ้นด้านบน">
+    ↑
+  </button>
 </body>
+
 </html>

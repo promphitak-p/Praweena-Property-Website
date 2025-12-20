@@ -6,12 +6,13 @@
 // - Toggle "ดูล่าสุดก่อน" (DESC/ASC)
 // - Inline status update (+ แจ้ง LINE ตอนเปลี่ยนสถานะ)
 // - ลิงก์ไปหน้าทรัพย์เมื่อมี slug
+// - NEW: Suggested Merge System
 // --------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { requireAdminPage } from '../auth/adminGuard.js';
-import { listLeads, updateLead } from '../services/leadsService.js';
+import { listLeads, updateLead, findDuplicates, mergeLeads } from '../services/leadsService.js';
 import { setupNav } from '../utils/config.js';
 import { el, $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
@@ -65,6 +66,12 @@ function buildStatusSelect(lead, onChange) {
 // ----- Modal Logic -----
 const modal = $('#lead-modal');
 const modalCloseBtn = $('#lead-modal-close');
+
+// Merge Modal
+const mergeModal = $('#merge-modal');
+const mergeModalClose = $('#merge-modal-close');
+const mergeListContainer = $('#merge-list-container');
+const btnCheckDup = $('#btn-check-dup');
 
 function closeLeadModal() {
   if (modal) modal.classList.remove('open');
@@ -316,6 +323,158 @@ async function loadData() {
   renderFiltered();
 }
 
+// ----- Merge Logic -----
+async function setupMergeFeature() {
+  if (!btnCheckDup) return;
+
+  btnCheckDup.addEventListener('click', async () => {
+    try {
+      btnCheckDup.disabled = true;
+      btnCheckDup.textContent = '...';
+      const groups = await findDuplicates();
+      btnCheckDup.disabled = false;
+      btnCheckDup.textContent = '🔍 ตรวจสอบซ้ำ';
+      renderMergeList(groups);
+      mergeModal.classList.add('open');
+    } catch (err) {
+      console.error(err);
+      toast('ตรวจสอบล้มเหลว: ' + err.message, 3000, 'error');
+      btnCheckDup.disabled = false;
+      btnCheckDup.textContent = '🔍 ตรวจสอบซ้ำ';
+    }
+  });
+
+  if (mergeModalClose) {
+    mergeModalClose.addEventListener('click', () => mergeModal.classList.remove('open'));
+  }
+}
+
+function renderMergeList(groups) {
+  clear(mergeListContainer);
+
+  if (!groups || groups.length === 0) {
+    mergeListContainer.innerHTML = `<div style="text-align:center; padding:2rem; color:#6b7280;">ไม่พบรายชื่อซ้ำ ✅</div>`;
+    return;
+  }
+
+  groups.forEach(group => {
+    const card = el('div', { className: 'card', style: 'margin-bottom:1rem; padding:1rem; border:1px solid #e5e7eb;' });
+    const title = el('h4', { textContent: `กลุ่มซ้ำ (${group.length} รายการ)`, style: 'margin-bottom:0.5rem; color:#d97706;' });
+
+    const table = el('table', { style: 'width:100%; font-size:0.9rem; border-collapse: collapse;' });
+
+    // Helper to update visuals (green bg + label)
+    function updateSelectionVisuals() {
+      const allTr = table.querySelectorAll('tr');
+      allTr.forEach(row => {
+        const rad = row.querySelector('input[type="radio"]');
+        if (!rad) return;
+
+        const tds = row.querySelectorAll('td');
+        if (tds.length < 2) return;
+
+        const infoDiv = tds[1].querySelector('div');
+        if (!infoDiv) return;
+
+        // Remove existing badge if any
+        const existingBadge = infoDiv.querySelector('.master-badge');
+        if (existingBadge) existingBadge.remove();
+
+        if (rad.checked) {
+          row.style.backgroundColor = '#f0fdf4';
+          // Add Badge
+          const badge = el('span', {
+            className: 'master-badge',
+            textContent: ' ✅ รายชื่อหลัก',
+            style: 'color:#16a34a; font-size:0.85rem; margin-left:0.5rem;'
+          });
+          infoDiv.append(badge);
+        } else {
+          row.style.backgroundColor = 'transparent';
+        }
+      });
+    }
+
+
+    group.forEach(lead => {
+      const tr = el('tr', { style: 'border-bottom:1px solid #f3f4f6; cursor:pointer;' });
+
+      // Radio for selecting master
+      const tdRadio = el('td', { style: 'width:40px; text-align:center; vertical-align:middle;' });
+      const radio = el('input', {
+        type: 'radio',
+        name: `master_${group[0].id}`,
+        value: lead.id,
+        style: 'cursor:pointer; transform: scale(1.2);'
+      });
+
+      // Default to the first one (most recent usually)
+      if (lead === group[0]) radio.checked = true;
+      tdRadio.append(radio);
+
+      const tdInfo = el('td', { style: 'padding: 8px;' });
+      tdInfo.innerHTML = `
+        <div style="font-weight:600; font-size:1rem;">${lead.name || '-'}</div>
+        <div class="text-muted" style="font-size:0.85rem;">
+          ${fmtDate(lead.created_at)} | <span class="badge badge-${lead.status || 'new'}">${lead.status || 'new'}</span>
+        </div>
+      `;
+
+      // Click row to select
+      tr.addEventListener('click', () => {
+        radio.checked = true;
+        updateSelectionVisuals();
+      });
+
+      radio.addEventListener('change', updateSelectionVisuals);
+
+      tr.append(tdRadio, tdInfo);
+      table.append(tr);
+    });
+
+    // Initial call after loop
+    updateSelectionVisuals();
+
+    const actionDiv = el('div', { style: 'margin-top:1rem; text-align:right;' });
+    const mergeBtn = el('button', { className: 'btn btn-primary btn-sm', textContent: 'รวมข้อมูล (Merge)' });
+
+    mergeBtn.addEventListener('click', async () => {
+      // Use scoped selector inside card (Generic)
+      const selectedId = card.querySelector('input[type="radio"]:checked')?.value;
+
+      if (!selectedId) return toast('กรุณาเลือกรายชื่อหลัก');
+
+      if (!confirm('ยืนยันการรวม? (ข้อมูลซ้ำจะถูกลบถาวร)')) return;
+
+      try {
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Merging...';
+
+        const duplicateIds = group.map(l => l.id).filter(id => String(id) !== String(selectedId));
+        await mergeLeads(selectedId, duplicateIds);
+
+        toast('รวมข้อมูลเรียบร้อย ✅');
+        card.remove(); // Remove from UI
+        await loadData(); // Reload main table
+
+        if (mergeListContainer.children.length === 0) {
+          mergeListContainer.innerHTML = `<div style="text-align:center; padding:2rem; color:#6b7280;">ไม่พบรายชื่อซ้ำ ✅</div>`;
+        }
+
+      } catch (err) {
+        console.error(err);
+        toast('Merge Failed: ' + err.message, 3000, 'error');
+        mergeBtn.disabled = false;
+        mergeBtn.textContent = 'รวมข้อมูล (Merge)';
+      }
+    });
+
+    actionDiv.append(mergeBtn);
+    card.append(title, table, actionDiv);
+    mergeListContainer.append(card);
+  });
+}
+
 // ----- Main -----
 document.addEventListener('DOMContentLoaded', async () => {
   await protectPage();
@@ -327,6 +486,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMobileNav();
 
   setupControls(); // Bind events
+  await setupMergeFeature(); // NEW
   await loadData(); // Fetch and render
 
   // Modal Close Events

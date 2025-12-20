@@ -489,7 +489,10 @@
       <div class="filter-input">
         <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ...">
       </div>
-      <div class="filter-actions">
+      <div class="filter-actions" style="display:flex;gap:0.5rem;">
+        <button id="toggle-trash-btn" class="btn btn-secondary" title="ถังขยะ">
+          🗑️ ถังขยะ
+        </button>
         <button id="add-property-btn" class="btn">เพิ่มประกาศใหม่</button>
       </div>
     </div>
@@ -760,6 +763,22 @@
     </div>
   </div>
 
+
+  <button id="scroll-to-top" class="scroll-to-top" type="button" aria-label="เลื่อนขึ้นด้านบน">
+    ↑
+  </button>
+
+  <div id="confirmation-modal" class="modal" style="z-index: 2000;">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2rem;">
+      <div style="margin-bottom: 1rem; font-size: 3rem;">⚠️</div>
+      <h3 id="confirm-title" style="margin-bottom: 0.5rem; font-size: 1.25rem;">ยืนยันการทำรายการ</h3>
+      <p id="confirm-message" style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.5;">...</p>
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <button id="btn-confirm-cancel" class="btn btn-secondary" style="min-width: 100px;">ยกเลิก</button>
+        <button id="btn-confirm-ok" class="btn btn-danger" style="min-width: 100px;">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Page JS -->
   <script type="module" src="/js/pages/dashboard.page.js"></script>

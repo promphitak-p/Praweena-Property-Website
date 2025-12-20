@@ -23,6 +23,7 @@ import { mountPayCalc } from '../widgets/payCalc.widget.js';
 import { notifyLeadNew } from '../services/notifyService.js';
 import { listSpecsByProperty } from '../services/propertySpecsService.js';
 import { listContractorsForProperty } from '../services/propertyContractorsService.js';
+import { setupScrollToTop } from '../utils/scroll.js';
 
 let detailMap = null;
 let detailHouseMarker = null;
@@ -316,7 +317,7 @@ async function renderPropertyDetails(property) {
       <span>บ้านรีโนเวททำเลดี คุ้มค่าเกินราคา</span>
     </div>
   `;
-  galleryWrapper.append(heroOverlay);
+  galleryContainer.append(heroOverlay);
 
   // กรอง URL ซ้ำออก เพราะ cover_url อาจซ้ำกับ gallery ได้
   const allImages = [...new Set([property.cover_url, ...(property.gallery || [])].filter(Boolean))];
@@ -389,11 +390,32 @@ async function renderPropertyDetails(property) {
   });
 
   if (allImages.length > 1) {
-    const prevBtn = el('button', { className: 'gallery-nav prev', textContent: '‹' });
-    const nextBtn = el('button', { className: 'gallery-nav next', textContent: '›' });
-    prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
-    nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
-    galleryWrapper.append(prevBtn, nextBtn);
+    const prevBtn = el('button', {
+      className: 'gallery-nav prev',
+      textContent: '‹',
+      attributes: {
+        style: 'position:absolute;top:50%;left:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer;z-index:20;display:flex;align-items:center;justify-content:center;'
+      }
+    });
+    const nextBtn = el('button', {
+      className: 'gallery-nav next',
+      textContent: '›',
+      attributes: {
+        style: 'position:absolute;top:50%;right:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer;z-index:20;display:flex;align-items:center;justify-content:center;'
+      }
+    });
+
+    prevBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showSlide(currentSlide - 1);
+    });
+    nextBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showSlide(currentSlide + 1);
+    });
+
+    // Append to galleryContainer (media area) instead of wrapper
+    galleryContainer.append(prevBtn, nextBtn);
   }
 
   galleryWrapper.prepend(galleryContainer);
@@ -443,7 +465,9 @@ async function renderPropertyDetails(property) {
 
   if (statusBadge) infoCard.append(statusBadge);
   infoCard.append(title, address, price, specsRow);
-  leftCol.append(infoCard, galleryWrapper, thumbnailContainer);
+
+  galleryWrapper.append(thumbnailContainer);
+  leftCol.append(infoCard, galleryWrapper);
 
   // YouTube
   const ytIds = collectYoutubeValues(property).map(parseYouTubeId).filter(Boolean);
@@ -632,7 +656,10 @@ async function renderPropertyDetails(property) {
   }
 
   // ===== SHARE + FORM + PAYCALC =====
-  const shareBox = el('div', { className: 'share-buttons' });
+  const shareBox = el('div', {
+    className: 'share-buttons',
+    attributes: { style: 'display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:1rem;' }
+  });
 
   const currentUrl = window.location.href;
   const headline = `บ้านสวยทำเลดี : ${property.title}`;
@@ -645,34 +672,52 @@ async function renderPropertyDetails(property) {
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`;
   const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(headline)}`;
 
-  function makeShareBtn({ href, label, svg, extraStyle = '' }) {
+  function makeShareBtn({ href, label, svg, bg, extraStyle = '' }) {
     const a = el('a', {
-      attributes: { href, target: '_blank', rel: 'noopener', title: label },
-      style: `display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#f3f4f6;border:1px solid #e5e7eb;text-decoration:none;color:#111827;${extraStyle}`
+      attributes: {
+        href,
+        target: '_blank',
+        rel: 'noopener',
+        title: label,
+        style: `display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:16px;background:${bg};box-shadow:0 4px 12px rgba(0,0,0,0.1);text-decoration:none;transition:transform 0.2s;${extraStyle}`
+      }
     });
     a.innerHTML = `${svg}`;
+    a.addEventListener('mouseenter', () => a.style.transform = 'translateY(-2px)');
+    a.addEventListener('mouseleave', () => a.style.transform = 'none');
     return a;
   }
+
+  shareBox.style.gap = '1rem';
+
   shareBox.appendChild(makeShareBtn({
     href: isMobile ? messengerAppUrl : messengerWebUrl, label: 'Messenger',
-    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#0084FF" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 4.98 0 11.13 0 14.57 1.71 17.6 4.45 19.5v4.15l4.07-2.23c1.01.28 2.09.44 3.21.44 6.63 0 12-4.98 12-11.13C23.73 4.98 18.36 0 12 0zm1.19 14.98l-2.97-3.17-5.82 3.17 6.39-6.78 3.03 3.17 5.76-3.17-6.39 6.78z"/></svg>`
+    bg: '#0084FF',
+    svg: `<svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.37 0 0 4.98 0 11.13 0 14.57 1.71 17.6 4.45 19.5v4.15l4.07-2.23c1.01.28 2.09.44 3.21.44 6.63 0 12-4.98 12-11.13C23.73 4.98 18.36 0 12 0zm1.19 14.98l-2.97-3.17-5.82 3.17 6.39-6.78 3.03 3.17 5.76-3.17-6.39 6.78z"/></svg>`
   }));
+
   shareBox.appendChild(makeShareBtn({
     href: lineUrl, label: 'LINE',
-    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#06C755" xmlns="http://www.w3.org/2000/svg"><path d="M20.666 10.08c0-3.63-3.46-6.58-7.733-6.58-4.273 0-7.733 2.95-7.733 6.58 0 3.25 2.934 5.96 6.836 6.5.267.058.630.178.720.408.082.213.054.545.026.758l-.115.7c-.035.213-.17.84.74.458 3.512-1.46 5.68-3.997 5.68-7.824z"/></svg>`
+    bg: '#06C755',
+    svg: `<svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M20.666 10.08c0-3.63-3.46-6.58-7.733-6.58-4.273 0-7.733 2.95-7.733 6.58 0 3.25 2.934 5.96 6.836 6.5.267.058.630.178.720.408.082.213.054.545.026.758l-.115.7c-.035.213-.17.84.74.458 3.512-1.46 5.68-3.997 5.68-7.824z"/></svg>`
   }));
+
   shareBox.appendChild(makeShareBtn({
     href: facebookUrl, label: 'Facebook',
-    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
+    bg: '#1877F2',
+    svg: `<svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.406.593 24 1.324 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.407 24 24 23.406 24 22.676V1.324C24 .593 23.407 0 22.676 0z"/></svg>`
   }));
 
   shareBox.appendChild(makeShareBtn({
     href: twitterUrl, label: 'X / Twitter',
-    svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#000" xmlns="http://www.w3.org/2000/svg"><path d="M18.9 1.2h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.59l5.24 7.18 6.07-7.14z"/></svg>`
+    bg: '#000000',
+    svg: `<svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M18.9 1.2h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.59l5.24 7.18 6.07-7.14z"/></svg>`
   }));
+
   const copyBtn = makeShareBtn({
     href: '#', label: 'คัดลอก',
-    svg: `<svg width="16" height="16" viewBox="0 0 24 24" fill="#0f172a" xmlns="http://www.w3.org/2000/svg"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`
+    bg: '#64748b',
+    svg: `<svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`
   });
   copyBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -758,6 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   signOutIfAny();
   setupMobileNav();
+  setupScrollToTop();
   loadProperty();   // ✅ แค่โหลดประกาศอย่างเดียว
 });
 

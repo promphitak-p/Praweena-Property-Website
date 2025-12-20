@@ -8,6 +8,8 @@ import { setupNav } from '../utils/config.js';
 import { signOutIfAny } from '../auth/auth.js';
 import { getFormData } from '../ui/forms.js';
 import { toast } from '../ui/toast.js';
+import { notifyLeadNew } from '../services/notifyService.js';
+import { setupScrollToTop } from '../utils/scroll.js';
 
 const LEAD_TOKEN_KEY = 'lead_token_v1';
 const LEAD_LAST_TS_KEY = 'lead_last_ts';
@@ -257,8 +259,16 @@ function setupLeadForm() {
         property_slug: payload.property_slug || ''
       };
 
-      const { error } = await createLead(insert);
+      const { data, error } = await createLead(insert);
       if (error) throw error;
+
+      // Notify Line
+      try {
+        await notifyLeadNew({ ...insert, id: data.id });
+      } catch (notifyErr) {
+        console.warn('Line notify failed', notifyErr);
+      }
+
       toast('รับข้อมูลแล้ว ทีมจะติดต่อกลับ', 2800, 'success');
       form.reset();
       sessionStorage.setItem(LEAD_LAST_TS_KEY, String(now));
@@ -505,6 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
   signOutIfAny();
   setupMobileNav();
   setupLandingUI();
+  setupScrollToTop();
   setupCompareSlider();
   setupLeadForm();
   setupInterestPrefill();

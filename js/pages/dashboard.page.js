@@ -1,21 +1,15 @@
-// js/pages/dashboard.page.js
-//------------------------------------------------------------
-// Praweena Property Dashboard Page
-// เลือกตำแหน่งบ้าน + ดึงสถานที่ใกล้เคียง (POI)
-// + อัปโหลดรูปขึ้น Cloudinary
-// + จัดการ YouTube
-//------------------------------------------------------------
 
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { protectPage } from '../auth/guard.js';
 import { signOutIfAny } from '../auth/auth.js';
-import { listAll, upsertProperty, removeProperty } from '../services/propertiesService.js';
+import { listAll, upsertProperty, removeProperty, restoreProperty, hardDeleteProperty } from '../services/propertiesService.js';
 import { setupNav } from '../utils/config.js';
 import { formatPrice } from '../utils/format.js';
 import { getFormData } from '../ui/forms.js';
 import { $, $$, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { supabase } from '../utils/supabaseClient.js';
+import { setupScrollToTop } from '../utils/scroll.js';
 
 // =========== 👇👇 ตั้งค่าตรงนี้ให้ตรงกับ Cloudinary ของกุ้งก่อนนะ 👇👇 ===========
 const CLOUDINARY_CLOUD_NAME = 'dupwjm8q2';        // <- ใส่ชื่อ cloud
@@ -27,14 +21,18 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB (Cloudinary unsigned free
 const propertyModal = document.getElementById('property-modal');
 const propertyForm = document.getElementById('property-form');
 const addPropertyBtn = document.getElementById('add-property-btn');
+const toggleTrashBtn = document.getElementById('toggle-trash-btn');
 
 // State
 let modalMap = null;
 let draggableMarker = null;
-let currentGallery = [];          // เก็บ URL รูปทั้งหมด
-let poiCandidatesInline = [];     // รายการ POI ที่ขึ้นในฟอร์ม
-let currentYoutube = [];          // เก็บ YouTube IDs/URLs
-let searchTimeout = null;         // Debounce timer for search
+let currentGallery = [];
+let poiCandidatesInline = [];
+let currentYoutube = [];
+let searchTimeout = null;
+let isTrashView = false;
+let propertiesData = []; // Cache loaded properties
+
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
   return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
@@ -60,8 +58,6 @@ function poiEmoji(type = '') {
   return '📍';
 }
 
-// ========== อัปโหลดรูปขึ้น Cloudinary ==========
-// ใช้ unsigned upload (ฝั่ง client)
 async function uploadToCloudinary(file) {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UNSIGNED_PRESET) {
     throw new Error('ยังไม่ได้ตั้งค่า Cloudinary');
@@ -84,7 +80,6 @@ async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-// แสดงตัวอย่างรูป
 function renderGalleryPreview() {
   const wrap = document.getElementById('gallery-preview');
   if (!wrap) return;
@@ -141,23 +136,18 @@ function renderGalleryPreview() {
   wrap.appendChild(list);
 }
 
-// ========== YouTube helper ==========
 function normalizeYoutubeIdOrUrl(input) {
   const raw = (input || '').trim();
   if (!raw) return '';
-  // แค่ id 11 ตัว
   if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
-  // พยายามดึงจาก url
   try {
     const u = new URL(raw);
     const v = u.searchParams.get('v');
     if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
     const m1 = u.pathname.match(/^\/shorts\/([a-zA-Z0-9_-]{11})/);
     if (m1) return m1[1];
-  } catch {
-    // ไม่ใช่ url ก็ไม่เป็นไร
-  }
-  return raw; // อย่างน้อยก็เก็บไว้ก่อน
+  } catch { }
+  return raw;
 }
 
 function renderYoutubeList() {
@@ -195,7 +185,6 @@ function renderYoutubeList() {
   });
 }
 
-// ================== Map ในโมดัล ==================
 function setupModalMap(lat, lng) {
   if (!propertyForm) return;
 
@@ -243,13 +232,11 @@ function setupModalMap(lat, lng) {
         const pos = event.target.getLatLng();
         latInput.value = pos.lat.toFixed(6);
         lngInput.value = pos.lng.toFixed(6);
-        // ถ้ายังเป็นประกาศใหม่ (ยังไม่มี id) ให้หา POI แนะนำตามพิกัดล่าสุด
         if (!propertyForm.elements.id?.value) {
           fetchNearbyPOIInline(pos.lat, pos.lng);
         }
       });
     }
-    // ประกาศใหม่: โหลด POI แนะนำทันทีเมื่อเปิด modal
     if (!propertyForm.elements.id?.value) {
       fetchNearbyPOIInline(startLat, startLng);
     }
@@ -259,7 +246,6 @@ function setupModalMap(lat, lng) {
   }
 }
 
-// ================== ดึง POI จาก edge function ==================
 function getFallbackPoi(baseLat, baseLng) {
   return [
     {
@@ -289,7 +275,6 @@ function getFallbackPoi(baseLat, baseLng) {
   ];
 }
 
-// ✅ Landmark สำคัญสุราษฎร์ธานี (ของกุ้ง) — เดิมของกุ้ง
 const PRAWEENA_LANDMARKS = [
   { name: 'โรงพยาบาลสุราษฎร์ธานี', type: 'hospital', lat: 9.1237537, lng: 99.3100007 },
   { name: 'โรงพยาบาลศรีวิชัย สุราษฎร์ธานี', type: 'hospital', lat: 9.1154684, lng: 99.3091824 },
@@ -326,7 +311,6 @@ function injectPraweenaLandmarks(baseLat, baseLng, currentList = []) {
     .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
 }
 
-// ดึง POI แนะนำ (ใช้ในบางกรณี — แต่ตอนโหลดหลักใช้ loadPoisForProperty)
 async function fetchNearbyPOIInline(lat, lng) {
   const listEl = document.getElementById('poi-candidate-list');
   if (listEl) {
@@ -348,7 +332,7 @@ async function fetchNearbyPOIInline(lat, lng) {
         lat: baseLat,
         lng: baseLng,
         preview: true,
-        radius_m: 10000,
+        radius_m: 5000,
         limit: 60
       }
     });
@@ -385,7 +369,6 @@ async function fetchNearbyPOIInline(lat, lng) {
   }
 }
 
-// รวม saved + suggested
 function mergePoiLists(savedList = [], suggestedList = []) {
   const out = [];
   const keySet = new Set();
@@ -413,7 +396,6 @@ function mergePoiLists(savedList = [], suggestedList = []) {
   return out;
 }
 
-// โหลด POI ของบ้านนี้
 async function loadPoisForProperty(propertyId, baseLat, baseLng) {
   const listEl = document.getElementById('poi-candidate-list');
   if (listEl) {
@@ -446,15 +428,18 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
 
   if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
     try {
+      // Reduce radius to 5000m (5km) to prevent timeout/500 errors
       const { data: sData, error: sErr } = await supabase.functions.invoke('fill_poi', {
-        body: { lat: latNum, lng: lngNum, limit: 25, preview: true, radius_m: 10000 },
+        body: { lat: latNum, lng: lngNum, limit: 25, preview: true, radius_m: 5000 },
       });
       if (!sErr && Array.isArray(sData?.items)) {
         suggested = sData.items;
       } else {
+        console.warn('fill_poi returned error or empty, using fallback:', sErr);
         suggested = getFallbackPoi(latNum, lngNum);
       }
     } catch (e) {
+      console.error('loadPoisForProperty crash, using fallback:', e);
       suggested = getFallbackPoi(latNum, lngNum);
     }
   }
@@ -465,7 +450,6 @@ async function loadPoisForProperty(propertyId, baseLat, baseLng) {
   renderPOIInlineList();
 }
 
-// วาดลิสต์ POI
 function renderPOIInlineList() {
   const list = document.getElementById('poi-candidate-list');
   if (!list) return;
@@ -493,7 +477,6 @@ function renderPOIInlineList() {
   });
 }
 
-// ✅ ฟอร์มเพิ่มสถานที่ใกล้เคียงด้วยตัวเอง
 function setupPoiManualForm() {
   const nameInput = document.getElementById('poi-name-input');
   const typeInput = document.getElementById('poi-type-input');
@@ -520,7 +503,6 @@ function setupPoiManualForm() {
     let lat = latInput?.value ? parseFloat(latInput.value) : NaN;
     let lng = lngInput?.value ? parseFloat(lngInput.value) : NaN;
 
-    // ถ้าไม่กรอกพิกัด ให้ใช้พิกัดบ้าน
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       if (Number.isFinite(baseLat) && Number.isFinite(baseLng)) {
         lat = baseLat;
@@ -558,7 +540,6 @@ function setupPoiManualForm() {
   });
 }
 
-// บันทึก POI ที่ติ๊ก
 async function saveInlinePois(propertyId, baseLat, baseLng) {
   if (!propertyId) return;
 
@@ -591,45 +572,52 @@ async function saveInlinePois(propertyId, baseLat, baseLng) {
   await supabase.from('property_poi').insert(rows);
 }
 
-// ================== Submit ฟอร์ม ==================
 async function handleSubmit(e) {
   e.preventDefault();
   const form = e.target;
-
   const submitBtn = form.querySelector('button[type=submit]');
+
+  const payload = getFormData(form);
+  const baseLat = parseFloat(payload.latitude);
+  const baseLng = parseFloat(payload.longitude);
+
+  payload.price = Number(payload.price) || 0;
+  payload.gallery = currentGallery;
+  payload.cover_url = payload.gallery[0] || null;
+  payload.youtube_video_ids = JSON.stringify(currentYoutube);
+
+  payload.published = !!payload.published;
+  payload.customer_status_visible = !!payload.customer_status_visible;
+
+  // Check for rule conflict
+  const stage = String(payload.renovation_stage || '').trim().toLowerCase();
+  const isConflict = (stage !== 'ready' && payload.customer_status_visible);
+
+  if (isConflict) {
+    showConfirmModal(
+      '⚠ ขัดแย้งกับกฎที่ตั้งไว้',
+      'กฎ: "งานรีโนเวทต้องเสร็จสิ้น (Ready) ถึงจะแสดงสถานะให้ลูกค้าเห็นได้"\n\nแต่คุณเลือกที่จะเปิดแสดงสถานะ ทั้งที่งานยังไม่เสร็จ\n\nต้องการยืนยันที่จะบันทึกหรือไม่?',
+      () => performSave(payload, submitBtn)
+    );
+  } else {
+    await performSave(payload, submitBtn);
+  }
+}
+
+async function performSave(payload, submitBtn) {
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'กำลังบันทึก...';
   }
 
   try {
-    const payload = getFormData(form);
-    const baseLat = parseFloat(payload.latitude);
-    const baseLng = parseFloat(payload.longitude);
-
-    payload.price = Number(payload.price) || 0;
-    // ✅ รูป
-    payload.gallery = currentGallery;
-    payload.cover_url = payload.gallery[0] || null;
-    // ✅ youtube
-    payload.youtube_video_ids = JSON.stringify(currentYoutube);
-
-    payload.published = !!payload.published;
-    payload.customer_status_visible = !!payload.customer_status_visible;
-
-    // บังคับตามเงื่อนไข: ให้ลูกค้าเห็นสถานะได้เฉพาะเมื่อบ้าน "พร้อมเข้าอยู่"
-    const stage = String(payload.renovation_stage || '').trim().toLowerCase();
-    if (stage !== 'ready') {
-      payload.customer_status_visible = false;
-      if (!String(payload.customer_status_text || '').trim()) {
-        payload.customer_status_text = null;
-      }
-    }
-
     const { data, error } = await upsertProperty(payload);
     if (error) throw error;
 
     const propId = data?.id || payload.id;
+    const baseLat = parseFloat(payload.latitude);
+    const baseLng = parseFloat(payload.longitude);
+
     await saveInlinePois(propId, baseLat, baseLng);
 
     toast('บันทึกข้อมูลสำเร็จ!', 2000, 'success');
@@ -646,24 +634,99 @@ async function handleSubmit(e) {
   }
 }
 
-// ================== ลบประกาศ ==================
+// ================== Actions (Helper for listeners) ==================
+
+function showConfirmModal(title, message, onConfirm) {
+  const modal = document.getElementById('confirmation-modal');
+  const titleEl = document.getElementById('confirm-title');
+  const msgEl = document.getElementById('confirm-message');
+  const btnOk = document.getElementById('btn-confirm-ok');
+  const btnCancel = document.getElementById('btn-confirm-cancel');
+
+  if (!modal) {
+    if (confirm(message)) onConfirm();
+    return;
+  }
+
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+
+  const close = () => {
+    modal.classList.remove('open');
+    btnOk.onclick = null;
+    btnCancel.onclick = null;
+  };
+
+  btnOk.onclick = () => {
+    close();
+    onConfirm();
+  };
+
+  btnCancel.onclick = close;
+  modal.classList.add('open');
+}
+
 async function handleDelete(id, title) {
-  if (!confirm(`ลบ "${title || 'ประกาศนี้'}" ใช่ไหม?`)) return;
+  showConfirmModal(
+    'ย้ายไปถังขยะ?',
+    `คุณต้องการย้าย "${title || 'ประกาศนี้'}" ไปถังขยะใช่หรือไม่?`,
+    async () => {
+      try {
+        const { error } = await removeProperty(id);
+        if (error) throw error;
+        toast('ย้ายไปถังขยะแล้ว', 2000, 'success');
+        loadProperties();
+      } catch (err) {
+        console.error(err);
+        toast('ลบไม่สำเร็จ: ' + err.message, 3000, 'error');
+      }
+    }
+  );
+}
+
+async function handleRestore(id, title) {
   try {
-    const { error } = await removeProperty(id);
+    const { error } = await restoreProperty(id);
     if (error) throw error;
-    toast('ลบสำเร็จ', 2000, 'success');
+    toast('กู้คืนประกาศแล้ว', 2000, 'success');
     loadProperties();
   } catch (err) {
-    toast(err.message, 3000, 'error');
+    console.error(err);
+    toast('กู้คืนไม่สำเร็จ: ' + err.message, 3000, 'error');
   }
 }
 
-// ================== Modal ==================
+async function handleHardDelete(id, title) {
+  showConfirmModal(
+    'ลบถาวร?',
+    `คำเตือน: "${title || 'ประกาศนี้'}" จะถูกลบถาวรและกู้คืนไม่ได้!`,
+    async () => {
+      try {
+        const { error } = await hardDeleteProperty(id);
+        if (error) throw error;
+        toast('ลบถาวรเรียบร้อย', 2000, 'success');
+        loadProperties();
+      } catch (err) {
+        console.error(err);
+        toast('ลบถาวรไม่สำเร็จ: ' + err.message, 3000, 'error');
+      }
+    }
+  );
+}
+
+
 function openModal() {
   if (!propertyModal) return;
   propertyModal.classList.add('open');
+
+  // Fix Leaflet map size in modal
+  setTimeout(() => {
+    if (typeof modalMap !== 'undefined' && modalMap) {
+      modalMap.invalidateSize();
+    }
+  }, 300);
 }
+
 function closeModal() {
   if (!propertyModal) return;
   propertyModal.classList.remove('open');
@@ -676,13 +739,11 @@ function closeModal() {
   const poiList = document.getElementById('poi-candidate-list');
   if (poiList) poiList.innerHTML = '';
 
-  // reset รูป / youtube ทุกครั้งที่ปิด
   currentGallery = [];
   renderGalleryPreview();
   currentYoutube = [];
   renderYoutubeList();
 
-  // เคลียร์ฟอร์ม manual POI
   const nameInput = document.getElementById('poi-name-input');
   const typeInput = document.getElementById('poi-type-input');
   const distInput = document.getElementById('poi-distance-input');
@@ -709,14 +770,15 @@ function installModalCloseHandlers() {
       closeModal();
     });
   });
-  window.addEventListener('click', (e) => {
-    if (e.target === propertyModal) {
-      closeModal();
-    }
-  });
+
+  // NOTE: Disable backdrop click to prevent accidental closes
+  // window.addEventListener('click', (e) => {
+  //   if (e.target === propertyModal) {
+  //     closeModal();
+  //   }
+  // });
 }
 
-// ================== เติมฟอร์มตอนแก้ไข ==================
 function fillFormFromProperty(p = {}) {
   if (!propertyForm) return;
   const keys = [
@@ -736,7 +798,6 @@ function fillFormFromProperty(p = {}) {
     propertyForm.elements.customer_status_visible.checked = !!p.customer_status_visible;
   }
 
-  // ✅ ถ้ามีรูปเก่า โหลดมาให้
   currentGallery = Array.isArray(p.gallery)
     ? p.gallery
     : (typeof p.gallery === 'string' && p.gallery.startsWith('[')
@@ -745,7 +806,6 @@ function fillFormFromProperty(p = {}) {
     );
   renderGalleryPreview();
 
-  // ✅ ถ้ามี youtube เก่า โหลดมาให้
   if (Array.isArray(p.youtube_video_ids)) {
     currentYoutube = p.youtube_video_ids;
   } else if (typeof p.youtube_video_ids === 'string' && p.youtube_video_ids.startsWith('[')) {
@@ -755,33 +815,66 @@ function fillFormFromProperty(p = {}) {
       currentYoutube = [];
     }
   } else {
-    currentYoutube = [];
   }
   renderYoutubeList();
+
+  // Init Map
+  setupModalMap(p.latitude, p.longitude);
+
+  // Load saved POIs
+  if (p.id) loadPoisForProperty(p.id, p.latitude, p.longitude);
 }
 
-// ================== โหลดรายการประกาศ ==================
 async function loadProperties(query = '') {
   const tbody = document.querySelector('#properties-table tbody');
   clear(tbody);
   tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">กำลังโหลด...</td></tr>';
 
+  if (toggleTrashBtn) {
+    toggleTrashBtn.classList.toggle('btn-secondary', !isTrashView);
+    toggleTrashBtn.classList.toggle('btn-danger', isTrashView);
+    toggleTrashBtn.textContent = isTrashView ? '← กลับรายการหลัก' : '🗑️ ถังขยะ';
+  }
+
+  if (addPropertyBtn) {
+    addPropertyBtn.style.display = isTrashView ? 'none' : 'flex';
+  }
+
   try {
     const filters = {};
     if (query) filters.q = query;
+    if (isTrashView) filters.trash = true;
+
     const { data, error } = await listAll(filters);
     if (error) throw error;
 
+    propertiesData = data || []; // Update Cache
+
     clear(tbody);
     if (!data || !data.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">ไม่มีข้อมูล</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">ไม่มีข้อมูล' + (isTrashView ? 'ในถังขยะ' : '') + '</td></tr>';
       return;
     }
 
-    data.forEach(p => {
+    data.forEach((p, idx) => {
       const tr = document.createElement('tr');
+      // No more row event listeners
+
       const stage = String(p.renovation_stage || '').trim();
       const stageLabel = stage ? stage : '-';
+
+      let actionButtons = '';
+      if (isTrashView) {
+        actionButtons = `
+            <button class="btn btn-secondary btn-sm restore-btn" style="background:#d1fae5;color:#065f46;border-color:#a7f3d0;" data-id="${p.id}" data-action="restore">กู้คืน</button>
+            <button class="btn btn-danger btn-sm hard-delete-btn" data-id="${p.id}" data-action="hard-delete">ลบถาวร</button>
+          `;
+      } else {
+        actionButtons = `
+            <button class="btn btn-secondary btn-sm edit-btn" data-id="${p.id}" data-action="edit">แก้ไข</button>
+            <button class="btn btn-danger btn-sm delete-btn" data-id="${p.id}" data-action="delete">ลบ</button>
+          `;
+      }
 
       tr.innerHTML = `
         <td data-label="หัวข้อ">${p.title || '-'}</td>
@@ -791,133 +884,136 @@ async function loadProperties(query = '') {
         <td data-label="โชว์ลูกค้า">${p.customer_status_visible ? '✅' : '—'}</td>
         <td data-label="อัปเดตล่าสุด">${p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH') : '-'}</td>
         <td data-label="จัดการ">
-          <button class="btn btn-secondary btn-sm edit-btn">แก้ไข</button>
-          <button class="btn btn-danger btn-sm delete-btn">ลบ</button>
+          ${actionButtons}
         </td>
       `;
-
-      tr.querySelector('.edit-btn').addEventListener('click', async () => {
-        openModal();
-        fillFormFromProperty(p);
-        setTimeout(() => setupModalMap(p.latitude, p.longitude), 80);
-        await loadPoisForProperty(p.id, p.latitude, p.longitude);
-      });
-
-      tr.querySelector('.delete-btn').addEventListener('click', () => handleDelete(p.id, p.title));
 
       tbody.appendChild(tr);
     });
   } catch (err) {
     console.error(err);
-    tbody.innerHTML = '<tr><td colspan="7" style="color:red;text-align:center;">โหลดไม่สำเร็จ</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
-// ================== Init ==================
+
 document.addEventListener('DOMContentLoaded', async () => {
-    document.body?.classList.toggle('mobile-card-view', isMobileDevice());
-    await protectPage();
-    setupNav();
-    setupMobileNav();
-    await signOutIfAny();
+  await protectPage();
+  setupNav();
+  setupMobileNav();
+  await signOutIfAny();
 
-    installModalCloseHandlers();
-    setupPoiManualForm();   // ✅ ผูกฟอร์มเพิ่มสถานที่ใกล้เคียง
+  // === Event Delegation for Table Actions ===
+  const table = document.getElementById('properties-table');
+  if (table) {
+    console.log('Table found, adding event listener');
+    table.addEventListener('click', (e) => {
+      console.log('Click on table:', e.target);
+      const btn = e.target.closest('button');
+      if (!btn) {
+        console.log('Not a button');
+        return;
+      }
 
-    // ปุ่มเพิ่มบ้าน
-    addPropertyBtn?.addEventListener('click', () => {
-      propertyForm?.reset();
-      if (propertyForm?.elements.id) propertyForm.elements.id.value = '';
-      poiCandidatesInline = [];
-      renderPOIInlineList();
-      currentGallery = [];
-      renderGalleryPreview();
-      currentYoutube = [];
-      renderYoutubeList();
-      openModal();
-      setTimeout(() => setupModalMap(), 80);
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      console.log('Button clicked:', { action, id });
+
+      if (!action || !id) {
+        console.log('Missing action or id');
+        return;
+      }
+
+      // Find property data from cache
+      const prop = propertiesData.find(p => String(p.id) === String(id)) || { title: '' };
+      console.log('Property found:', prop);
+
+      if (action === 'edit') {
+        openModal();
+        fillFormFromProperty(prop);
+      } else if (action === 'delete') {
+        handleDelete(id, prop.title);
+      } else if (action === 'restore') {
+        handleRestore(id, prop.title);
+      } else if (action === 'hard-delete') {
+        handleHardDelete(id, prop.title);
+      }
     });
+  } else {
+    console.error('Table #properties-table NOT FOUND');
+  }
+  // ==========================================
 
-    // ฟอร์มบันทึก
-    propertyForm?.addEventListener('submit', handleSubmit);
+  if (toggleTrashBtn) {
+    toggleTrashBtn.addEventListener('click', () => {
+      isTrashView = !isTrashView;
+      const searchInput = document.getElementById('property-search');
+      if (searchInput) searchInput.value = '';
+      loadProperties();
+    });
+  }
 
-    // === อัปโหลดรูปหน้าปก / แกลลอรี่ ===
-    const coverInput = document.getElementById('cover-upload');
-    if (coverInput) {
-      coverInput.addEventListener('change', async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+  if (addPropertyBtn) {
+    addPropertyBtn.addEventListener('click', () => {
+      openModal();
+      setupModalMap(); // Init default map
+    });
+  }
+  if (propertyForm) propertyForm.addEventListener('submit', handleSubmit);
+  installModalCloseHandlers();
+  setupPoiManualForm();
+  setupScrollToTop();
+
+  const coverInput = document.getElementById('cover-upload'); // Legacy?
+
+  const galleryInput = document.getElementById('gallery-upload');
+  if (galleryInput) {
+    galleryInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      for (const file of files) {
         if (file.size > MAX_FILE_SIZE_BYTES) {
           const mb = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(0);
-          toast(`ไฟล์ใหญ่เกิน ${mb}MB`, 2500, 'error');
-          coverInput.value = '';
-          return;
+          toast(`${file.name} ใหญ่เกิน ${mb}MB`, 2500, 'error');
+          continue;
         }
         try {
-          toast('กำลังอัปโหลดรูปหน้าปก...', 2000, 'info');
+          toast(`กำลังอัปโหลด ${file.name} ...`, 1500, 'info');
           const url = await uploadToCloudinary(file);
-          currentGallery = [url, ...currentGallery];
+          currentGallery.push(url);
           renderGalleryPreview();
-          toast('อัปโหลดรูปหน้าปกสำเร็จ', 2000, 'success');
         } catch (err) {
           console.error(err);
-          toast(err.message, 3000, 'error');
-        } finally {
-          coverInput.value = '';
+          toast('อัปโหลดบางไฟล์ไม่สำเร็จ: ' + err.message, 3000, 'error');
         }
-      });
-    }
+      }
+      galleryInput.value = '';
+      toast('อัปโหลดรูปแกลลอรี่สำเร็จ', 2000, 'success');
+    });
+  }
 
-    const galleryInput = document.getElementById('gallery-upload');
-    if (galleryInput) {
-      galleryInput.addEventListener('change', async (e) => {
-        const files = Array.from(e.target.files || []);
-        if (!files.length) return;
-        for (const file of files) {
-          if (file.size > MAX_FILE_SIZE_BYTES) {
-            const mb = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(0);
-            toast(`${file.name} ใหญ่เกิน ${mb}MB`, 2500, 'error');
-            continue;
-          }
-          try {
-            toast(`กำลังอัปโหลด ${file.name} ...`, 1500, 'info');
-            const url = await uploadToCloudinary(file);
-            currentGallery.push(url);
-            renderGalleryPreview();
-          } catch (err) {
-            console.error(err);
-            toast('อัปโหลดบางไฟล์ไม่สำเร็จ: ' + err.message, 3000, 'error');
-          }
-        }
-        galleryInput.value = '';
-        toast('อัปโหลดรูปแกลลอรี่สำเร็จ', 2000, 'success');
-      });
-    }
+  const ytInput = document.getElementById('youtube-input');
+  const ytAddBtn = document.getElementById('youtube-add-btn');
+  if (ytAddBtn && ytInput) {
+    ytAddBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const val = normalizeYoutubeIdOrUrl(ytInput.value);
+      if (!val) return;
+      currentYoutube.push(val);
+      ytInput.value = '';
+      renderYoutubeList();
+    });
+  }
 
-    // === YouTube ===
-    const ytInput = document.getElementById('youtube-input');
-    const ytAddBtn = document.getElementById('youtube-add-btn');
-    if (ytAddBtn && ytInput) {
-      ytAddBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const val = normalizeYoutubeIdOrUrl(ytInput.value);
-        if (!val) return;
-        currentYoutube.push(val);
-        ytInput.value = '';
-        renderYoutubeList();
-      });
-    }
+  const searchInput = document.getElementById('property-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      if (searchTimeout) clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        loadProperties(val);
+      }, 400);
+    });
+  }
 
-    // Search listener
-    const searchInput = document.getElementById('property-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        const val = e.target.value.trim();
-        if (searchTimeout) clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-          loadProperties(val);
-        }, 400);
-      });
-    }
-
-    await loadProperties();
-  });
+  await loadProperties();
+});

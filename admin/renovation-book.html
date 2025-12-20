@@ -19,6 +19,22 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
   <link rel="manifest" href="/assets/favicon/site.webmanifest">
+  <style>
+    /* User Request: เพิ่มระยะห่างระหว่างเส้นขอบนอก กับออบเจคภายใน 1.5rem */
+    .card-body {
+      padding: 1.5rem !important;
+    }
+
+    /* User Request: ลดระยะห่างระหว่างแถวลง */
+    .form-group {
+      margin-bottom: 0.75rem !important;
+    }
+
+    /* If using grid/flex gap */
+    .form-grid {
+      gap: 0.75rem !important;
+    }
+  </style>
 </head>
 
 <body data-page="renovation-book">
@@ -33,15 +49,16 @@
         <h1>สมุดรีโนเวทบ้าน (Renovation Book)</h1>
         <p>ใช้บันทึกแผนรีโนเวทแบบละเอียดต่อ "1 หลัง"</p>
 
-        <div class="page-header-actions">
-          <label>
+        <div class="page-header-actions" style="display: flex; align-items: flex-end; gap: 1rem;">
+          <label style="display: flex; flex-direction: column; gap: 0.25rem; font-weight: 500;">
             เลือกบ้าน:
-            <select id="property-select" class="form-control">
+            <select id="property-select" class="form-control" style="min-width: 300px;">
               <option value="">— เลือกบ้าน —</option>
               <!-- เติมจาก JS / Supabase -->
             </select>
           </label>
-          <button id="create-new-renovation-book" type="button" class="btn btn-outline">
+          <button id="create-new-renovation-book" type="button" class="btn btn-outline"
+            style="height: 42px; margin-bottom: 2px;">
             + สร้างสมุดรีโนเวทใหม่
           </button>
         </div>

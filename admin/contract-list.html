@@ -334,6 +334,19 @@
     </div>
   </div>
 
+  <!-- Generic Confirmation Modal -->
+  <div id="confirmation-modal" class="modal" style="z-index: 3000;">
+    <div class="modal-content" style="max-width: 450px; text-align: center; padding: 2rem; border-radius: 12px;">
+      <div style="margin-bottom: 1rem; font-size: 3rem;">⚠</div>
+      <h3 id="confirm-title" style="margin-bottom: 0.5rem;">ยืนยัน?</h3>
+      <p id="confirm-message" class="text-muted" style="margin-bottom: 2rem; white-space: pre-line;">รายละเอียด</p>
+      <div class="grid grid-cols-2" style="gap: 1rem;">
+        <button id="btn-confirm-cancel" class="btn btn-secondary">ยกเลิก</button>
+        <button id="btn-confirm-ok" class="btn">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
   <!-- โหลด header -->
 
   <script type="module" src="/js/pages/contract-list.page.js"></script>

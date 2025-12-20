@@ -4751,3 +4751,98 @@ select.form-control {
     transform: translateY(-10px);
   }
 }
+
+/* Renovation Book Report Overlay */
+.rb-report-overlay {
+  display: none;
+  /* Default hidden */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.rb-report-overlay.open {
+  display: flex !important;
+}
+
+.rb-report-overlay-inner {
+  background: #fff;
+  width: 100%;
+  max-width: 1200px;
+  height: 90vh;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  position: relative;
+}
+
+.rb-report-overlay-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: #f87171;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+#report-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* User Request: Move scroll-to-top to bottom left and apply Luxury Theme */
+.scroll-to-top,
+#scroll-to-top {
+  left: 20px !important;
+  right: auto !important;
+  bottom: 20px !important;
+  position: fixed;
+  z-index: 999;
+
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-2) 0%, var(--gold-1) 100%);
+  color: white;
+  border: 1px solid var(--gold-3);
+  box-shadow: 0 4px 15px rgba(176, 139, 79, 0.4);
+
+  font-size: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.scroll-to-top.show,
+#scroll-to-top.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.scroll-to-top:hover,
+#scroll-to-top:hover {
+  background: linear-gradient(135deg, var(--gold-3) 0%, var(--gold-2) 100%);
+  box-shadow: 0 6px 20px rgba(176, 139, 79, 0.6);
+  transform: translateY(-2px);
+}

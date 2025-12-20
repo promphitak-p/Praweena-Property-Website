@@ -19,6 +19,7 @@ import {
 } from '../services/propertyContractorsService.js';
 import { upsertContractor } from '../services/contractorsService.js';
 import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '../services/renovationBookService.js';
+import { setupScrollToTop } from '../utils/scroll.js';
 import { $, clear } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 
@@ -277,11 +278,10 @@ async function loadPropertyList() {
 
         <div class="rb-property-card-footer">
           <button class="btn btn-sm btn-primary rb-open-book-btn">เปิดสมุดรีโนเวท</button>
-          ${
-            detailUrl !== '#'
-              ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">ดูหน้าเว็บลูกค้า</a>`
-              : ''
-          }
+          ${detailUrl !== '#'
+          ? `<a class="btn btn-sm btn-outline" href="${detailUrl}" target="_blank">ดูหน้าเว็บลูกค้า</a>`
+          : ''
+        }
         </div>
       `;
 
@@ -339,12 +339,11 @@ function renderDetailHeader(property) {
     <p style="margin:0;color:#b45309;font-weight:600;">
       ราคา ${formatPrice(Number(property.price) || 0)}
     </p>
-    ${
-      detailUrl !== '#'
-        ? `<p style="margin:.5rem 0 0 0;font-size:.9rem;">
+    ${detailUrl !== '#'
+      ? `<p style="margin:.5rem 0 0 0;font-size:.9rem;">
              🔗 <a href="${detailUrl}" target="_blank" style="color:#2563eb;">เปิดดูหน้าลูกค้า</a>
            </p>`
-        : ''
+      : ''
     }
   `;
 }
@@ -984,31 +983,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     showDetailMode();
   }
 
-  // Sticky header + Scroll to top
+  // Sticky header
   const header = document.querySelector('.page-renovation-book .page-header');
-  const scrollBtn = document.getElementById('scroll-to-top');
 
   const onScroll = () => {
     if (header) {
       if (window.scrollY > 10) header.classList.add('is-scrolled');
       else header.classList.remove('is-scrolled');
     }
-
-    if (scrollBtn) {
-      if (window.scrollY > 300) scrollBtn.classList.add('show');
-      else scrollBtn.classList.remove('show');
-    }
   };
 
   window.addEventListener('scroll', onScroll);
   onScroll();
 
-  if (scrollBtn) {
-    scrollBtn.addEventListener('click', () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
-  }
+  // Scroll to Top
+  setupScrollToTop();
 });

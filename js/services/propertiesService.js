@@ -95,6 +95,14 @@ export async function listAll(filters = {}) {
     .order('updated_at', { ascending: false });
 
   if (filters.q) query = query.ilike('title', `%${filters.q}%`);
+
+  // Soft Delete Logic: By default, show only non-deleted. If trash=true, show only deleted.
+  if (filters.trash) {
+    query = query.not('deleted_at', 'is', null);
+  } else {
+    query = query.is('deleted_at', null);
+  }
+
   return await query;
 }
 
@@ -205,7 +213,37 @@ export async function upsertProperty(payload) {
   return attempt;
 }
 
+// Re-map removeProperty to softDeleteProperty to maintain compatibility
 export async function removeProperty(id) {
+  return await softDeleteProperty(id);
+}
+
+// Soft Delete (ย้ายลงถังขยะ)
+export async function softDeleteProperty(id) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
+  return await supabase
+    .from('properties')
+    .update({ deleted_at: new Date(), published: false }) // Unpublish as well
+    .eq('id', id)
+    .select();
+}
+
+// Restore (กู้คืน)
+export async function restoreProperty(id) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
+  return await supabase
+    .from('properties')
+    .update({ deleted_at: null })
+    .eq('id', id)
+    .select();
+}
+
+// Hard Delete (ลบถาวร)
+export async function hardDeleteProperty(id) {
   const missing = ensureClient();
   if (missing) return { data: null, error: missing.error };
 

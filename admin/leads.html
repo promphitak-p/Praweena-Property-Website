@@ -31,6 +31,7 @@
       </div>
       <div class="page-header-actions">
         <div id="role-indicator"></div>
+        <button id="btn-check-dup" class="btn btn-secondary" style="margin-right:0.5rem;">🔍 ตรวจสอบซ้ำ</button>
         <button id="btn-add-lead" class="btn btn-primary">+ เพิ่มผู้สนใจ</button>
       </div>
     </div>
@@ -109,6 +110,21 @@
             <a id="lead-modal-call-btn" href="#" class="btn btn-primary btn-lg w-100">📞 โทรหาลูกค้า</a>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Merge Suggestions Modal -->
+    <div id="merge-modal" class="modal">
+      <div class="modal-content" style="max-width: 600px; padding: 1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>รายชื่อที่อาจซ้ำกัน (Suggested Merge)</h2>
+          <button id="merge-modal-close" style="background:none; border:none; font-size:1.5rem;">&times;</button>
+        </div>
+        <div id="merge-list-container" style="max-height: 400px; overflow-y: auto; margin:1rem 0;">
+          <!-- JS Render -->
+        </div>
+        <p class="text-muted" style="font-size:0.9rem;">* การรวมข้อมูลจะย้ายสัญญาและประวัติไปที่ "รายชื่อหลัก"
+          และลบรายชื่อซ้ำทิ้ง</p>
       </div>
     </div>
   </main>
