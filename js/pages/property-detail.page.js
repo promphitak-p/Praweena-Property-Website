@@ -822,18 +822,13 @@ async function renderPropertyDetails(property) {
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(detailMap);
 
-        const houseIcon = L.divIcon({
-          className: '',
-          html: `
-            <div style="position:relative;width:50px;height:70px;background:#fbbf24;border-radius:25px 25px 35px 35px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.25);border:2px solid #d97706;">
-              <div style="font-weight:700;font-size:16px;line-height:1;color:#fff;">M</div>
-              <div style="font-size:8px;letter-spacing:.5px;color:#fff;margin-top:2px;">PRAWEENA</div>
-              <div style="position:absolute;bottom:-10px;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid #fbbf24;"></div>
-            </div>
-          `,
-          iconSize: [50, 70],
-          iconAnchor: [25, 68],
-          popupAnchor: [0, -70]
+        const houseIcon = L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
         });
 
         detailHouseMarker = L.marker([lat, lng], { icon: houseIcon })
