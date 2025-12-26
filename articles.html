@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>บทความและสาระน่ารู้ | Re:Living</title>
+  <meta name="description" content="รวมบทความน่ารู้เกี่ยวกับการรีโนเวทบ้าน การกู้ซื้อบ้าน และไอเดียตกแต่ง">
+
+  <script src="/js/env-loader.js"></script>
+  <script src="/js/local-setup.js"></script>
+  <script>
+    window.__SUPABASE = window.__SUPABASE || {};
+  </script>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sarabun:wght@400;500;600&family=Playfair+Display:wght@400;600&display=swap"
+    rel="stylesheet">
+
+  <style>
+    body.rl-page {
+      font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif;
+      background: #FDFBF7;
+      color: #2b2a28;
+    }
+
+    .rl-nav {
+      position: fixed;
+      inset: 0 auto auto 0;
+      width: 100%;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+      padding: 0.85rem 0;
+    }
+
+    .rl-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .rl-nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .rl-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      color: #2b2a28;
+    }
+
+    .rl-brand-logo {
+      height: 38px;
+    }
+
+    .rl-nav-links {
+      display: flex;
+      gap: 1.25rem;
+      font-weight: 600;
+      color: #6b645d;
+    }
+
+    .rl-nav-links a {
+      text-decoration: none;
+      color: inherit;
+      transition: color 0.2s;
+    }
+
+    .rl-nav-links a:hover {
+      color: #f37335;
+    }
+
+    .rl-btn {
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.8rem 1.35rem;
+    }
+
+    .rl-btn--solid {
+      background: #2b2a28;
+      color: #fff;
+    }
+
+    .rl-footer {
+      background: #fff;
+      border-top: 1px solid #eee;
+      padding: 3rem 0;
+      margin-top: auto;
+    }
+
+    .rl-grid {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+
+    @media(max-width:900px) {
+      .rl-nav-links {
+        display: none;
+      }
+
+      .rl-nav-toggle {
+        display: block;
+      }
+    }
+  </style>
+</head>
+
+<body class="rl-page">
+
+  <nav class="rl-nav" id="rl-nav">
+    <div class="rl-container rl-nav-inner">
+      <div class="rl-brand">
+        <img src="/assets/img/logo.png" alt="Praweena Property" class="rl-brand-logo">
+        <span>PRAWEENA PROPERTY</span>
+      </div>
+      <div class="rl-nav-links">
+        <a href="/#hero">หน้าแรก</a>
+        <a href="/#listings">บ้านของเรา</a>
+        <a href="/#why">ผลงานรีโนเวท</a>
+        <a href="/articles.html" style="color:#f37335;">บทความและสาระน่ารู้</a>
+      </div>
+      <div class="rl-nav-actions" style="display:flex;">
+        <button class="rl-btn rl-btn--solid">นัดชมบ้าน</button>
+      </div>
+      <button class="rl-btn rl-nav-toggle" id="rl-nav-toggle"
+        style="background:none; color:#333; display:none;">☰</button>
+    </div>
+    <div id="rl-nav-mobile"
+      style="display:none; position:absolute; top:100%; left:0; width:100%; background:#fff; padding:1rem; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+      <a href="/#hero" style="display:block; padding:0.5rem 0;">หน้าแรก</a>
+      <a href="/#listings" style="display:block; padding:0.5rem 0;">บ้านของเรา</a>
+      <a href="/articles.html" style="display:block; padding:0.5rem 0;">บทความ</a>
+    </div>
+  </nav>
+
+  <main style="padding-top: 100px; min-height: 80vh; padding-bottom: 3rem;">
+    <section class="rl-section" id="all-articles">
+      <div class="rl-container">
+        <header style="text-align:center; margin-bottom:3rem;">
+          <h1 style="font-family:'Playfair Display', serif; font-size:2.5rem; color:#2b2a28; margin-bottom:1rem;">
+            บทความและสาระน่ารู้</h1>
+          <p style="color:#6b645d; font-size:1.1rem;">รวมเกร็ดความรู้เรื่องการรีโนเวท การกู้บ้าน และไอเดียแต่งบ้าน</p>
+        </header>
+
+        <div id="articles-loading" style="text-align:center; padding:3rem; color:#999;">
+          กำลังโหลดบทความ...
+        </div>
+
+        <div id="articles-grid" class="rl-grid"
+          style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; display:none;">
+          <!-- Dynamic Content -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rl-footer">
+    <div class="rl-container">
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:2rem;">
+        <div>
+          <div class="rl-brand" style="margin-bottom:0.5rem;">
+            <img src="/assets/img/logo.png" alt="Praweena Property" class="rl-brand-logo">
+            <span>PRAWEENA PROPERTY</span>
+          </div>
+          <p style="color:#666;">รีโนเวทและปรับปรุงที่อยู่อาศัย เพื่อคุณภาพชีวิตที่ดีขึ้น</p>
+        </div>
+        <div>
+          <h4 style="margin-bottom:0.5rem;">เมนู</h4>
+          <p><a href="/#hero" style="color:#666; text-decoration:none;">หน้าแรก</a></p>
+          <p><a href="/articles.html" style="color:#666; text-decoration:none;">บทความ</a></p>
+        </div>
+      </div>
+      <div
+        style="margin-top:2rem; border-top:1px solid #f0f0f0; padding-top:1rem; font-size:0.9rem; color:#999; text-align:center;">
+        &copy; 2024 Praweena Property All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/js/pages/articles.page.js"></script>
+</body>
+
+</html>

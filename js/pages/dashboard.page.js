@@ -16,6 +16,7 @@ import { listSpecsByProperty, upsertSpec, deleteSpec } from '../services/propert
 import { listContractorsForProperty, upsertPropertyContractor, deletePropertyContractor } from '../services/propertyContractorsService.js';
 import { upsertContractor } from '../services/contractorsService.js';
 import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '../services/renovationBookService.js';
+import { getArticles, createArticle, updateArticle, deleteArticle, uploadArticleImage } from '../services/articlesService.js';
 
 // To-Do Services
 import {
@@ -69,6 +70,7 @@ let isTrashView = false;
 let propertiesData = []; // Cache loaded properties
 let currentRenovationPropertyId = null; // For renovation book tab
 let todoTabInitialized = false; // For to-do tab
+let articlesData = []; // Articles Cache
 
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -1395,6 +1397,10 @@ function setupTabs() {
         todoTabInitialized = true;
         setupTodoPropertySelector();
       }
+
+      if (btn.dataset.tab === 'articles') {
+        loadArticlesList();
+      }
     });
   });
 }
@@ -2276,4 +2282,220 @@ function addComparisonRow(data = {}) {
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('btn-add-comparison');
   if (btn) btn.addEventListener('click', () => addComparisonRow());
+});
+
+// =========================================================
+// ARTICLE MANAGEMENT (CMS)
+// =========================================================
+
+async function loadArticlesList() {
+  const tbody = document.getElementById('articles-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>';
+
+  try {
+    articlesData = await getArticles();
+    renderArticlesTable(articlesData);
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:red;">โหลดข้อมูลล้มเหลว</td></tr>';
+  }
+}
+
+function renderArticlesTable(articles) {
+  const tbody = document.getElementById('articles-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!articles.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem; color:#999;">ยังไม่มีบทความ</td></tr>';
+    return;
+  }
+
+  articles.forEach(article => {
+    const tr = document.createElement('tr');
+
+    // Status Badge
+    const statusBadges = {
+      true: '<span class="status-badge status-active">เผยแพร่แล้ว</span>',
+      false: '<span class="status-badge" style="background:#f3f4f6; color:#6b7280;">ฉบับร่าง</span>'
+    };
+
+    // Date Format
+    const dateStr = new Date(article.created_at).toLocaleDateString('th-TH', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+
+    tr.innerHTML = `
+      <td style="font-weight:600; color:#1f2937;">${article.title}</td>
+      <td><span class="badge" style="background:#fff7ed; color:#c2410c;">${article.category || 'General'}</span></td>
+      <td>${statusBadges[article.is_published]}</td>
+      <td style="color:#6b7280; font-size:0.9rem;">${dateStr}</td>
+      <td>
+        <div style="display:flex; gap:0.5rem;">
+          <button class="btn btn-sm edit-article-btn" style="padding:0.4rem 0.8rem; font-size:0.85rem;">แก้ไข</button>
+          <button class="btn btn-sm btn-secondary delete-article-btn" style="padding:0.4rem 0.8rem; font-size:0.85rem; background:#fee2e2; color:#b91c1c; border:none;">ลบ</button>
+        </div>
+      </td>
+    `;
+
+    // Events
+    tr.querySelector('.edit-article-btn').addEventListener('click', () => openArticleModal(article));
+    tr.querySelector('.delete-article-btn').addEventListener('click', () => handleArticleDelete(article.id));
+
+    tbody.appendChild(tr);
+  });
+}
+
+// Modal Logic
+function getArticleElements() {
+  return {
+    modal: document.getElementById('article-modal'),
+    form: document.getElementById('article-form'),
+    title: document.getElementById('article-modal-title')
+  };
+}
+
+function openArticleModal(article = null) {
+  const { modal: articleModal, form: articleForm, title: titleEl } = getArticleElements();
+
+  if (!articleModal || !articleForm) {
+    console.error('Article elements not found via getArticleElements');
+    return;
+  }
+  articleForm.reset();
+
+  if (article) {
+    if (titleEl) titleEl.textContent = 'แก้ไขบทความ';
+    articleForm.id.value = article.id;
+    articleForm.title.value = article.title;
+    articleForm.category.value = article.category || 'General';
+    articleForm.is_published.value = article.is_published.toString();
+    articleForm.cover_image.value = article.cover_image || '';
+    document.getElementById('article-cover-preview').src = article.cover_image || 'https://placehold.co/150x100?text=No+Image';
+    articleForm.excerpt.value = article.excerpt || '';
+    articleForm.content.value = article.content || '';
+  } else {
+    if (titleEl) titleEl.textContent = 'เขียนบทความใหม่';
+    articleForm.id.value = '';
+    articleForm.is_published.value = 'false'; // Default Draft
+    document.getElementById('article-cover-preview').src = 'https://placehold.co/150x100?text=No+Image';
+  }
+
+  articleModal.classList.add('open');
+}
+
+function closeArticleModal() {
+  const { modal } = getArticleElements();
+  if (modal) modal.classList.remove('open');
+}
+
+// Save Logic
+async function handleArticleSave(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  const oldText = btn ? btn.textContent : 'บันทึก';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+  }
+
+  try {
+    const formData = new FormData(e.target);
+    const payload = {
+      title: formData.get('title'),
+      category: formData.get('category'),
+      is_published: formData.get('is_published') === 'true',
+      cover_image: formData.get('cover_image'),
+      excerpt: formData.get('excerpt'),
+      content: formData.get('content')
+    };
+
+    const id = formData.get('id');
+
+    if (id) {
+      // Update
+      await updateArticle(id, { ...payload, updated_at: new Date() });
+      toast('บันทึกการแก้ไขเรียบร้อย', 2000, 'success');
+    } else {
+      // Create
+      await createArticle(payload);
+      toast('สร้างบทความใหม่เรียบร้อย', 2000, 'success');
+    }
+
+    closeArticleModal();
+    loadArticlesList(); // Refresh
+
+  } catch (err) {
+    console.error(err);
+    toast('เกิดข้อผิดพลาด: ' + err.message, 3000, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
+  }
+}
+
+async function handleArticleDelete(id) {
+  if (!confirm('ยืนยันที่จะลบบทความนี้? การกระทำนี้ไม่สามารถเรียกคืนได้')) return;
+
+  try {
+    await deleteArticle(id);
+    toast('ลบบทความเรียบร้อย', 2000, 'success');
+    loadArticlesList();
+  } catch (err) {
+    toast('ลบไม่สำเร็จ: ' + err.message, 3000, 'error');
+  }
+}
+
+// Setup Article Listeners
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Initializing Article Listeners...');
+  const addBtn = document.getElementById('add-article-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      console.log('Add Article Clicked');
+      openArticleModal(null);
+    });
+  } else {
+    console.error('Add Article Button NOT FOUND');
+  }
+
+  const { form } = getArticleElements();
+  if (form) {
+    form.addEventListener('submit', handleArticleSave);
+  } else {
+    console.error('Article Form NOT FOUND');
+  }
+
+  // Article Image Upload
+  const coverFile = document.getElementById('article-cover-file');
+  if (coverFile) {
+    coverFile.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('upload-status');
+      if (statusEl) statusEl.textContent = 'กำลังอัปโหลด...';
+
+      try {
+        const url = await uploadArticleImage(file);
+        document.getElementById('article-cover-input').value = url;
+        document.getElementById('article-cover-preview').src = url;
+        if (statusEl) statusEl.textContent = 'เสร็จสิ้น';
+      } catch (err) {
+        console.error(err);
+        if (statusEl) statusEl.textContent = 'ล้มเหลว';
+        alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + err.message);
+      }
+    });
+  }
+
+  // Valid for all modals close buttons
+  document.querySelectorAll('.modal-close, .modal-close-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+    });
+  });
 });

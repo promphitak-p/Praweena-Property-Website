@@ -745,6 +745,7 @@
       <button class="tab-btn" data-tab="renovation">สมุดรีโนเวท</button>
       <button class="tab-btn" data-tab="todos">รายการงาน</button>
       <button class="tab-btn" data-tab="content">จัดการหน้าแรก</button>
+      <button class="tab-btn" data-tab="articles">บทความ</button>
     </div>
 
     <!-- TAB 1: PROPERTIES -->
@@ -1344,6 +1345,33 @@
         </div>
       </div>
     </div>
+
+    <!-- TAB: ARTICLES -->
+    <div id="tab-articles" class="tab-content">
+      <div class="page-header">
+        <div class="page-header-actions" style="justify-content: space-between; align-items: center; width:100%;">
+          <h2>จัดการบทความ</h2>
+          <button id="add-article-btn" class="btn">เขียนบทความใหม่</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="articles-table">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>หมวดหมู่</th>
+              <th>สถานะ</th>
+              <th>วันที่สร้าง</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="articles-table-body">
+            <!-- JS Render -->
+          </tbody>
+        </table>
+      </div>
+    </div>
   </main>
 
 
@@ -1531,7 +1559,7 @@
 
             <!-- Renovation Comparison Section -->
             <div class="form-group full-width"
-              style="margin-top: 1.5rem; border-top: 1px dashed #ddd; paddingTop: 1rem;">
+              style="margin-top: 1.5rem; border-top: 1px dashed #ddd; padding-top: 1rem;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                 <label style="color: #ea580c; font-weight: 600; margin:0;">🛠️ เปรียบเทียบ Before & After
                   (Slider)</label>
@@ -1646,6 +1674,89 @@
 
   <!-- Page JS -->
   <script type="module" src="/js/pages/dashboard.page.js"></script>
+
+  <!-- Article Editor Modal -->
+  <div id="article-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px; padding: 2rem; position: relative;">
+      <span class="modal-close"
+        onclick="document.getElementById('article-modal').classList.remove('open')">&times;</span>
+
+      <div class="modal-header">
+        <h3 id="article-modal-title" style="margin:0;">เขียนบทความใหม่</h3>
+      </div>
+
+      <form id="article-form" style="margin-top:1.5rem;">
+        <input type="hidden" name="id">
+
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: span 2;">
+            <label>หัวข้อบทความ</label>
+            <input type="text" name="title" class="form-control" required placeholder="หัวข้อที่น่าสนใจ...">
+          </div>
+
+          <div class="form-group">
+            <label>หมวดหมู่</label>
+            <select name="category" class="form-control">
+              <option value="General">ทั่วไป</option>
+              <option value="Renovation">ความรู้รีโนเวท</option>
+              <option value="Market">ตลาดอสังหาฯ</option>
+              <option value="Lifestyle">ไลฟ์สไตล์</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>สถานะ</label>
+            <select name="is_published" class="form-control">
+              <option value="false">ฉบับร่าง (Draft)</option>
+              <option value="true">เผยแพร่ (Public)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="grid-column: span 2;">
+            <label>รูปปก (อัปโหลด หรือใส่ลิงก์)</label>
+            <div style="display: flex; gap: 1rem; align-items: start;">
+              <div style="flex: 1;">
+                <input type="text" name="cover_image" id="article-cover-input" class="form-control"
+                  placeholder="https://..."
+                  onchange="document.getElementById('article-cover-preview').src = this.value">
+                <small style="color:#666; display:block; margin-top:4px;">แนะนำรูปขนาด 1200x630px</small>
+                <div style="margin-top: 0.5rem; display:flex; align-items:center; gap:0.5rem;">
+                  <input type="file" id="article-cover-file" accept="image/*" style="display: none;">
+                  <button type="button" class="btn btn-secondary btn-sm"
+                    onclick="document.getElementById('article-cover-file').click()">📂 อัปโหลดรูปภาพ</button>
+                  <span id="upload-status" style="font-size: 0.9rem; color: #666;"></span>
+                </div>
+              </div>
+              <div
+                style="width: 120px; height: 80px; background: #f3f4f6; border-radius: 4px; overflow: hidden; border: 1px solid #ddd;">
+                <img id="article-cover-preview" src="https://placehold.co/150x100?text=No+Image"
+                  style="width: 100%; height: 100%; object-fit: cover;"
+                  onerror="this.src='https://placehold.co/150x100?text=No+Image'">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="grid-column: span 2;">
+            <label>เกริ่นนำ (Excerpt)</label>
+            <textarea name="excerpt" class="form-control" rows="2"
+              placeholder="สรุปสั้นๆ สำหรับแสดงหน้าแรก..."></textarea>
+          </div>
+
+          <div class="form-group" style="grid-column: span 2;">
+            <label>เนื้อหา (HTML Supported)</label>
+            <textarea name="content" class="form-control" rows="12" placeholder="เขียนเนื้อหาที่นี่..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions"
+          style="margin-top:1.5rem; text-align:right; border-top:1px solid #eee; padding-top:1rem;">
+          <button type="button" class="btn btn-secondary modal-close-btn"
+            onclick="document.getElementById('article-modal').classList.remove('open')">ยกเลิก</button>
+          <button type="submit" class="btn">บันทึกบทความ</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Spec/Contractor Modal (Shared for Renovation Tab) -->
   <div id="rb-modal" class="modal">

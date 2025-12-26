@@ -1,4 +1,5 @@
 // js/pages/index.page.js
+import { getPublishedArticles } from '../services/articlesService.js';
 import { setupMobileNav } from '../ui/mobileNav.js';
 import { listPublic, getBySlug, getBySlugOptional } from '../services/propertiesService.js';
 import { createLead } from '../services/leadsService.js';
@@ -454,6 +455,50 @@ function renderSkeletonCard() {
   return card;
 }
 
+async function renderLatestArticles() {
+  const container = document.querySelector('#articles .rl-article-grid');
+  if (!container) return;
+
+  try {
+    const articles = await getPublishedArticles(3);
+
+    if (!articles || articles.length === 0) {
+      // Keep default placeholders if no articles
+      return;
+    }
+
+    container.innerHTML = '';
+
+    articles.forEach(article => {
+      const articleCard = document.createElement('article');
+      articleCard.className = 'rl-article-card';
+      articleCard.style.cssText = 'background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.05); transition:transform 0.3s ease;';
+
+      const imgUrl = article.cover_image || 'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&q=80&w=600';
+
+      articleCard.innerHTML = `
+            <div class="rl-article-thumb" style="height:200px; overflow:hidden;">
+              <img src="${imgUrl}"
+                alt="${article.title}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease;">
+            </div>
+            <div class="rl-article-content" style="padding:1.5rem;">
+              <span style="font-size:0.8rem; color:#d97706; font-weight:700; text-transform:uppercase; letter-spacing:1px;">${article.category || 'General'}</span>
+              <h3 style="font-size:1.25rem; margin:0.5rem 0 0.8rem; color:#333;">${article.title}</h3>
+              <p style="font-size:0.95rem; color:#666; margin-bottom:1.5rem; line-height:1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${article.excerpt || ''}</p>
+              <a href="/article.html?id=${article.id}" style="color:#b45309; text-decoration:none; font-weight:600; display:inline-flex; align-items:center;">
+                อ่านเพิ่มเติม
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+            </div>
+        `;
+      container.appendChild(articleCard);
+    });
+
+  } catch (err) {
+    console.error('Failed to load articles:', err);
+  }
+}
+
 function setupLandingUI() {
   const nav = document.getElementById('rl-nav');
   const mobileMenu = document.getElementById('rl-nav-mobile');
@@ -589,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupScrollToTop();
   setupCompareSlider();
   loadHomepageConfig();
+  renderLatestArticles();
   setupLeadForm();
   setupInterestPrefill();
   loadProperties(); // โหลดครั้งแรก
@@ -640,3 +686,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
