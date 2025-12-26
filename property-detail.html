@@ -28,9 +28,27 @@
       padding: 110px 1.5rem 3rem !important;
     }
 
+    @media (max-width: 768px) {
+      .detail-page {
+        padding: 90px 0.75rem 2rem !important;
+      }
+
+      .detail-card {
+        padding: 1.25rem !important;
+      }
+    }
+
     .detail-layout {
       background: transparent;
+      display: grid;
+      grid-template-columns: 1fr;
       gap: 1.75rem;
+    }
+
+    @media (min-width: 900px) {
+      .detail-layout {
+        grid-template-columns: 2fr 1fr;
+      }
     }
 
     .detail-card {
@@ -148,6 +166,12 @@
 
     body.rl-page .detail-hero-main {
       height: 450px !important;
+    }
+
+    @media (max-width: 768px) {
+      body.rl-page .detail-hero-main {
+        height: 280px !important;
+      }
     }
 
     body.rl-page .image-gallery .gallery-image {

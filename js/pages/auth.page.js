@@ -12,6 +12,15 @@ const loginError = $('#login-form .error-message');
 const registerError = $('#register-form .error-message');
 const resetError = $('#reset-form .error-message');
 
+// Check if Supabase is initialized
+if (!supabase) {
+  loginError.textContent = 'System Error: Supabase connection not configured. Please check your setup.';
+  loginError.style.display = 'block';
+  console.error('Supabase client is null. Redirecting to setup...');
+  // Optional: Auto-redirect to setup if not configured
+  // window.location.href = '/setup.html';
+}
+
 // --- Event Handlers ---
 
 // จัดการการเข้าสู่ระบบ

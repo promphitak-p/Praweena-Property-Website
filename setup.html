@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Supabase - Praweena Property</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: sans-serif;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background: #d4af37;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ตั้งค่า Supabase Connection</h1>
+    <p>เนื่องจากไม่สามารถโหลดค่า Config จาก Server ได้ กรุณาระบุค่า Supabase URL และ Anon Key</p>
+
+    <form id="setup-form">
+        <div class="form-group">
+            <label>Supabase URL</label>
+            <input type="text" id="url" required placeholder="https://xyz.supabase.co">
+        </div>
+        <div class="form-group">
+            <label>Supabase Anon Key</label>
+            <input type="text" id="key" required placeholder="eyJhbG...">
+        </div>
+        <button type="submit">บันทึกการตั้งค่า</button>
+    </form>
+
+    <div id="status" class="status"></div>
+
+    <div style="margin-top: 2rem;">
+        <a href="/admin/auth.html">← กลับไปหน้าเข้าสู่ระบบ</a>
+    </div>
+
+    <script>
+        // Load existing
+        const savedUrl = localStorage.getItem('SUPABASE_URL');
+        const savedKey = localStorage.getItem('SUPABASE_ANON_KEY');
+        if (savedUrl) document.getElementById('url').value = savedUrl;
+        if (savedKey) document.getElementById('key').value = savedKey;
+
+        document.getElementById('setup-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const url = document.getElementById('url').value.trim();
+            const key = document.getElementById('key').value.trim();
+
+            if (url && key) {
+                localStorage.setItem('SUPABASE_URL', url);
+                localStorage.setItem('SUPABASE_ANON_KEY', key);
+
+                const status = document.getElementById('status');
+                status.textContent = 'บันทึกเรียบร้อย! คุณสามารถกลับไปใช้งานได้แล้ว';
+                status.className = 'status success';
+                status.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>

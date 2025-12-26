@@ -1,0 +1,525 @@
+/* ==========================================================================
+   RENOVATION TODO LIST STYLES
+   matches Praweena Property Theme (Gold/Minimal)
+   ========================================================================== */
+
+/* --- 1. Top Filters & Controls --- */
+.todo-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    /* Fix: Allow wrapping on mobile */
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.category-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 50px;
+    /* Pill shape */
+    font-size: 0.9rem;
+    color: var(--text-light, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.category-filter-btn:hover {
+    background: #f9fafb;
+    border-color: #d4af37;
+}
+
+.category-filter-btn.active {
+    background: var(--primary, #d4af37);
+    color: white;
+    border-color: var(--primary, #d4af37);
+    box-shadow: 0 2px 4px rgba(212, 175, 55, 0.3);
+    /* Gold shadow */
+}
+
+.category-filter-btn .badge {
+    background: rgba(0, 0, 0, 0.1);
+    color: inherit;
+    font-size: 0.75em;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.category-filter-btn.active .badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* --- 2. Notification Banner --- */
+.todo-notification-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff7ed;
+    /* Light orange bg */
+    border: 1px solid #ffedd5;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.todo-notification-banner.enabled {
+    background: #ecfdf5;
+    /* Light green */
+    border-color: #d1fae5;
+}
+
+.todo-notification-banner.disabled {
+    background: #fef2f2;
+    /* Light red */
+    border-color: #fee2e2;
+}
+
+.todo-notification-content strong {
+    font-size: 1rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #111827;
+}
+
+.todo-notification-content p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+#todo-enable-notifications-btn {
+    background: #ea580c;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* --- 3. Empty State --- */
+.todo-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: white;
+    border: 2px dashed #e5e7eb;
+    border-radius: 12px;
+    color: #9ca3af;
+}
+
+.todo-empty-state-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* --- 4. Category Sections --- */
+.todo-category-section {
+    margin-bottom: 2rem;
+}
+
+.todo-category-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.todo-category-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #374151;
+    margin: 0;
+}
+
+.todo-category-count {
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* --- 5. Todo Items (Cards) --- */
+.todo-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    /* Reduced gap between items */
+}
+
+.todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    /* Slightly tighter radius */
+    padding: 0.5rem 0.75rem;
+    /* Compact padding */
+    transition: all 0.2s ease;
+    position: relative;
+    min-height: 40px;
+    /* Ensure minimum click area */
+}
+
+.todo-item:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.todo-item.completed {
+    opacity: 0.75;
+    background: #f9fafb;
+}
+
+/* Checkbox */
+.todo-checkbox {
+    flex-shrink: 0;
+    width: 18px;
+    /* Slightly smaller */
+    height: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 3px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.todo-checkbox:hover {
+    border-color: var(--primary, #f37335);
+}
+
+.todo-checkbox.checked {
+    background: var(--primary, #f37335);
+    border-color: var(--primary, #f37335);
+}
+
+.todo-checkbox.checked::after {
+    content: '✔';
+    position: absolute;
+    color: white;
+    font-size: 10px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Content */
+.todo-content {
+    flex-grow: 1;
+    min-width: 0;
+    /* Text truncation fix */
+}
+
+.todo-title {
+    font-size: 0.95rem;
+    /* Slightly smaller font */
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0px;
+    /* Remove bottom margin */
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.todo-item.completed .todo-title {
+    text-decoration: line-through;
+    color: #6b7280;
+}
+
+.todo-description {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    /* Limit lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.todo-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.7rem;
+    margin-top: 2px;
+}
+
+/* Meta Tags */
+.todo-priority,
+.todo-due-date,
+.todo-reminder {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.todo-priority.high,
+.todo-priority.urgent {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.todo-priority.medium {
+    background: #fffbeb;
+    color: #f59e0b;
+}
+
+.todo-priority.low {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.todo-due-date {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.todo-due-date.overdue {
+    background: #ffe4e6;
+    color: #be123c;
+    font-weight: 700;
+}
+
+.todo-reminder {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
+/* Actions */
+.todo-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0;
+    /* Hidden by default on desktop */
+    transition: opacity 0.2s;
+}
+
+.todo-item:hover .todo-actions {
+    opacity: 1;
+}
+
+/* Always show actions on mobile touch devices if possible, 
+   but hover usually works fine. Or we can use media query */
+@media (hover: none) {
+    .todo-actions {
+        opacity: 1;
+    }
+}
+
+.todo-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 1rem;
+    opacity: 0.6;
+    border-radius: 4px;
+}
+
+.todo-action-btn:hover {
+    opacity: 1;
+    background: #f3f4f6;
+}
+
+.todo-drag-handle {
+    cursor: grab;
+    padding: 4px;
+    color: #9ca3af;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+/* --- 6. Stats Section (Progress Bar) --- */
+.todo-progress-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+}
+
+.todo-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.todo-progress-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #374151;
+}
+
+.todo-progress-percentage {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary, #f37335);
+}
+
+.todo-progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #f3f4f6;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.todo-progress-fill {
+    height: 100%;
+    background: var(--primary, #f37335);
+    width: 0%;
+    transition: width 0.5s ease;
+    border-radius: 99px;
+}
+
+.todo-stats {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+    border-top: 1px solid #f9fafb;
+}
+
+.todo-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.todo-stat-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.todo-stat-badge.pending {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.todo-stat-badge.in-progress {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.todo-stat-badge.completed {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 640px) {
+    .todo-item {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .todo-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px dashed #f3f4f6;
+        opacity: 1;
+        /* Always show on mobile */
+    }
+
+    .todo-notification-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #todo-enable-notifications-btn {
+        width: 100%;
+    }
+
+    .todo-stats {
+        gap: 1rem;
+    }
+
+    .todo-stat-item {
+        width: 48%;
+        /* 2 cols */
+    }
+}
+
+/* --- 7. Floating Add Button --- */
+.todo-add-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary, #f37335);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(243, 115, 53, 0.4);
+    font-size: 2rem;
+    display: flex !important;
+    /* Force flex when shown */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    z-index: 100;
+    padding: 0;
+    line-height: 1;
+}
+
+.todo-add-btn:hover {
+    transform: scale(1.1) rotate(90deg);
+    background: var(--primary-dark, #e65100);
+    box-shadow: 0 6px 16px rgba(243, 115, 53, 0.5);
+}
+
+.todo-add-btn:active {
+    transform: scale(0.95) rotate(90deg);
+}
+
+@media (max-width: 640px) {
+    .todo-add-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        font-size: 1.75rem;
+    }
+}

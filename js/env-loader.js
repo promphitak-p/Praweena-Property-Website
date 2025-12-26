@@ -3,30 +3,36 @@
 // If running from a static server (e.g., plain localhost) and /api/env.js serves
 // the serverless handler source (with "export default function"), this avoids
 // executing invalid syntax in the browser.
-(async function loadSupabaseEnv() {
+
+// /js/env-loader.js
+(function loadSupabaseEnvSync() {
   try {
-    const res = await fetch('/api/env.js', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`env.js not reachable (${res.status})`);
+    const xhr = new XMLHttpRequest();
+    // Synchronous request to ensure config is loaded before other scripts run
+    xhr.open('GET', '/api/env.js', false);
+    xhr.send(null);
 
-    const text = await res.text();
+    if (xhr.status === 200) {
+      const text = xhr.responseText;
+      // Check if it's the executed assignment (Prod) or source code (Dev/Static)
+      // We look for the specific pattern window.__SUPABASE = ...
+      const match = text.match(/window\.__SUPABASE\s*=\s*\{[\s\S]*?\};/);
 
-    // Extract only the assignment (avoid injecting "export default function" from serverless source)
-    const match = text.match(/window\.__SUPABASE\s*=\s*\{[\s\S]*?\};/);
-    if (!match) {
-      console.warn('env-loader: env.js does not contain window.__SUPABASE assignment; skipping injection');
-      return;
+      if (match) {
+        // Safe to execute because it matches our expected pattern
+        // Using new Function is cleaner than eval for global scope execution
+        // eslint-disable-next-line no-new-func
+        new Function(match[0])();
+        console.log('env-loader: injected remote env');
+      } else {
+        // This usually happens locally where /api/env.js returns the file source code
+        // We silently ignore it and let local-setup.js or localStorage take over
+        // console.debug('env-loader: /api/env.js did not return executable config (likely local dev)');
+      }
+    } else {
+      console.warn('env-loader: /api/env.js returned status ' + xhr.status);
     }
-
-    const payload = match[0];
-    const blob = new Blob([payload], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-
-    const script = document.createElement('script');
-    script.src = url;
-    script.onload = () => URL.revokeObjectURL(url);
-    script.onerror = () => console.warn('env-loader: failed to inject env.js payload');
-    document.head.appendChild(script);
   } catch (err) {
-    console.warn('env-loader: unable to load /api/env.js; using local setup instead', err);
+    console.warn('env-loader: synchronous load failed (offline or blocked?)', err);
   }
 })();

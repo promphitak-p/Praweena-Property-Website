@@ -18,9 +18,18 @@
     return;
   }
 
-  // If we have config from server, save it to local for future convenience (optional, but good for hybrid)
+  // Validate loaded config (check for invalid placeholders from static file parsing)
+  const isValid = (val) => val && val !== 'undefined' && val !== 'null' && !val.includes('${');
+
+  if (w.__SUPABASE.url && !isValid(w.__SUPABASE.url)) w.__SUPABASE.url = '';
+  if (w.__SUPABASE.anonKey && !isValid(w.__SUPABASE.anonKey)) w.__SUPABASE.anonKey = '';
+
+  // If we have valid config from server, save it to local for future convenience
   if (w.__SUPABASE.url && w.__SUPABASE.anonKey) {
-    console.log('[Local Setup] ✓ Supabase config already loaded from server');
+    console.log('[Local Setup] ✓ Supabase config loaded from server');
+    // cache valid server config to local
+    localStorage.setItem('SUPABASE_URL', w.__SUPABASE.url);
+    localStorage.setItem('SUPABASE_ANON_KEY', w.__SUPABASE.anonKey);
     return;
   }
 

@@ -757,7 +757,30 @@ function fillRenovationForm(data) {
 // โหลดสมุดรีโนเวทของบ้านหนึ่งหลังแล้วเติมฟอร์ม
 async function loadRenovationBookForProperty(propertyId) {
   try {
-    const data = await getRenovationBookByPropertyId(propertyId);
+    let data = await getRenovationBookByPropertyId(propertyId);
+
+    // Auto-fill from Property if Book is empty
+    if (!data && currentProperty) {
+      console.log('Auto-filling from property data...');
+      let usable = null;
+      if (currentProperty.size_text) {
+        const m = currentProperty.size_text.match(/(\d+)/);
+        if (m) usable = Number(m[1]);
+      }
+
+      data = {
+        house_code: currentProperty.title,
+        house_location: [currentProperty.address, currentProperty.district, currentProperty.province].filter(Boolean).join(', '),
+        house_type: currentProperty.property_type,
+        land_size: currentProperty.land_size ? Number(currentProperty.land_size) : null,
+        usable_area: usable,
+        house_storeys: 2, // Default
+        // Default values for new book
+        project_goal: 'flip_sell',
+        acquisition_type: 'broker',
+      };
+    }
+
     fillRenovationForm(data);
   } catch (err) {
     console.error(err);

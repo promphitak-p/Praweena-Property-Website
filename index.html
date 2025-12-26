@@ -756,17 +756,22 @@
       transform: translateY(0);
     }
 
-    @media (max-width: 720px) {
+    @media (max-width: 768px) {
       .rl-hero {
-        padding-top: 7rem;
+        padding: 6rem 0 3rem;
       }
 
       .rl-hero-media img {
-        height: 460px;
+        height: 320px;
       }
 
       .rl-hero-metrics {
-        gap: 1.5rem;
+        gap: 1.2rem;
+        flex-wrap: wrap;
+      }
+
+      .rl-hero-metrics div span:first-child {
+        font-size: 1.6rem;
       }
 
       .rl-search {
@@ -774,7 +779,15 @@
       }
 
       .rl-compare {
-        height: 360px;
+        height: 280px;
+      }
+
+      .rl-section {
+        padding: 3rem 0;
+      }
+
+      .rl-section-title h2 {
+        font-size: 1.8rem;
       }
     }
 
@@ -961,10 +974,9 @@
     <section class="rl-hero" id="hero">
       <div class="rl-container rl-hero-grid">
         <div class="rl-reveal">
-
-          <h1>มาตรฐานใหม่ <br><span>ของการรีโนเวท</span></h1>
-          <p>เรามุ่งมั่นยกระดับมาตรฐานบ้านมือสอง ออกแบบใหม่ และปรับปรุงระบบสําคัญทั้งหลัง เพื่อให้คุณได้บ้านที่คุ้มค่า
-            "พร้อม" จริงๆสำหรับการอยู่อาศัย</p>
+          <h1 id="hero-title">มาตรฐานใหม่ <br><span>ของการรีโนเวท</span></h1>
+          <p id="hero-subtitle">เรามุ่งมั่นยกระดับมาตรฐานบ้านมือสอง ออกแบบใหม่ และปรับปรุงระบบสําคัญทั้งหลัง
+            เพื่อให้คุณได้บ้านที่คุ้มค่า "พร้อม" จริงๆสำหรับการอยู่อาศัย</p>
           <div class="rl-search">
             <div class="rl-search-field"
               style="grid-column: 1 / -1; border:none; padding:0; display:flex; gap:1rem; flex-wrap:wrap;">
@@ -1083,11 +1095,9 @@
         </div>
         <div class="rl-reveal">
           <div class="rl-compare" id="rl-compare">
-            <img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=1200"
-              alt="After">
+            <img src="/assets/img/renovate_after.png" alt="After">
             <div class="rl-before" id="rl-before">
-              <img src="https://images.unsplash.com/photo-1503594384566-461fe158e797?auto=format&fit=crop&q=80&w=1200"
-                alt="Before">
+              <img src="/assets/img/renovate_before.png" alt="Before">
             </div>
             <div class="rl-badge rl-badge--after">AFTER</div>
             <div class="rl-badge rl-badge--before">BEFORE</div>
@@ -1229,7 +1239,7 @@
     ↑
   </button>
 
-  <script type="module" src="/js/pages/index.page.js"></script>
+  <script type="module" src="/js/pages/index.page.js?v=2"></script>
 </body>
 
 </html>

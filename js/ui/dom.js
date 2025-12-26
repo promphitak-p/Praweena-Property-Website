@@ -17,6 +17,9 @@ export function el(tag, options = {}) {
   if (options.textContent) {
     element.textContent = options.textContent;
   }
+  if (options.style) {
+    element.style.cssText = options.style;
+  }
   if (options.attributes) {
     for (const [key, value] of Object.entries(options.attributes)) {
       element.setAttribute(key, value);

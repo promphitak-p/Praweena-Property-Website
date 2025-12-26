@@ -17,7 +17,7 @@ async function fetchPropertyById(id) {
 function field(label, value) {
   const htmlValue = value && String(value).trim() ? value : '—';
   return `
-    <div>
+    <div class="rbr-field">
       <div class="rb-report-field-label">${label}</div>
       <div class="rb-report-field-value">${htmlValue}</div>
     </div>
@@ -27,11 +27,61 @@ function field(label, value) {
 function fieldFull(label, value) {
   const htmlValue = value && String(value).trim() ? value : '—';
   return `
-    <div style="grid-column:1/-1;">
+    <div class="rbr-field rbr-field-full" style="grid-column:1/-1;">
       <div class="rb-report-field-label">${label}</div>
       <div class="rb-report-field-value">${htmlValue}</div>
     </div>
   `;
+}
+
+// ---------------- mappings ----------------
+const TH_MAP = {
+  // House Type
+  'townhouse': 'ทาวน์เฮ้าส์',
+  'single_house': 'บ้านเดี่ยว',
+  'twin_house': 'บ้านแฝด',
+  'condo': 'คอนโด',
+  'commercial': 'อาคารพาณิชย์',
+  'land': 'ที่ดิน',
+  // Facing
+  'north': 'ทิศเหนือ',
+  'south': 'ทิศใต้',
+  'east': 'ทิศตะวันออก',
+  'west': 'ทิศตะวันตก',
+  'northeast': 'ทิศตะวันออกเฉียงเหนือ',
+  'northwest': 'ทิศตะวันตกเฉียงเหนือ',
+  'southeast': 'ทิศตะวันออกเฉียงใต้',
+  'southwest': 'ทิศตะวันตกเฉียงใต้',
+  // Acquisition
+  'npa_bank': 'ทรัพย์ธนาคาร (NPA)',
+  'direct_owner': 'เจ้าของขายเอง',
+  'agent': 'นายหน้า',
+  'auction': 'ประมูลกรมบังคับคดี',
+  // Goal
+  'flip_sell': 'รีโนเวทเพื่อขาย',
+  'rent': 'ปล่อยเช่า',
+  'live_in': 'อยู่อาศัยเอง',
+  // Concept
+  'modern': 'โมเดิร์น',
+  'minimal': 'มินิมอล',
+  'loft': 'ลอฟท์',
+  'luxury': 'ลักซ์ชัวรี่',
+  'nordic': 'นอร์ดิก',
+  'tropical': 'ทรอปิคอล',
+  // Screed / Floor
+  'remove_partial': 'รื้อถอนบางส่วน',
+  'remove_all': 'รื้อถอนทั้งหมด',
+  'keep_existing': 'เก็บของเดิมไว้',
+  'tile': 'ปูกระเบื้อง',
+  'spc': 'SPC',
+  'laminate': 'ลามิเนต',
+  'engineering_wood': 'ไม้เอ็นจิเนียร์',
+  'polished_cement': 'ปูนขัดมัน'
+};
+
+function t(val) {
+  if (!val) return '';
+  return TH_MAP[val] || val;
 }
 
 // ---------------- header ----------------
@@ -44,14 +94,13 @@ async function renderHeader(property, book) {
     return;
   }
 
-  const statusText = property.published ? 'เผยแพร่แล้ว' : 'ยังไม่เผยแพร่';
-  const statusBadge = `<span class="rb-report-badge">${statusText}</span>`;
+  // Removed Status Badge as requested
 
   box.innerHTML = `
     <header class="rbr-header">
       <div class="rbr-header-left">
         <div class="rbr-title-main">
-          สมุดรีโนเวท: ${property.title || '-'} ${statusBadge}
+          สมุดรีโนเวท: ${property.title || '-'}
         </div>
         <div class="rbr-title-sub">
           ${property.address || ''} ${property.district || ''} ${property.province || ''}
@@ -59,11 +108,10 @@ async function renderHeader(property, book) {
         <div class="rbr-meta">
           ขนาด: ${property.size_text || '-'} • ${property.beds ?? '-'} นอน • ${property.baths ?? '-'} น้ำ • ที่จอดรถ ${property.parking ?? '-'}<br>
           ราคา ${formatPrice(Number(property.price) || 0)}
-          ${
-            book?.house_code
-              ? `<br>โค้ดบ้าน / ชื่อในระบบ: ${book.house_code}`
-              : ''
-          }
+          ${book?.house_code
+      ? `<br>โค้ดบ้าน / ชื่อในระบบ: ${book.house_code}`
+      : ''
+    }
         </div>
       </div>
       <div class="rbr-header-right">
@@ -88,16 +136,16 @@ function renderSection1(book) {
   box.innerHTML = `
     ${field('โค้ดบ้าน / ชื่อเล่นบ้าน', book.house_code)}
     ${field('ที่ตั้ง', book.house_location)}
-    ${field('ประเภทบ้าน', book.house_type)}
+    ${field('ประเภทบ้าน', t(book.house_type))}
     ${field('จำนวนชั้น', book.house_storeys)}
     ${field('ขนาดที่ดิน (ตร.วา)', book.land_size)}
     ${field('พื้นที่ใช้สอย (ตร.ม.)', book.usable_area)}
-    ${field('ทิศที่หันหน้า', book.house_facing)}
+    ${field('ทิศที่หันหน้า', t(book.house_facing))}
     ${field('อายุอาคาร (ปี)', book.house_age)}
-    ${field('แหล่งที่มาของบ้าน', book.acquisition_type)}
-    ${field('เป้าหมายโปรเจกต์', book.project_goal)}
+    ${field('แหล่งที่มาของบ้าน', t(book.acquisition_type))}
+    ${field('เป้าหมายโปรเจกต์', t(book.project_goal))}
     ${fieldFull('กลุ่มลูกค้าเป้าหมาย', book.target_buyer)}
-    ${fieldFull('คอนเซ็ปต์รีโนเวท / สไตล์', book.design_concept)}
+    ${fieldFull('คอนเซ็ปต์รีโนเวท / สไตล์', t(book.design_concept))}
   `;
 }
 
@@ -127,10 +175,10 @@ function renderSection3(book) {
   }
 
   box.innerHTML = `
-    ${field('การจัดการปูนเก่า / พื้นเดิม', book.remove_old_screed)}
+    ${field('การจัดการปูนเก่า / พื้นเดิม', t(book.remove_old_screed))}
     ${field('ความหนาปูนเก่า (ซม.)', book.old_screed_thickness)}
     ${fieldFull('สเปกปูนปรับระดับ / พื้นใหม่', book.new_screed_spec)}
-    ${fieldFull('แผนงานพื้น', book.flooring_plan)}
+    ${fieldFull('แผนงานพื้น', t(book.flooring_plan))}
   `;
 }
 
@@ -293,11 +341,15 @@ async function renderContractors(propertyId) {
 
 // ---------------- init ----------------
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('[RBR] DOMContentLoaded fired');
+
   const params = new URLSearchParams(window.location.search);
   const propertyId = params.get('property_id');
+  console.log('[RBR] Property ID:', propertyId);
 
   const headerBox = $('#rb-report-header');
   if (!propertyId) {
+    console.error('[RBR] No property_id in URL');
     if (headerBox) {
       headerBox.innerHTML = '<p class="rbr-note">ไม่มี property_id ใน URL</p>';
     }
@@ -321,10 +373,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
+    console.log('[RBR] Fetching data...');
     const [property, book] = await Promise.all([
       fetchPropertyById(propertyId),
       getRenovationBookByPropertyId(propertyId)
     ]);
+
+    console.log('[RBR] Property:', property);
+    console.log('[RBR] Book:', book);
 
     await renderHeader(property, book);
     renderSection1(book);
@@ -336,11 +392,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderSection7(book);
     await renderSpecs(propertyId);
     await renderContractors(propertyId);
+
+
+    console.log('[RBR] All content rendered successfully');
   } catch (err) {
-    console.error(err);
+    console.error('[RBR] Error:', err);
     if (headerBox) {
       headerBox.innerHTML =
-        '<p class="rbr-note">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+        '<p class="rbr-note">เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message + '</p>';
     }
   }
 });

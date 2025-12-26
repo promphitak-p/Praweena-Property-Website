@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+<!-- Unified Dashboard with Tabs -->
 
 <head>
   <meta charset="UTF-8" />
@@ -7,7 +8,9 @@
   <title>แดชบอร์ด - Praweena Property</title>
 
   <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="/assets/css/renovation-todos.css">
   <script src="/js/env-loader.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -467,6 +470,258 @@
       color: #111;
       margin: 0;
     }
+
+    /* TABS */
+    .tabs-container {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid #f3f4f6;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      color: #6b7280;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: #d4af37;
+    }
+
+    .tab-btn.active {
+      color: #d4af37;
+      border-bottom-color: #d4af37;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Renovation Card Overrides within Dashboard */
+    #tab-renovation .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    #tab-renovation .card-header {
+      padding: 1rem 1.5rem;
+      background: #fdfbf7;
+      border-bottom: 1px solid #f3e5ab;
+    }
+
+    #tab-renovation .card-header h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 0;
+      color: #4b5563;
+    }
+
+    #tab-renovation .card-body {
+      padding: 1.5rem;
+    }
+
+    /* Compact Table for Specs/Contractors */
+    .table-compact {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .table-compact th {
+      text-align: left;
+      background: #f9fafb;
+      padding: 0.5rem;
+      font-weight: 600;
+      color: #6b7280;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table-compact td {
+      padding: 0.5rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+    }
+
+    /* ===============================
+       MOBILE RESPONSIVE OVERRIDES
+       =============================== */
+    @media (max-width: 768px) {
+
+      /* Container */
+      .container {
+        padding: 0.75rem;
+      }
+
+      /* Page Header */
+      .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .page-header h1 {
+        font-size: 1.4rem;
+      }
+
+      .page-header-left {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.75rem;
+      }
+
+      /* Tabs - Horizontal Scroll */
+      .tabs-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0;
+        padding-bottom: 0.5rem;
+      }
+
+      .tab-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* Filter Bar */
+      .filter-bar {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .filter-input {
+        width: 100%;
+      }
+
+      .filter-actions {
+        width: 100%;
+        flex-direction: column !important;
+      }
+
+      .filter-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      #add-property-btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Table → Hide on Mobile (use cards in JS) */
+      .table-wrapper {
+        overflow-x: auto;
+      }
+
+      #properties-table th,
+      #properties-table td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      /* Modal - Full Screen */
+      .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+      }
+
+      .modal-body {
+        padding: 1rem !important;
+      }
+
+      .modal-header {
+        padding: 1rem !important;
+      }
+
+      .modal-header h3 {
+        font-size: 1.2rem !important;
+      }
+
+      .modal-close {
+        top: 0.75rem !important;
+        right: 0.75rem !important;
+      }
+
+      .modal-actions {
+        padding: 0.75rem 1rem !important;
+        margin: 1rem -1rem 0 !important;
+        flex-wrap: wrap;
+      }
+
+      .modal-actions .btn {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      /* Form */
+      .form-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+      }
+
+      .form-section-title {
+        font-size: 1rem;
+      }
+
+      .form-control {
+        padding: 0.75rem;
+        font-size: 1rem;
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+      }
+
+      /* Renovation Tab */
+      #tab-renovation .card {
+        margin-bottom: 1rem;
+      }
+
+      #tab-renovation .card-body {
+        padding: 1rem;
+      }
+
+      /* Map */
+      #modal-map {
+        height: 250px !important;
+      }
+    }
   </style>
 </head>
 
@@ -484,38 +739,613 @@
       </div>
     </div>
 
-    <!-- Filter + Add Button -->
-    <div class="filter-bar">
-      <div class="filter-input">
-        <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ...">
+    <!-- Tabs -->
+    <div class="tabs-container">
+      <button class="tab-btn active" data-tab="properties">ประกาศทั้งหมด</button>
+      <button class="tab-btn" data-tab="renovation">สมุดรีโนเวท</button>
+      <button class="tab-btn" data-tab="todos">รายการงาน</button>
+      <button class="tab-btn" data-tab="content">จัดการหน้าแรก</button>
+    </div>
+
+    <!-- TAB 1: PROPERTIES -->
+    <div id="tab-properties" class="tab-content active">
+
+      <!-- Filter + Add Button -->
+      <div class="filter-bar">
+        <div class="filter-input">
+          <input type="text" id="property-search" class="form-control" placeholder="ค้นหาตามชื่อประกาศ...">
+        </div>
+        <div class="filter-actions" style="display:flex;gap:0.5rem;">
+          <button id="toggle-trash-btn" class="btn btn-secondary" title="ถังขยะ">
+            🗑️ ถังขยะ
+          </button>
+          <button id="add-property-btn" class="btn">เพิ่มประกาศใหม่</button>
+        </div>
       </div>
-      <div class="filter-actions" style="display:flex;gap:0.5rem;">
-        <button id="toggle-trash-btn" class="btn btn-secondary" title="ถังขยะ">
-          🗑️ ถังขยะ
-        </button>
-        <button id="add-property-btn" class="btn">เพิ่มประกาศใหม่</button>
+
+      <div class="table-wrapper">
+        <table id="properties-table">
+          <thead>
+            <tr>
+              <th>หัวข้อ</th>
+              <th>ราคา</th>
+              <th>สถานะ</th>
+              <th>รีโนเวท</th>
+              <th>โชว์ลูกค้า</th>
+              <th>อัปเดตล่าสุด</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="properties-table-body">
+            <!-- แถวประกาศจะถูกเติมโดย JS -->
+          </tbody>
+        </table>
+      </div>
+    </div><!-- End Tab Properties -->
+
+    <!-- TAB 2: RENOVATION BOOK -->
+    <div id="tab-renovation" class="tab-content">
+      <header class="page-header" style="margin-top: 1rem; border-bottom: 1px solid #eee; padding-bottom: 1rem;">
+        <div class="page-header-actions" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
+          <label style="display: flex; flex-direction: column; gap: 0.25rem; font-weight: 500;">
+            เลือกบ้านเพื่อดูสมุดรีโนเวท:
+            <div style="position: relative; min-width: 300px;">
+              <input type="text" id="rb-property-search" class="form-control"
+                placeholder="พิมพ์ชื่อบ้าน หรือคลิกเพื่อเลือก..." autocomplete="off"
+                style="padding-right: 2.5rem; cursor: pointer;">
+              <div id="rb-property-chevron"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none;">
+                ▼</div>
+              <div id="rb-property-dropdown"
+                style="display:none; position:absolute; top:100%; left:0; right:0; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d4af37; border-top:none; border-radius:0 0 12px 12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); z-index:100;">
+                <!-- List items will be injected here -->
+              </div>
+            </div>
+          </label>
+          <!-- Optional: Add new property button here if needed, or keep it in properties tab -->
+        </div>
+      </header>
+
+      <!-- Container for Renovation Content (Hidden until property selected) -->
+      <div id="renovation-content-area" style="display:none; margin-top: 1.5rem;">
+        <!-- Content will be injected or structure placed here. 
+              To save tokens and complexity, I will paste the core structure from renovation-book.html here 
+              but adjusted for the dashboard context. -->
+
+        <!-- CARD 1: ข้อมูลบ้าน & โปรเจกต์ -->
+        <section class="card">
+          <div class="card-header">
+            <h2>1. ข้อมูลบ้าน & โปรเจกต์</h2>
+          </div>
+          <div class="card-body form-grid">
+            <div class="form-group"><label>โค้ดบ้าน / ชื่อเล่นบ้าน</label><input id="rb_house_code"
+                class="form-control"></div>
+            <div class="form-group"><label>ที่ตั้ง (ซอย / โครงการ / เขต)</label><input id="rb_house_location"
+                class="form-control"></div>
+            <div class="form-group"><label>ประเภทบ้าน</label>
+              <select id="rb_house_type" class="form-control">
+                <option value="">— เลือกประเภท —</option>
+                <option value="townhouse">ทาวน์เฮาส์</option>
+                <option value="single_house">บ้านเดี่ยว</option>
+                <option value="twin_house">บ้านแฝด</option>
+                <option value="commercial">อาคารพาณิชย์</option>
+              </select>
+            </div>
+            <div class="form-group"><label>จำนวนชั้น</label><input id="rb_house_storeys" type="number"
+                class="form-control"></div>
+            <div class="form-group"><label>ขนาดที่ดิน (ตร.วา)</label><input id="rb_land_size" type="number" step="0.1"
+                class="form-control"></div>
+            <div class="form-group"><label>พื้นที่ใช้สอย (ตร.ม.)</label><input id="rb_usable_area" type="number"
+                class="form-control"></div>
+            <div class="form-group"><label>ทิศที่หันหน้า</label>
+              <select id="rb_house_facing" class="form-control">
+                <option value="">— เลือกทิศ —</option>
+                <option value="east">ทิศตะวันออก</option>
+                <option value="west">ทิศตะวันตก</option>
+                <option value="north">ทิศเหนือ</option>
+                <option value="south">ทิศใต้</option>
+              </select>
+            </div>
+            <div class="form-group"><label>อายุอาคาร (ปี)</label><input id="rb_house_age" type="number"
+                class="form-control"></div>
+            <div class="form-group"><label>แหล่งที่มา</label>
+              <select id="rb_acquisition_type" class="form-control">
+                <option value="">— เลือก —</option>
+                <option value="npa_bank">บ้าน NPA / ซับธนาคาร</option>
+                <option value="owner">ซื้อจากเจ้าของโดยตรง</option>
+                <option value="auction">ประมูล</option>
+                <option value="other">อื่น ๆ</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>เป้าหมายโปรเจกต์</label>
+              <select id="rb_project_goal" class="form-control">
+                <option value="">— เลือก —</option>
+                <option value="flip_sell">รีโนเวทขาย (Flip)</option>
+                <option value="rent">รีโนเวทเพื่อปล่อยเช่า</option>
+                <option value="keep">ถือครองระยะยาว</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>กลุ่มลูกค้าเป้าหมาย</label><textarea id="rb_target_buyer" rows="2"
+                class="form-control"></textarea></div>
+            <div class="form-group full-width"><label>คอนเซ็ปต์รีโนเวท</label><textarea id="rb_design_concept" rows="2"
+                class="form-control"></textarea></div>
+          </div>
+        </section>
+
+        <!-- CARD 2: สภาพเดิม & ปัญหาหลัก -->
+        <section class="card">
+          <div class="card-header">
+            <h2>2. สภาพเดิม & ปัญหาหลัก</h2>
+          </div>
+          <div class="card-body form-grid">
+            <div class="form-group full-width"><label>โครงสร้าง / พื้น / หลังคา</label><textarea
+                id="rb_structural_issues" rows="2" class="form-control"></textarea></div>
+            <div class="form-group full-width"><label>ระบบท่อน้ำทิ้ง / สุขาภิบาล</label><textarea
+                id="rb_plumbing_issues" rows="2" class="form-control"></textarea></div>
+            <div class="form-group full-width"><label>ระบบน้ำดี</label><textarea id="rb_water_supply_issues" rows="2"
+                class="form-control"></textarea></div>
+            <div class="form-group full-width"><label>ระบบไฟฟ้า</label><textarea id="rb_electrical_issues" rows="2"
+                class="form-control"></textarea></div>
+            <div class="form-group full-width"><label>ความเสี่ยงอื่น ๆ</label><textarea id="rb_other_risks" rows="2"
+                class="form-control"></textarea></div>
+          </div>
+        </section>
+
+        <!-- CARD 3: แผนโครงสร้าง + พื้น -->
+        <section class="card">
+          <div class="card-header">
+            <h2>3. แผนงานโครงสร้าง & งานพื้น</h2>
+          </div>
+          <div class="card-body form-grid">
+            <div class="form-group"><label>การจัดการปูนเก่า</label>
+              <select id="rb_remove_old_screed" class="form-control">
+                <option value="">— เลือก —</option>
+                <option value="remove_all">สกัดปูนเก่าออกทั้งหมด</option>
+                <option value="remove_partial">สกัดเฉพาะจุดที่มีปัญหา</option>
+                <option value="keep">คงพื้นเดิม</option>
+              </select>
+            </div>
+            <div class="form-group"><label>ความหนาปูนเก่า (ซม.)</label><input id="rb_old_screed_thickness" type="number"
+                step="0.5" class="form-control"></div>
+            <div class="form-group full-width"><label>สเปกปูนปรับระดับ</label><textarea id="rb_new_screed_spec" rows="2"
+                class="form-control"></textarea></div>
+            <div class="form-group full-width"><label>แผนงานพื้น</label><textarea id="rb_flooring_plan" rows="2"
+                class="form-control"></textarea></div>
+          </div>
+        </section>
+
+        <!-- CARD 4: ระบบน้ำ -->
+        <section class="card">
+          <div class="card-header">
+            <h2>4. ระบบน้ำ</h2>
+          </div>
+          <div class="card-body form-grid">
+            <div class="form-group"><label>แผนท่อน้ำทิ้ง</label>
+              <select id="rb_drainage_plan" class="form-control">
+                <option value="">— เลือก —</option>
+                <option value="replace_all">รื้อและวางท่อใหม่ทั้งระบบ</option>
+                <option value="replace_partial">เปลี่ยนเฉพาะแนวที่จำเป็น</option>
+                <option value="keep">รักษาท่อเดิม</option>
+              </select>
+            </div>
+            <div class="form-group"><label>ขนาดท่อเมน</label><input id="rb_pipe_size_main" class="form-control"></div>
+            <div class="form-group full-width"><label>รายละเอียดวางท่อ</label><textarea id="rb_drainage_notes" rows="2"
+                class="form-control"></textarea></div>
+            <div class="form-group"><label>แผนน้ำดี</label>
+              <select id="rb_water_supply_plan" class="form-control">
+                <option value="">— เลือก —</option>
+                <option value="new_all">เดินท่อใหม่ทั้งระบบ</option>
+                <option value="new_partial">เดินใหม่บางส่วน</option>
+                <option value="keep">คงระบบเดิม</option>
+              </select>
+            </div>
+            <div class="form-group"><label>ถัง / ปั๊ม</label><input id="rb_water_tank_pump" class="form-control"></div>
+            <div class="form-group full-width"><label>หมายเหตุระบบน้ำ</label><textarea id="rb_water_notes" rows="2"
+                class="form-control"></textarea></div>
+          </div>
+        </section>
+
+        <!-- CARD 5: ไฟฟ้า -->
+        <section class="card">
+          <div class="card-header">
+            <h2>5. ระบบไฟฟ้า</h2>
+          </div>
+          <div class="card-body form-grid">
+            <div class="form-group"><label>แผนระบบไฟ</label>
+              <select id="rb_electric_plan" class="form-control">
+                <option value="">— เลือก —</option>
+                <option value="rewire_all">เดินสายไฟใหม่ทั้งหลัง</option>
+                <option value="rewire_partial">เดินใหม่บางส่วน</option>
+                <option value="keep">ใช้ของเดิม</option>
+              </select>
+            </div>
+            <div class="form-group"><label>ตู้ไฟ / เมน</label><input id="rb_main_breaker_spec" class="form-control">
+            </div>
+            <div class="form-group full-width"><label>แผนไฟส่องสว่าง</label><textarea id="rb_lighting_plan" rows="2"
+                class="form-control"></textarea></div>
+          </div>
+        </section>
+
+        <!-- CARD 6: ห้องน้ำ & ครัว -->
+        <section class="card">
+          <div class="card-header">
+            <h2>6. ห้องน้ำ & ครัว</h2>
+          </div>
+          <div class="card-body form-grid">
+            <div class="form-group full-width"><label>แผนห้องน้ำ</label><textarea id="rb_bathroom_plan" rows="2"
+                class="form-control"></textarea></div>
+            <div class="form-group full-width"><label>แผนครัว</label><textarea id="rb_kitchen_plan" rows="2"
+                class="form-control"></textarea></div>
+          </div>
+        </section>
+
+        <!-- CARD 7: สเปก & ทีมช่าง & งบ -->
+        <!-- Note: For simplicity in Dashboard, we might reduce complexity or rely on modal popups for detailed separate tables.
+              But user wants full functionality. I will add placeholders for the dynamic tables. -->
+        <section class="card">
+          <div class="card-header">
+            <h2>7. สเปก & ทีมช่าง & งบ</h2>
+          </div>
+          <div class="card-body">
+            <h3>สเปก (Specs)</h3>
+            <div id="rb-specs-container"></div>
+            <button id="rb-add-spec-btn" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;">+
+              เพิ่มสเปก</button>
+
+            <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
+
+            <h3>ทีมช่าง (Contractors)</h3>
+            <div id="rb-contractors-container"></div>
+            <button id="rb-add-contractor-btn" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;">+
+              เพิ่มทีมช่าง</button>
+
+            <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
+
+            <h3>งบรีโนเวท (Budget)</h3>
+            <div class="table-wrapper">
+              <table class="table" id="rb-budget-table">
+                <thead>
+                  <tr>
+                    <th>หมวดงาน</th>
+                    <th>แผน (บาท)</th>
+                    <th>ใช้จริง (บาท)</th>
+                    <th>ส่วนต่าง</th>
+                    <th>หมายเหตุ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Rows for demolition, structure, plumbing, electric, bathroom, kitchen, finishing -->
+                  <tr data-cat="demolition">
+                    <td>รื้อถอน</td>
+                    <td><input class="form-control" name="plan"></td>
+                    <td><input class="form-control" name="actual"></td>
+                    <td><input class="form-control" name="diff" readonly></td>
+                    <td><input class="form-control" name="note"></td>
+                  </tr>
+                  <tr data-cat="structure">
+                    <td>โครงสร้าง/พื้น</td>
+                    <td><input class="form-control" name="plan"></td>
+                    <td><input class="form-control" name="actual"></td>
+                    <td><input class="form-control" name="diff" readonly></td>
+                    <td><input class="form-control" name="note"></td>
+                  </tr>
+                  <tr data-cat="plumbing">
+                    <td>ประปา/สุขาภิบาล</td>
+                    <td><input class="form-control" name="plan"></td>
+                    <td><input class="form-control" name="actual"></td>
+                    <td><input class="form-control" name="diff" readonly></td>
+                    <td><input class="form-control" name="note"></td>
+                  </tr>
+                  <tr data-cat="electric">
+                    <td>ไฟฟ้า</td>
+                    <td><input class="form-control" name="plan"></td>
+                    <td><input class="form-control" name="actual"></td>
+                    <td><input class="form-control" name="diff" readonly></td>
+                    <td><input class="form-control" name="note"></td>
+                  </tr>
+                  <tr data-cat="bathroom">
+                    <td>ห้องน้ำ</td>
+                    <td><input class="form-control" name="plan"></td>
+                    <td><input class="form-control" name="actual"></td>
+                    <td><input class="form-control" name="diff" readonly></td>
+                    <td><input class="form-control" name="note"></td>
+                  </tr>
+                  <tr data-cat="kitchen">
+                    <td>ครัว</td>
+                    <td><input class="form-control" name="plan"></td>
+                    <td><input class="form-control" name="actual"></td>
+                    <td><input class="form-control" name="diff" readonly></td>
+                    <td><input class="form-control" name="note"></td>
+                  </tr>
+                  <tr data-cat="finishing">
+                    <td>ตกแต่ง/สี</td>
+                    <td><input class="form-control" name="plan"></td>
+                    <td><input class="form-control" name="actual"></td>
+                    <td><input class="form-control" name="diff" readonly></td>
+                    <td><input class="form-control" name="note"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="form-group full-width" style="margin-top:1.5rem;">
+              <label>สรุปภาพรวม / สิ่งที่ต้องโฟกัสเป็นพิเศษ</label>
+              <textarea id="rb_summary_notes" rows="3" class="form-control"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- Action Footer for Renovation -->
+
+
+
+        <div class="modal-actions"
+          style="position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e5e7eb; padding: 1rem 0; margin-top: 2rem;">
+          <div id="rb-save-status" style="margin-right: auto; color: #6b7280; font-size: 0.9rem;"></div>
+          <button type="button" id="rb-view-report-btn" class="btn btn-secondary">ดูรายงาน (PDF View)</button>
+          <button type="button" id="rb-save-btn" class="btn">บันทึกสมุดรีโนเวท</button>
+        </div>
+
+      </div><!-- End #renovation-content-area -->
+
+      <!-- Empty State -->
+      <!-- Renovation List State (Instead of Empty) -->
+      <div id="renovation-list-view" style="margin-top: 2rem;">
+        <h3 style="margin-bottom:1rem;color:#374151;">รายการสมุดรีโนเวททั้งหมด</h3>
+        <div class="table-wrapper">
+          <table id="renovation-list-table" style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f9fafb; border-bottom:2px solid #e5e7eb; text-align:left;">
+                <th style="padding:1rem;">บ้าน / โปรเจกต์</th>
+                <th style="padding:1rem;">สถานะรีโนเวท</th>
+                <th style="padding:1rem;">ราคาขาย</th>
+                <th style="padding:1rem; text-align:right;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="renovation-list-tbody">
+              <!-- JS Fill -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- End Tab Renovation -->
+
+    <!-- TAB 3: TO-DO LIST -->
+    <div id="tab-todos" class="tab-content">
+
+      <!-- Property Selector -->
+      <div class="todo-property-selector">
+        <label>
+          เลือกบ้านเพื่อจัดการรายการงาน:
+          <div style="position: relative; min-width: 300px;">
+            <input type="text" id="todo-property-search" class="form-control"
+              placeholder="พิมพ์ชื่อบ้าน หรือคลิกเพื่อเลือก..." autocomplete="off"
+              style="padding-right: 2.5rem; cursor: pointer;">
+            <div id="todo-property-chevron"
+              style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none;">
+              ▼</div>
+            <div id="todo-property-dropdown"
+              style="display:none; position:absolute; top:100%; left:0; right:0; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d4af37; border-top:none; border-radius:0 0 12px 12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); z-index:100;">
+              <!-- List items will be injected here -->
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Notification Permission Banner -->
+      <div id="todo-notification-banner" class="todo-notification-banner" style="display:none;">
+        <div class="todo-notification-icon">🔔</div>
+        <div class="todo-notification-content">
+          <strong id="todo-notif-title">การแจ้งเตือน</strong>
+          <p id="todo-notif-message">คลิกเพื่อเปิดใช้งานการแจ้งเตือนงาน</p>
+        </div>
+        <button id="todo-enable-notifications-btn" class="btn btn-sm" style="display:none;">เปิดใช้งาน</button>
+      </div>
+
+      <!-- Container for To-Do Content (Hidden until property selected) -->
+      <div id="todo-content-area" style="display:none;">
+
+        <!-- Progress Section -->
+        <div class="todo-progress-section">
+          <div class="todo-progress-header">
+            <h3>ความคืบหน้า</h3>
+            <div class="todo-progress-percentage" id="todo-progress-percent">0%</div>
+          </div>
+          <div class="todo-progress-bar">
+            <div class="todo-progress-fill" id="todo-progress-fill" style="width: 0%;"></div>
+          </div>
+          <div class="todo-stats">
+            <div class="todo-stat-item">
+              <span class="todo-stat-badge pending" id="todo-stat-pending">0</span>
+              <span>รอดำเนินการ</span>
+            </div>
+            <div class="todo-stat-item">
+              <span class="todo-stat-badge in-progress" id="todo-stat-progress">0</span>
+              <span>กำลังทำ</span>
+            </div>
+            <div class="todo-stat-item">
+              <span class="todo-stat-badge completed" id="todo-stat-completed">0</span>
+              <span>เสร็จแล้ว</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Filters -->
+        <div class="todo-category-filters" id="todo-category-filters">
+          <button class="category-filter-btn active" data-category="all">
+            📋 ทั้งหมด <span class="badge" id="badge-all">0</span>
+          </button>
+          <!-- More category buttons will be injected here -->
+        </div>
+
+        <!-- Task List -->
+        <div class="todo-list-container" id="todo-list-container">
+          <!-- Task sections will be injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="todo-empty-state" id="todo-empty-state" style="display:none;">
+          <div class="todo-empty-state-icon">📝</div>
+          <h3>ยังไม่มีรายการงาน</h3>
+          <p>เริ่มต้นด้วยการเพิ่มงานแรกของคุณ หรือสร้างจากแม่แบบมาตรฐาน</p>
+          <button id="todo-generate-btn" class="btn btn-secondary" style="margin-top: 1rem;">
+            ⚡ สร้างรายการงานมาตรฐาน (Template)
+          </button>
+        </div>
+
+      </div><!-- End #todo-content-area -->
+
+      <!-- Add Task Button (Floating) -->
+      <button id="todo-add-btn" class="todo-add-btn" style="display:none;" title="เพิ่มงานใหม่">+</button>
+
+    </div><!-- End Tab Todos -->
+
+
+
+    <!-- Modal: Add/Edit Task -->
+    <div id="todo-modal" class="modal">
+      <div class="modal-content" style="max-width: 600px;">
+        <button class="modal-close" id="todo-modal-close">&times;</button>
+        <div class="modal-body">
+          <h3 id="todo-modal-title" style="margin-bottom: 1.5rem;">เพิ่มงานใหม่</h3>
+
+          <form id="todo-form">
+            <input type="hidden" id="todo-id" name="id">
+            <input type="hidden" id="todo-property-id" name="property_id">
+
+            <div class="form-group">
+              <label>ชื่องาน *</label>
+              <input type="text" id="todo-title" name="title" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>รายละเอียด</label>
+              <textarea id="todo-description" name="description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label>หมวดหมู่ *</label>
+                <select id="todo-category" name="category_id" class="form-control" required>
+                  <option value="">-- เลือกหมวดหมู่ --</option>
+                  <!-- Categories will be injected here -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>ความสำคัญ</label>
+                <select id="todo-priority" name="priority" class="form-control">
+                  <option value="low">ต่ำ</option>
+                  <option value="medium" selected>ปานกลาง</option>
+                  <option value="high">สูง</option>
+                  <option value="urgent">เร่งด่วน</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>กำหนดเสร็จ</label>
+                <input type="date" id="todo-due-date" name="due_date" class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label>แจ้งเตือนเมื่อ</label>
+                <input type="datetime-local" id="todo-reminder" name="reminder_date" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-group"
+              style="padding: 10px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; margin-top: 1rem;">
+              <label class="checkbox-container" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="todo-is-template" name="is_template" style="width:18px; height:18px;">
+                <span style="font-weight:600; color:#d97706;">เพิ่มลงในรายการงานมาตรฐาน (Template)</span>
+              </label>
+              <small style="display:block; margin-left: 26px; color:#b45309;">หากเลือก
+                งานนี้จะถูกบันทึกไว้ใช้กับบ้านหลังอื่นๆ ในอนาคตด้วย</small>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 2rem;">
+              <button type="button" class="btn btn-secondary" id="todo-cancel-btn">ยกเลิก</button>
+              <button type="submit" class="btn" id="todo-submit-btn">บันทึก</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
-    <div class="table-wrapper">
-      <table id="properties-table">
-        <thead>
-          <tr>
-            <th>หัวข้อ</th>
-            <th>ราคา</th>
-            <th>สถานะ</th>
-            <th>รีโนเวท</th>
-            <th>โชว์ลูกค้า</th>
-            <th>อัปเดตล่าสุด</th>
-            <th>จัดการ</th>
-          </tr>
-        </thead>
-        <tbody id="properties-table-body">
-          <!-- แถวประกาศจะถูกเติมโดย JS -->
-        </tbody>
-      </table>
+    <!-- TAB 4: SITE CONTENT (HOMEPAGE MANAGER) -->
+    <div id="tab-content" class="tab-content">
+      <div class="card">
+        <div style="padding:1.5rem; border-bottom:1px solid #eee;">
+          <h2 style="margin:0; font-size:1.25rem;">จัดการหน้าแรก (Homepage)</h2>
+          <p style="color:#6b7280; margin-top:0.25rem;">ปรับแต่งข้อความและรูปภาพบนหน้าแรกของเว็บไซต์</p>
+        </div>
+
+        <div style="padding:1.5rem;">
+
+          <!-- Section: Hero Banner -->
+          <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #eee;">
+            <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">1. ส่วนหัว (Hero Banner)</h3>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label>พาดหัวหลัก (Title)</label>
+              <input type="text" id="hero-title-input" class="form-control" placeholder="มาตรฐานใหม่ ของการรีโนเวท">
+              <small style="color:#aaa;">ใช้ &lt;br&gt; เพื่อขึ้นบรรทัดใหม่</small>
+            </div>
+
+            <div class="form-group">
+              <label>ข้อความรอง (Subtitle)</label>
+              <textarea id="hero-subtitle-input" class="form-control" rows="3"
+                placeholder="เรามุ่งมั่นยกระดับมาตรฐาน..."></textarea>
+            </div>
+          </div>
+
+          <!-- Section: Before / After (Existing) -->
+          <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">2. รูปภาพ "บ้านในฝัน" (Before / After)</h3>
+          <p style="margin-bottom:1rem; color:#6b7280; font-size:0.95rem;">อัปโหลดรูปภาพเพื่อแสดงในส่วนเปรียบเทียบ
+            Before/After บนหน้าเว็บไซต์</p>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
+            <!-- Before -->
+            <div class="form-group">
+              <label>รูปภาพ Before (ก่อนทำ)</label>
+              <div id="upload-before-area" class="upload-area"
+                style="position:relative; overflow:hidden; min-height:240px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <img id="preview-before"
+                  style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0;">
+                <div id="before-placeholder" style="text-align:center;">
+                  <span style="font-size:2rem;">📷</span>
+                  <p style="margin:0.5rem 0 0; font-size:0.9rem; color:#6b7280;">คลิกเพื่ออัปโหลด</p>
+                </div>
+              </div>
+              <input type="file" id="file-before" accept="image/*" style="display:none;">
+            </div>
+
+            <!-- After -->
+            <div class="form-group">
+              <label>รูปภาพ After (หลังทำ)</label>
+              <div id="upload-after-area" class="upload-area"
+                style="position:relative; overflow:hidden; min-height:240px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <img id="preview-after"
+                  style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0;">
+                <div id="after-placeholder" style="text-align:center;">
+                  <span style="font-size:2rem;">✨</span>
+                  <p style="margin:0.5rem 0 0; font-size:0.9rem; color:#6b7280;">คลิกเพื่ออัปโหลด</p>
+                </div>
+              </div>
+              <input type="file" id="file-after" accept="image/*" style="display:none;">
+            </div>
+          </div>
+
+          <div style="margin-top:2rem; text-align:right;">
+            <button id="save-content-btn" class="btn" style="padding:0.75rem 2rem;">บันทึกการเปลี่ยนแปลง</button>
+          </div>
+
+        </div>
+      </div>
     </div>
   </main>
+
 
   <!-- Modal: ฟอร์มประกาศ (Redesigned) -->
   <div id="property-modal" class="modal">
@@ -560,6 +1390,11 @@
                   <option value="คอนโด">คอนโด</option>
                   <option value="ที่ดิน">ที่ดิน</option>
                 </select>
+              </div>
+
+              <div class="form-group">
+                <label>ขนาดที่ดิน (ตร.วา)</label>
+                <input type="text" name="land_size" class="form-control" placeholder="เช่น 50 ตร.วา">
               </div>
 
               <div class="form-group">
@@ -650,15 +1485,24 @@
               <div id="poi-manual-box" class="upload-area" style="margin-top:1rem; text-align:left; padding:1rem;">
                 <p style="font-weight:600; margin-bottom:0.5rem; font-size:0.9rem;">+ เพิ่มสถานที่ใกล้เคียงเอง
                   (ถ้าไม่พบในรายการ)</p>
-                <div class="form-grid" style="grid-template-columns: 2fr 1fr; gap:0.5rem;">
+                <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap:0.5rem; align-items:end;">
                   <input id="poi-name-input" type="text" class="form-control" placeholder="ชื่อสถานที่">
                   <select id="poi-type-input" class="form-control">
                     <option value="other">ทั่วไป</option>
                     <option value="school">โรงเรียน</option>
                     <option value="market">ตลาด/ร้านค้า</option>
                     <option value="hospital">โรงพยาบาล</option>
+                    <option value="government">สถานที่ราชการ</option>
+                    <option value="transport">ขนส่ง</option>
                   </select>
+                  <button type="button" id="poi-pick-map-btn" class="btn btn-secondary"
+                    style="height:38px; padding:0 12px;" title="จิ้มเลือกบนแผนที่">📍</button>
                 </div>
+                <!-- Hidden inputs for logic compatibility -->
+                <input type="hidden" id="poi-lat-input">
+                <input type="hidden" id="poi-lng-input">
+                <input type="hidden" id="poi-distance-input">
+
                 <div style="margin-top:0.5rem; text-align:right;">
                   <button type="button" id="poi-add-manual-btn" class="btn btn-secondary btn-sm">เพิ่มรายการ</button>
                 </div>
@@ -683,6 +1527,26 @@
               <p style="margin-top:0.5rem; color:#6b7280; font-size:0.9rem;">ยังไม่ได้เลือกไฟล์</p>
             </div>
             <div id="gallery-preview" class="mt-2" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1rem;">
+            </div>
+
+            <!-- Renovation Comparison Section -->
+            <div class="form-group full-width"
+              style="margin-top: 1.5rem; border-top: 1px dashed #ddd; paddingTop: 1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <label style="color: #ea580c; font-weight: 600; margin:0;">🛠️ เปรียบเทียบ Before & After
+                  (Slider)</label>
+                <button type="button" id="btn-add-comparison" class="btn btn-sm btn-secondary"
+                  style="font-size:0.85rem;">+ เพิ่มคู่รูปภาพ</button>
+              </div>
+
+              <div id="comparison-list-container">
+                <!-- Dynamic rows will be added here -->
+              </div>
+
+              <small class="form-text text-muted"
+                style="color:#6b7280; font-size:0.85rem; display:block; margin-top:0.5rem;">
+                อัปโหลดรูปภาพเป็นคู่ๆ เพื่อสร้างสไลด์เปรียบเทียบ (ระบบจะแสดงทั้งแกลเลอรี่และสไลด์)
+              </small>
             </div>
 
             <label style="margin-top:1.5rem;">YouTube Link</label>
@@ -782,6 +1646,47 @@
 
   <!-- Page JS -->
   <script type="module" src="/js/pages/dashboard.page.js"></script>
+
+  <!-- Spec/Contractor Modal (Shared for Renovation Tab) -->
+  <div id="rb-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px; padding: 2rem;">
+      <span class="modal-close" id="rb-modal-close">&times;</span>
+      <h3 id="rb-modal-title" style="margin: 0 0 1rem 0;">เพิ่มข้อมูล</h3>
+      <form id="rb-modal-form">
+        <!-- Helper container to swap fields -->
+        <div id="rb-modal-fields-container"></div>
+        <div style="text-align:right; margin-top:1.5rem;">
+          <button type="button" class="btn btn-secondary" id="rb-modal-cancel">ยกเลิก</button>
+          <button type="submit" class="btn">บันทึก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Renovation Report View Modal -->
+  <div id="rb-report-modal" class="modal" style="z-index:9999; background-color:rgba(0,0,0,0.8);">
+    <div
+      style="position:relative; background-color:#fefefe; margin: 2vh auto; padding:0; border:1px solid #888; width:95%; height:96vh; border-radius:8px; display:flex; flex-direction:column;">
+      <div
+        style="padding: 10px 15px; border-bottom: 1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:1rem; align-items:center;">
+          <h3 style="margin:0;">ตัวอย่างรายงาน (Preview)</h3>
+          <!-- External Print Button -->
+          <button type="button" id="rb-modal-print-btn" class="btn btn-sm btn-secondary"
+            style="display:flex; align-items:center; gap:0.5rem; padding: 0.25rem 0.75rem;">
+            <span>🖨</span> <span>สั่งพิมพ์ / PDF</span>
+          </button>
+        </div>
+        <span id="rb-report-modal-close"
+          style="color:#aaa; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
+      </div>
+      <div style="flex:1; background:#525659; overflow:auto; padding:10px;">
+        <!-- Iframe -->
+        <iframe id="rb-report-frame"
+          style="width:100%; height:100%; display:block; background:#fff; border:none;"></iframe>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

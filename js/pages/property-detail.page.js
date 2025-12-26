@@ -9,7 +9,7 @@
 // - ผ่อนประมาณ (PayCalc)
 //--------------------------------------------------
 import { setupMobileNav } from '../ui/mobileNav.js';
-import { getBySlug } from '../services/propertiesService.js';
+import { getBySlug, getById } from '../services/propertiesService.js';
 import { createLead } from '../services/leadsService.js';
 import { getFormData } from '../ui/forms.js';
 import { el, $, clear } from '../ui/dom.js';
@@ -73,54 +73,251 @@ function lockUserInteraction(map) {
 // ============================ Lightbox =========================
 function setupLightbox(imageUrls) {
   let overlay = $('#lightbox-overlay');
+
+  // 1. Init DOM & Listeners (Run once)
+  // 1. Init DOM & Listeners (Run once)
   if (!overlay) {
-    overlay = el('div', { id: 'lightbox-overlay', className: 'lightbox-overlay' });
+    // Inject Styles if missing
+    if (!document.getElementById('lightbox-styles')) {
+      const style = el('style', { id: 'lightbox-styles' });
+      style.textContent = `
+        .lightbox-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 10000;
+          background: rgba(0, 0, 0, 0.95);
+          display: none;
+          flex-direction: column; /* Changed to column for layout */
+          justify-content: center;
+          align-items: center;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          backdrop-filter: blur(5px);
+        }
+        .lightbox-overlay.show {
+          opacity: 1;
+        }
+        .lightbox-main-area {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            display: flex;
+            overflow: hidden;
+            align-items: center;
+        }
+        .lightbox-gallery {
+          display: flex;
+          width: 100%;
+          height: 100%;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .lightbox-gallery::-webkit-scrollbar {
+          display: none;
+        }
+        .lightbox-image {
+          flex: 0 0 100%;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          scroll-snap-align: center;
+        }
+        .lightbox-close {
+          position: absolute;
+          top: 20px;
+          right: 30px;
+          color: white;
+          font-size: 40px;
+          cursor: pointer;
+          z-index: 10001;
+          line-height: 1;
+          opacity: 0.8;
+          text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .lightbox-close:hover { opacity: 1; transform: scale(1.1); }
+        .lightbox-nav {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.2);
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          z-index: 10001;
+          transition: all 0.2s;
+        }
+        .lightbox-nav:hover { background: rgba(255, 255, 255, 0.2); }
+        .lightbox-prev { left: 20px; }
+        .lightbox-next { right: 20px; }
+        
+        /* Thumbnails Strip */
+        .lightbox-thumbs {
+            height: 80px;
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            z-index: 10002;
+            flex-shrink: 0;
+        }
+        .lightbox-thumbs-inner {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            max-width: 100%;
+            height: 100%;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .lb-thumb {
+            height: 100%;
+            width: auto;
+            aspect-ratio: 4/3;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            object-fit: cover;
+        }
+        .lb-thumb.active {
+            opacity: 1;
+            border-color: #ea580c;
+        }
+        .lb-thumb:hover {
+            opacity: 1;
+        }
+
+        body.no-scroll { overflow: hidden !important; }
+      `;
+      document.head.append(style);
+    }
+
+    overlay = el('div', { id: 'lightbox-overlay', className: 'lightbox-overlay', attributes: { tabindex: '-1' } });
     overlay.innerHTML = `
       <span class="lightbox-close">&times;</span>
-      <button class="lightbox-nav lightbox-prev">&lsaquo;</button>
-      <div class="lightbox-gallery"></div>
-      <button class="lightbox-nav lightbox-next">&rsaquo;</button>
+      <div class="lightbox-main-area">
+          <button class="lightbox-nav lightbox-prev">&lsaquo;</button>
+          <div class="lightbox-gallery"></div>
+          <button class="lightbox-nav lightbox-next">&rsaquo;</button>
+      </div>
+      <div class="lightbox-thumbs">
+          <div class="lightbox-thumbs-inner"></div>
+      </div>
     `;
     document.body.append(overlay);
-  }
-  // Ensure hidden and in DOM
-  overlay.style.display = 'none';
-  if (!overlay.isConnected) document.body.append(overlay);
 
+    const g = overlay.querySelector('.lightbox-gallery');
+    const closeBtn = overlay.querySelector('.lightbox-close');
+    const prevBtn = overlay.querySelector('.lightbox-prev');
+    const nextBtn = overlay.querySelector('.lightbox-next');
+
+    const close = () => {
+      overlay.classList.remove('show');
+      document.body.classList.remove('no-scroll');
+      setTimeout(() => {
+        if (!overlay.classList.contains('show')) overlay.style.display = 'none';
+      }, 300);
+    };
+
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Keyboard support
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowLeft') prevBtn.click();
+      if (e.key === 'ArrowRight') nextBtn.click();
+    });
+
+    prevBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      g.scrollBy({ left: -g.offsetWidth, behavior: 'smooth' });
+    });
+    nextBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      g.scrollBy({ left: g.offsetWidth, behavior: 'smooth' });
+    });
+  }
+
+  // 2. Update Content
   const gallery = overlay.querySelector('.lightbox-gallery');
-  const prevBtn = overlay.querySelector('.lightbox-prev');
-  const nextBtn = overlay.querySelector('.lightbox-next');
+  const thumbsContainer = overlay.querySelector('.lightbox-thumbs-inner');
   gallery.innerHTML = '';
+  thumbsContainer.innerHTML = '';
 
-  imageUrls.forEach(url => {
-    const img = el('img', { className: 'lightbox-image', attributes: { src: url, loading: 'lazy' } });
+  const thumbEls = [];
+
+  imageUrls.forEach((url, i) => {
+    // 2.1 Main Image
+    const img = el('img', { className: 'lightbox-image', attributes: { src: url, loading: 'lazy', 'data-index': i } });
     gallery.append(img);
+
+    // 2.2 Thumbnail
+    const thumb = el('img', { className: 'lb-thumb', attributes: { src: url } });
+    if (i === 0) thumb.classList.add('active');
+
+    thumb.addEventListener('click', (e) => {
+      e.stopPropagation();
+      gallery.scrollTo({ left: gallery.offsetWidth * i, behavior: 'smooth' });
+    });
+
+    thumbsContainer.append(thumb);
+    thumbEls.push(thumb);
   });
 
-  function openLightbox(index) {
+  // 3. Sync Thumbnails on Scroll (Intersection Observer)
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = Number(entry.target.dataset.index);
+        // Update Active Class
+        thumbEls.forEach((t, i) => {
+          if (i === idx) {
+            t.classList.add('active');
+            t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); // Auto scroll thumb strip
+          } else {
+            t.classList.remove('active');
+          }
+        });
+      }
+    });
+  }, { root: gallery, threshold: 0.5 });
+
+  // Observe all main images
+  gallery.querySelectorAll('.lightbox-image').forEach(img => observer.observe(img));
+
+  // 4. Open Function
+  return function openLightbox(index) {
     overlay.style.display = 'flex';
-    // Small delay to allow display:flex to apply before adding class for opacity transition (if needed)
-    requestAnimationFrame(() => overlay.classList.add('show'));
     document.body.classList.add('no-scroll');
-    gallery.scrollTo({ left: gallery.offsetWidth * index, behavior: 'auto' });
-  }
-  function closeLightbox() {
-    overlay.classList.remove('show');
-    document.body.classList.remove('no-scroll');
-    setTimeout(() => { if (!overlay.classList.contains('show')) overlay.style.display = 'none'; }, 300); // Wait for transition
-  }
 
-  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: -gallery.offsetWidth, behavior: 'smooth' }); });
-  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); gallery.scrollBy({ left: gallery.offsetWidth, behavior: 'smooth' }); });
-  overlay.querySelector('.lightbox-close').addEventListener('click', closeLightbox);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
-  overlay.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeLightbox();
-  });
-  // Ensure overlay can receive keyboard events
-  overlay.setAttribute('tabindex', '-1');
+    // Ensure layout before transition & scroll
+    requestAnimationFrame(() => {
+      overlay.classList.add('show');
+      overlay.focus(); // Focus for keyboard events
 
-  return openLightbox;
+      // Delay scroll strictly after layout
+      requestAnimationFrame(() => {
+        const width = gallery.offsetWidth;
+        if (width > 0) {
+          gallery.scrollTo({ left: width * index, behavior: 'auto' });
+        }
+      });
+    });
+  };
 }
 
 // ============================ YouTube ==========================
@@ -299,6 +496,36 @@ async function renderPropertyDetails(property) {
   $('#meta-og-description')?.setAttribute('content', description);
   $('#meta-og-image')?.setAttribute('content', property.cover_url || '/assets/img/placeholder.jpg');
 
+  // แกลเลอรี่
+  const rawGallery = property.gallery;
+  let gallery = [];
+  let comparisons = [];
+
+  try {
+    const parsed = typeof rawGallery === 'string' ? JSON.parse(rawGallery) : rawGallery;
+    if (Array.isArray(parsed)) {
+      parsed.forEach(item => {
+        if (typeof item === 'string') {
+          gallery.push(item);
+        } else if (typeof item === 'object') {
+          if (item.comparisons && Array.isArray(item.comparisons)) {
+            comparisons = item.comparisons;
+          } else if (item.beforeImage) {
+            // Legacy fallback
+            comparisons.push({ before: item.beforeImage, after: gallery[0] || item.beforeImage });
+          }
+        }
+      });
+    }
+    console.log('[Detail Debug] Gallery:', gallery.length, 'Comparisons:', comparisons);
+  } catch (e) {
+    console.error('Gallery parse error', e);
+  }
+
+  // Fallback cover if no images
+  if (!gallery.length && property.cover_url) gallery.push(property.cover_url);
+  if (!gallery.length) gallery.push('/assets/img/placeholder.jpg');
+
   clear(container);
 
   // layout
@@ -308,8 +535,7 @@ async function renderPropertyDetails(property) {
 
   // ===== Gallery =====
   const galleryWrapper = el('div', { className: 'detail-card detail-hero' });
-  const galleryContainer = el('div', { className: 'image-gallery detail-hero-main' });
-  const thumbnailContainer = el('div', { className: 'thumbnail-container detail-thumbs' });
+  const heroContainer = el('div', { id: 'property-hero-images', className: 'image-gallery detail-hero-main' });
   const heroOverlay = el('div', { className: 'hero-overlay' });
   heroOverlay.innerHTML = `
     <div class="hero-overlay-text">
@@ -317,116 +543,165 @@ async function renderPropertyDetails(property) {
       <span>บ้านรีโนเวททำเลดี คุ้มค่าเกินราคา</span>
     </div>
   `;
-  galleryContainer.append(heroOverlay);
+  const openLightbox = setupLightbox(gallery);
 
-  // กรอง URL ซ้ำออก เพราะ cover_url อาจซ้ำกับ gallery ได้
-  const allImages = [...new Set([property.cover_url, ...(property.gallery || [])].filter(Boolean))];
-  if (!allImages.length) allImages.push('/assets/img/placeholder.jpg');
+  // 1. Always Render Standard Gallery Grid (Restored to Main + Thumbnails)
+  if (heroContainer) {
+    clear(heroContainer);
 
-  const openLightbox = setupLightbox(allImages);
-  const thumbEls = [];
-  let currentSlide = 0;
+    // Container for Main + Thumbnails
+    heroContainer.className = 'image-gallery-v2';
+    heroContainer.style.display = 'flex';
+    heroContainer.style.flexDirection = 'column';
+    heroContainer.style.gap = '1rem';
 
-  galleryContainer.style.position = 'relative';
-  galleryContainer.style.overflow = 'hidden';
-  galleryContainer.style.height = '450px';
-  galleryContainer.style.maxHeight = '70vh';
-  galleryContainer.style.display = 'block';
-  galleryContainer.style.margin = '0';
-  galleryContainer.style.flex = 'none';
-  galleryContainer.style.padding = '0';
-  galleryContainer.style.border = 'none';
+    // Main Image Area
+    const mainWrapper = el('div', { className: 'hero-main-wrapper', style: 'position:relative; border-radius:12px; overflow:hidden; aspect-ratio:16/9; cursor:pointer;' });
+    const mainImg = el('img', {
+      attributes: { src: gallery[0], alt: property.title },
+      style: 'width:100%; height:100%; object-fit:cover; transition: transform 0.3s;'
+    });
 
-  const mainImg = el('img', {
-    className: 'gallery-image',
-    attributes: { alt: 'Property image', loading: 'eager', fetchpriority: 'high' }
-  });
-  mainImg.style.position = 'absolute';
-  mainImg.style.inset = '0';
-  mainImg.style.width = '100%';
-  mainImg.style.height = '100%';
-  mainImg.style.objectFit = 'cover';
-  mainImg.style.setProperty('display', 'block', 'important');
-  mainImg.style.setProperty('opacity', '1', 'important');
-  mainImg.style.setProperty('visibility', 'visible', 'important');
-  mainImg.style.setProperty('pointerEvents', 'auto', 'important');
-  mainImg.style.margin = '0';
-  mainImg.style.padding = '0';
-  mainImg.style.padding = '0';
-  mainImg.style.cursor = 'pointer';
-  mainImg.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openLightbox(currentSlide);
-  });
-  galleryContainer.append(mainImg);
+    // Click main to open lightbox
+    mainWrapper.onclick = () => openLightbox(0);
+    mainWrapper.append(mainImg);
 
-  // Make the entire container and overlay clickable
-  galleryContainer.style.cursor = 'pointer';
-  galleryContainer.addEventListener('click', () => openLightbox(currentSlide));
+    // Add overlay text back to main image
+    const overlayDiv = el('div', { className: 'hero-overlay' });
+    overlayDiv.innerHTML = `
+      <div class="hero-overlay-text">
+        <strong>Praweena Property</strong><br>
+        <span>บ้านรีโนเวททำเลดี คุ้มค่าเกินราคา</span>
+      </div>
+    `;
+    mainWrapper.append(overlayDiv);
 
-  heroOverlay.style.cursor = 'pointer';
-  heroOverlay.addEventListener('click', () => openLightbox(currentSlide));
+    heroContainer.append(mainWrapper);
 
-  function showSlide(idx) {
-    if (!allImages.length) return;
-    currentSlide = (idx + allImages.length) % allImages.length;
-    const url = allImages[currentSlide];
-    mainImg.src = url;
-    mainImg.setAttribute('loading', currentSlide === 0 ? 'eager' : 'lazy');
-    mainImg.setAttribute('fetchpriority', currentSlide === 0 ? 'high' : 'auto');
-    mainImg.classList.add('is-active');
-    mainImg.style.setProperty('display', 'block', 'important');
-    mainImg.style.setProperty('opacity', '1', 'important');
-    mainImg.style.setProperty('visibility', 'visible', 'important');
-    mainImg.style.setProperty('pointerEvents', 'auto', 'important');
-    thumbEls.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
+    // Thumbnails Strip
+    if (gallery.length > 1) {
+      const thumbRow = el('div', { className: 'hero-thumbs-row', style: 'display:flex; flex-direction:row; flex-wrap:nowrap; gap:10px; overflow-x:auto; padding-bottom:8px; scroll-behavior:smooth; -webkit-overflow-scrolling:touch; margin-top:0.75rem;' });
+
+      gallery.forEach((url, i) => {
+        // Reduced width to 80px for better "single row" fit feel
+        const thumb = el('div', { className: 'hero-thumb-item', style: `flex: 0 0 auto; width:80px; height:60px; border-radius:6px; overflow:hidden; cursor:pointer; border:2px solid ${i === 0 ? '#ea580c' : 'transparent'}; opacity:${i === 0 ? 1 : 0.6}; transition:all 0.2s; position:relative;` });
+        thumb.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; display:block;">`;
+
+        thumb.onclick = () => {
+          // Update Main Image
+          mainImg.src = url;
+          mainWrapper.onclick = () => openLightbox(i);
+
+          // Update Active State
+          Array.from(thumbRow.children).forEach(c => {
+            c.style.border = '2px solid transparent';
+            c.style.opacity = '0.7';
+          });
+          thumb.style.border = '2px solid #ea580c';
+          thumb.style.opacity = '1';
+        };
+
+        thumbRow.append(thumb);
+      });
+
+      heroContainer.append(thumbRow);
+    }
   }
 
-  allImages.forEach((url, index) => {
-    const thumb = el('img', { className: 'thumbnail-image', attributes: { src: url, alt: `Thumbnail ${index + 1}`, loading: 'lazy' } });
-    thumb.addEventListener('click', () => showSlide(index));
-    thumbnailContainer.append(thumb);
-    thumbEls.push(thumb);
-  });
+  galleryWrapper.append(heroContainer);
 
-  if (allImages.length > 1) {
-    const prevBtn = el('button', {
-      className: 'gallery-nav prev',
-      textContent: '‹',
-      attributes: {
-        style: 'position:absolute;top:50%;left:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer;z-index:20;display:flex;align-items:center;justify-content:center;'
-      }
-    });
-    const nextBtn = el('button', {
-      className: 'gallery-nav next',
-      textContent: '›',
-      attributes: {
-        style: 'position:absolute;top:50%;right:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:24px;cursor:pointer;z-index:20;display:flex;align-items:center;justify-content:center;'
-      }
+  // 3. Move Sliders to a separate section below gallery
+  let sliderSection = null;
+  if (comparisons.length > 0) {
+    sliderSection = el('div', { className: 'renovation-sliders', style: 'margin-top: 3rem; padding-top: 1rem;' });
+
+    const title = el('h3', { style: 'font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; color: #111; display:flex; align-items:center; gap:0.5rem;', innerHTML: '🛠️ เปรียบเทียบ Before & After' });
+    sliderSection.append(title);
+
+    const listDiv = el('div', { className: 'slider-grid' });
+
+    comparisons.forEach((pair, idx) => {
+      if (!pair.before || !pair.after) return;
+
+      const sliderId = `rl-slider-${idx}`;
+      const slider = el('div', { className: 'rl-comparison-container', style: 'height: 350px; position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #f3f4f6;' });
+
+      slider.innerHTML = `
+            <div id="${sliderId}-compare" class="rl-compare" style="position:relative; width:100%; height:100%; overflow:hidden;">
+                <!-- After -->
+                <img src="${pair.after}" style="width:100%; height:100%; object-fit:cover; display:block;">
+                <div style="position:absolute; top:1rem; right:1rem; background:rgba(0,0,0,0.7); color:#fff; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; z-index:20; backdrop-filter:blur(4px);">AFTER</div>
+                
+                <!-- Before -->
+                <div id="${sliderId}-before" style="position:absolute; top:0; left:0; width:50%; height:100%; overflow:hidden; z-index:10; border-right:2px solid #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.2);">
+                    <img src="${pair.before}" style="width:100%; height:100%; object-fit:cover; object-position:left center; display:block; max-width:none;">
+                    <div style="position:absolute; top:1rem; left:1rem; background:rgba(234,88,12,0.9); color:#fff; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; backdrop-filter:blur(4px);">BEFORE</div>
+                </div>
+
+                <!-- Handle -->
+                <div id="${sliderId}-handle" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:44px; height:44px; background:#fff; border-radius:50%; box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:30; cursor:ew-resize; display:flex; align-items:center; justify-content:center; color:#374151;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-18px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+            </div>
+         `;
+      listDiv.append(slider);
+
+      // Logic
+      requestAnimationFrame(() => {
+        const container = slider.querySelector(`#${sliderId}-compare`);
+        const beforeDiv = slider.querySelector(`#${sliderId}-before`);
+        const beforeImg = beforeDiv.querySelector('img');
+        const handle = slider.querySelector(`#${sliderId}-handle`);
+        let active = false;
+
+        const update = (x) => {
+          const rect = container.getBoundingClientRect();
+          let p = ((x - rect.left) / rect.width) * 100;
+          p = Math.max(0, Math.min(100, p));
+          beforeDiv.style.width = p + '%';
+          handle.style.left = p + '%';
+          // Ensure width doesn't exceed viewport to prevent scroll
+          const safeWidth = Math.min(rect.width, window.innerWidth);
+          beforeImg.style.width = safeWidth + 'px';
+        };
+
+        // Init
+        update(container.getBoundingClientRect().left + container.getBoundingClientRect().width / 2);
+
+        const onMove = (e) => {
+          if (!active) return;
+          let clientX = e.clientX;
+          if (e.touches && e.touches.length > 0) clientX = e.touches[0].clientX;
+          update(clientX);
+        };
+        const onStart = (e) => { active = true; /*e.preventDefault();*/ };
+        const onEnd = () => active = false;
+
+        handle.addEventListener('mousedown', onStart);
+        handle.addEventListener('touchstart', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove);
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchend', onEnd);
+
+        new ResizeObserver(() => {
+          const rect = container.getBoundingClientRect();
+          const safeWidth = Math.min(rect.width, window.innerWidth);
+          beforeImg.style.width = safeWidth + 'px';
+        }).observe(container);
+      });
     });
 
-    prevBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      showSlide(currentSlide - 1);
-    });
-    nextBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      showSlide(currentSlide + 1);
-    });
-
-    // Append to galleryContainer (media area) instead of wrapper
-    galleryContainer.append(prevBtn, nextBtn);
+    sliderSection.append(listDiv);
   }
-
-  galleryWrapper.prepend(galleryContainer);
-  showSlide(0);
 
   const infoCard = el('div', { className: 'detail-card detail-hero-info' });
   const title = el('h1', { className: 'detail-title', textContent: property.title, });
 
   // Renovation Status Badge
-  const stage = (property.renovation_stage || '').toLowerCase();
   let statusBadge = null;
+  const stage = (property.renovation_stage || '').toLowerCase();
   const statusMap = {
     'planning': 'วางแผนงาน',
     'survey': 'สำรวจออกแบบ',
@@ -455,19 +730,35 @@ async function renderPropertyDetails(property) {
   const address = el('p', { className: 'detail-address', textContent: `${property.address || ''} ${property.district || ''} ${property.province || ''}`.trim() });
 
   const specsRow = el('div', { className: 'detail-meta-row' });
-  const specs = [
-    property.size_text || '',
-    property.beds ? `${property.beds} ห้องนอน` : '',
-    property.baths ? `${property.baths} ห้องน้ำ` : '',
-    property.parking ? `${property.parking} ที่จอดรถ` : ''
-  ].filter(Boolean);
+  const specs = [];
+  if (property.land_size) {
+    const val = String(property.land_size).trim();
+    if (/^\d+(\.\d+)?$/.test(val)) {
+      specs.push(`${val} ตร.วา`);
+    } else {
+      specs.push(val);
+    }
+  }
+  if (property.size_text) {
+    const val = String(property.size_text).trim();
+    if (/^\d+(\.\d+)?$/.test(val)) {
+      specs.push(`${val} ตร.ม.`);
+    } else {
+      specs.push(val);
+    }
+  }
+  if (property.beds) specs.push(`${property.beds} ห้องนอน`);
+  if (property.baths) specs.push(`${property.baths} ห้องน้ำ`);
+  if (property.parking) specs.push(`${property.parking} ที่จอดรถ`);
   specs.forEach(txt => specsRow.append(el('span', { className: 'meta-chip', textContent: txt })));
 
   if (statusBadge) infoCard.append(statusBadge);
   infoCard.append(title, address, price, specsRow);
 
-  galleryWrapper.append(thumbnailContainer);
   leftCol.append(infoCard, galleryWrapper);
+
+  // Append Sliders (if any)
+  if (sliderSection) leftCol.append(sliderSection);
 
   // YouTube
   const ytIds = collectYoutubeValues(property).map(parseYouTubeId).filter(Boolean);
@@ -779,7 +1070,9 @@ async function renderPropertyDetails(property) {
 async function loadProperty() {
   const params = new URLSearchParams(window.location.search);
   const slug = params.get('slug');
-  if (!slug) {
+  const id = params.get('id');
+
+  if (!slug && !id) {
     clear(container);
     container.textContent = 'ไม่พบประกาศ';
     return null;
@@ -787,7 +1080,15 @@ async function loadProperty() {
 
   container.innerHTML = `<div class="skeleton" style="height:400px;border-radius:16px;"></div>`;
 
-  const { data, error } = await getBySlug(slug);
+  let result;
+  if (slug) {
+    result = await getBySlug(slug);
+  } else {
+    result = await getById(id);
+  }
+
+  const { data, error } = result;
+
   if (error || !data) {
     clear(container);
     container.textContent = 'ไม่พบข้อมูลประกาศนี้';

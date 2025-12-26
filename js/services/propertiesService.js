@@ -22,6 +22,37 @@ function generateSlug(title) {
     .replace(/--+/g, '-');
 }
 
+/** Check uniqueness of slug and append suffix if needed */
+async function ensureUniqueSlug(slug, currentId = null) {
+  const missing = ensureClient();
+  if (missing) return slug; // Can't check, hope for best
+
+  let uniqueSlug = slug;
+  let counter = 1;
+
+  while (true) {
+    let query = supabase
+      .from('properties')
+      .select('id')
+      .eq('slug', uniqueSlug)
+      .limit(1);
+
+    if (currentId) {
+      query = query.neq('id', currentId);
+    }
+
+    const { data, error } = await query;
+    // If no record found (data empty), logic is safe -> return
+    if (!error && (!data || data.length === 0)) {
+      return uniqueSlug;
+    }
+
+    // Conflict -> increment
+    counter++;
+    uniqueSlug = `${slug}-${counter}`;
+  }
+}
+
 /** ดึง public list */
 export async function listPublic(filters = {}) {
   const missing = ensureClient();
@@ -84,6 +115,30 @@ export async function getBySlug(slug) {
     .single();
 }
 
+/** ดึงด้วย slug (ไม่ error ถ้าไม่เจอ) */
+export async function getBySlugOptional(slug) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
+  return await supabase
+    .from('properties')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle(); // Returns null data instead of error if not found (suppresses 406)
+}
+
+/** ดึงด้วย ID */
+export async function getById(id) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
+  return await supabase
+    .from('properties')
+    .select('*')
+    .eq('id', id)
+    .single();
+}
+
 /** admin list */
 export async function listAll(filters = {}) {
   const missing = ensureClient();
@@ -116,9 +171,14 @@ export async function upsertProperty(payload) {
   // ให้ DB สร้าง id เองถ้าไม่ส่งมา
   if (!body.id) delete body.id;
 
-  // slug อัตโนมัติ
-  if (body.title && !body.slug) {
-    body.slug = generateSlug(body.title);
+  // Slug Logic
+  let candidateSlug = body.slug;
+  if (!candidateSlug && body.title) {
+    candidateSlug = generateSlug(body.title);
+  }
+
+  if (candidateSlug) {
+    body.slug = await ensureUniqueSlug(candidateSlug, body.id);
   }
 
   // '' -> null (ยกเว้น slug)
@@ -166,6 +226,12 @@ export async function upsertProperty(payload) {
     body.longitude = Number.isFinite(lng) ? lng : null;
   }
 
+  // land_size -> number
+  if (body.land_size !== undefined) {
+    const ls = Number(body.land_size);
+    body.land_size = Number.isFinite(ls) ? ls : null;
+  }
+
   // ✅ upsert ครั้งเดียวด้วย body (ที่ normalize แล้ว)
   const attempt = await supabase
     .from('properties')
@@ -186,12 +252,16 @@ export async function upsertProperty(payload) {
     'renovation_stage',
     'customer_status_visible',
     'customer_status_text',
+    'land_size',
+    'code',
   ];
 
   const isMissingColumn =
     attempt?.error &&
     (attempt.error.code === '42703' ||
-      /column .* does not exist/i.test(String(attempt.error.message || '')));
+      attempt.error.code === 'PGRST204' ||
+      /column .* does not exist/i.test(String(attempt.error.message || '')) ||
+      /Could not find the .* column/i.test(String(attempt.error.message || '')));
 
   if (isMissingColumn) {
     const fallbackBody = { ...body };
@@ -248,4 +318,23 @@ export async function hardDeleteProperty(id) {
   if (missing) return { data: null, error: missing.error };
 
   return await supabase.from('properties').delete().eq('id', id);
+}
+
+// Partial Update (แก้ไขบาง field โดยระบุ ID)
+export async function updateProperty(id, fields) {
+  const missing = ensureClient();
+  if (missing) return { data: null, error: missing.error };
+
+  const body = { ...fields };
+  // Normalization for simple types
+  if (body.price !== undefined) {
+    const n = Number(body.price);
+    body.price = Number.isFinite(n) ? n : null;
+  }
+  if (body.land_size !== undefined) {
+    const ls = Number(body.land_size);
+    body.land_size = Number.isFinite(ls) ? ls : null;
+  }
+
+  return await supabase.from('properties').update(body).eq('id', id).select().single();
 }

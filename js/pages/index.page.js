@@ -1,6 +1,6 @@
 // js/pages/index.page.js
 import { setupMobileNav } from '../ui/mobileNav.js';
-import { listPublic } from '../services/propertiesService.js';
+import { listPublic, getBySlug, getBySlugOptional } from '../services/propertiesService.js';
 import { createLead } from '../services/leadsService.js';
 import { el, $, clear } from '../ui/dom.js';
 import { formatPrice } from '../utils/format.js';
@@ -59,7 +59,26 @@ function buildHighlights(property = {}) {
   if (property.beds) highlights.push(`${property.beds} ห้องนอน`);
   if (property.baths) highlights.push(`${property.baths} ห้องน้ำ`);
   if (property.parking) highlights.push(`${property.parking} ที่จอด`);
-  if (property.size_text) highlights.push(property.size_text);
+
+  // Land Size (Square Wah)
+  if (property.land_size) {
+    const val = String(property.land_size).trim();
+    if (/^\d+(\.\d+)?$/.test(val)) {
+      highlights.push(`${val} ตร.วา`);
+    } else {
+      highlights.push(val);
+    }
+  }
+
+  // Living Area (Square Meter)
+  if (property.size_text) {
+    const val = String(property.size_text).trim();
+    if (/^\d+(\.\d+)?$/.test(val)) {
+      highlights.push(`${val} ตร.ม.`);
+    } else {
+      highlights.push(val);
+    }
+  }
   return highlights;
 }
 
@@ -113,7 +132,8 @@ function renderPropertyCard(property, opts = {}) {
   actionBar.append(detailBtn);
 
   body.append(title, address, price, metaRow);
-  if (tagsRow.childNodes.length) body.append(tagsRow);
+  // Tags removed as per request
+  // if (tagsRow.childNodes.length) body.append(tagsRow);
   body.append(actionBar);
 
   card.append(media, body);
@@ -168,11 +188,12 @@ async function loadProperties() {
   }
 
   // Split into Ready vs Others
-  const readyList = data.filter(p => {
+  const filteredData = data.filter(p => p.slug !== 'config-homepage-dream-home');
+  const readyList = filteredData.filter(p => {
     const s = getStatusBadge(p);
     return s.className === 'status-renovated' || s.className === 'status-sold';
   });
-  const projectList = data.filter(p => {
+  const projectList = filteredData.filter(p => {
     const s = getStatusBadge(p);
     return s.className !== 'status-renovated' && s.className !== 'status-sold';
   });
@@ -509,6 +530,56 @@ function setupCompareSlider() {
   handle.style.left = '50%';
 }
 
+async function loadHomepageConfig() {
+  try {
+    const { data, error } = await getBySlugOptional('config-homepage-dream-home');
+
+    if (error || !data) {
+      return;
+    }
+
+    // 1. Prepare Config from Gallery
+    let gallery = data.gallery;
+    if (typeof gallery === 'string') {
+      try { gallery = JSON.parse(gallery); } catch { gallery = []; }
+    }
+
+    if (Array.isArray(gallery)) {
+      // Extract Config from index 2
+      if (gallery.length > 2 && typeof gallery[2] === 'object') {
+        const config = gallery[2];
+
+        if (config.heroTitle) {
+          const titleEl = document.getElementById('hero-title');
+          if (titleEl) titleEl.innerHTML = config.heroTitle;
+        }
+        if (config.heroSubtitle) {
+          const subCtx = document.getElementById('hero-subtitle');
+          if (subCtx) subCtx.innerText = config.heroSubtitle;
+        }
+      }
+
+      // 2. Before/After Images
+      if (gallery.length >= 2) {
+        const beforeUrl = gallery[0];
+        const afterUrl = gallery[1];
+
+        // After Image
+        const afterImg = document.querySelector('#rl-compare > img');
+        if (afterImg && typeof afterUrl === 'string') afterImg.src = afterUrl;
+
+        // Before Image
+        const beforeImg = document.querySelector('#rl-before img');
+        if (beforeImg && typeof beforeUrl === 'string') beforeImg.src = beforeUrl;
+      }
+    }
+
+  } catch (err) {
+    console.warn('Failed to load homepage config:', err);
+  }
+}
+
+
 // --- Main execution ---
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
@@ -517,6 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupLandingUI();
   setupScrollToTop();
   setupCompareSlider();
+  loadHomepageConfig();
   setupLeadForm();
   setupInterestPrefill();
   loadProperties(); // โหลดครั้งแรก
