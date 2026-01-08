@@ -6,6 +6,8 @@
 
 # ไฟล์ Environment ที่มี Keys ห้ามอัปโหลดเด็ดขาด
 /js/env.js
+/sql
+/supabase
 
 # โฟลเดอร์ dependencies ของ Node.js
 node_modules/
