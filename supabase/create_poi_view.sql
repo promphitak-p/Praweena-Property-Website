@@ -19,6 +19,8 @@ drop view if exists public.property_poi_public;
 create or replace view public.property_poi_public as
 select id, property_id, name, type, lat, lng, distance_km
 from public.property_poi;
+-- ลดความเสี่ยง SECURITY DEFINER: บังคับ security_invoker + security_barrier
+alter view public.property_poi_public set (security_invoker = true, security_barrier = true);
 
 -- Policies for property_poi table
 

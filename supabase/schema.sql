@@ -53,7 +53,9 @@ create index if not exists idx_leads_property on public.leads(property_id);
 
 -- Function to update `updated_at` timestamp automatically
 create or replace function public.handle_property_update()
-returns trigger as $$
+returns trigger
+set search_path = public, pg_temp
+as $$
 begin
   new.updated_at = now();
   return new;
@@ -61,6 +63,7 @@ end;
 $$ language plpgsql;
 
 -- Trigger to call the function on update
+drop trigger if exists on_property_update on public.properties;
 create trigger on_property_update
   before update on public.properties
   for each row execute procedure public.handle_property_update();

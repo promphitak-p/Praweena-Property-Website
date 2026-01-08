@@ -202,6 +202,83 @@
       }
     }
 
+    /* Cancelled Task Styles */
+    .todo-item.cancelled {
+      opacity: 0.6;
+      background: #f3f4f6;
+    }
+
+    .todo-item.cancelled .todo-title {
+      text-decoration: line-through;
+      color: #6b7280;
+    }
+
+    .todo-item.cancelled .todo-actions button:not(.delete) {
+      display: none;
+    }
+
+    /* Action Choice Modal */
+    .action-choice-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .action-choice-btn {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .action-choice-btn:hover {
+      border-color: var(--gold-primary);
+      background: #fffcf5;
+    }
+
+    .action-choice-btn.danger:hover {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .action-icon {
+      font-size: 1.5rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f3f4f6;
+      border-radius: 50%;
+    }
+
+    .action-info h4 {
+      margin: 0 0 0.25rem 0;
+      color: #111;
+    }
+
+    .action-info p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    #skip-reason-container {
+      display: none;
+      /* Hidden by default */
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+
     /* Force Modal Styles & Improvements */
     .modal {
       display: none;
@@ -220,6 +297,11 @@
     .modal.open {
       display: flex;
       opacity: 1;
+    }
+
+    /* Ensure confirm modal overlays other modals */
+    #confirm-modal {
+      z-index: 1100;
     }
 
     .modal-content {
@@ -722,7 +804,61 @@
         height: 250px !important;
       }
     }
-  </style>
+</style>
+<style>
+  /* Print: แสดงเฉพาะ modal รายการซื้อ */
+  @media print {
+    @page {
+      margin: 12mm;
+    }
+    body { margin: 0; padding: 0; }
+    /* ซ่อนทุกอย่างด้วย visibility เพื่อไม่ทำลาย layout */
+    body * { visibility: hidden !important; }
+    /* แสดงเฉพาะ modal purchase overview */
+    #purchase-overview-modal {
+      display: block !important;
+      visibility: visible !important;
+      position: static !important;
+      inset: auto !important;
+      width: 100% !important;
+      height: auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: #fff !important;
+      box-shadow: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    #purchase-overview-modal * {
+      visibility: visible !important;
+    }
+    #purchase-overview-close,
+    #purchase-overview-print {
+      display: none !important;
+    }
+    #purchase-overview-modal .modal-content,
+    #purchase-overview-modal .modal-body {
+      position: static !important;
+      width: 100% !important;
+      max-width: none !important;
+      height: auto !important;
+      max-height: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: #fff !important;
+    }
+    #purchase-overview-modal table {
+      page-break-inside: auto;
+      width: 100% !important;
+    }
+    #purchase-overview-modal tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+  }
+</style>
 </head>
 
 <body data-page="dashboard">
@@ -1000,6 +1136,13 @@
             <button id="rb-add-contractor-btn" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;">+
               เพิ่มทีมช่าง</button>
 
+            <hr style="margin: 1.25rem 0; border: 0; border-top: 1px solid #eee;">
+            <h3>งวดจ่ายทีมช่าง</h3>
+            <div id="rb-payments-summary" style="margin:0.5rem 0 0.75rem 0;"></div>
+            <div id="rb-payments-container" style="margin-top:0.5rem;"></div>
+            <button id="rb-add-payment-btn" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;">+
+              เพิ่มงวดจ่าย</button>
+
             <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
 
             <h3>งบรีโนเวท (Budget)</h3>
@@ -1100,6 +1243,7 @@
                 <th style="padding:1rem;">บ้าน / โปรเจกต์</th>
                 <th style="padding:1rem;">สถานะรีโนเวท</th>
                 <th style="padding:1rem;">ราคาขาย</th>
+                <th style="padding:1rem;">งวดจ่าย</th>
                 <th style="padding:1rem; text-align:right;">จัดการ</th>
               </tr>
             </thead>
@@ -1111,6 +1255,18 @@
       </div>
 
     </div><!-- End Tab Renovation -->
+
+    <!-- Payment Quick Modal -->
+    <div id="payment-quick-modal" class="modal">
+      <div class="modal-content" style="max-width: 600px;">
+        <button class="modal-close" id="payment-quick-close">×</button>
+        <div class="modal-body">
+          <h3 id="payment-quick-title" style="margin-bottom: 1rem;">งวดจ่ายทีมช่าง</h3>
+          <div id="payment-quick-summary" style="margin-bottom: 0.75rem;"></div>
+          <div id="payment-quick-list"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- TAB 3: TO-DO LIST -->
     <div id="tab-todos" class="tab-content">
@@ -1172,6 +1328,18 @@
           </div>
         </div>
 
+        <!-- Purchase Overview -->
+        <div id="todo-purchase-overview" style="margin: 1rem 0; display:none;">
+          <h3 style="margin-bottom:0.5rem;">รายการซื้อทั้งหมด (บ้านนี้)</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+            <div id="todo-purchase-overview-summary" style="font-size:12px;color:#6b7280;"></div>
+            <button id="todo-purchase-overview-btn" class="btn btn-sm btn-secondary" style="padding:6px 10px;">ดูทั้งหมด</button>
+          </div>
+          <div id="todo-purchase-overview-content" style="border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff;">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
         <!-- Category Filters -->
         <div class="todo-category-filters" id="todo-category-filters">
           <button class="category-filter-btn active" data-category="all">
@@ -1180,10 +1348,68 @@
           <!-- More category buttons will be injected here -->
         </div>
 
-        <!-- Task List -->
-        <div class="todo-list-container" id="todo-list-container">
-          <!-- Task sections will be injected here -->
+      <!-- Task List -->
+      <div class="todo-list-container" id="todo-list-container">
+        <!-- Task sections will be injected here -->
+      </div>
+
+      <!-- Purchase Items Modal -->
+      <div id="todo-purchase-modal" class="modal">
+        <div class="modal-content" style="max-width: 640px;">
+          <button class="modal-close" id="todo-purchase-close">×</button>
+          <div class="modal-body">
+            <h3 id="todo-purchase-title" style="margin-bottom: 0.5rem;">รายการซื้อของ</h3>
+            <div id="todo-purchase-summary" style="margin-bottom: 0.75rem; color:#6b7280; font-size: 0.9rem;"></div>
+            <div id="todo-purchase-list" style="margin-bottom: 1rem;"></div>
+            <hr style="margin: 1rem 0; border:0; border-top:1px solid #eee;">
+            <h4 style="margin-bottom:0.5rem;">เพิ่มรายการซื้อ</h4>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label>ชื่อของ</label>
+                <input type="text" id="purchase-title" class="form-control" placeholder="เช่น สีน้ำ TOA" />
+              </div>
+              <div class="form-group">
+                <label>ร้าน/ซัพพลายเออร์</label>
+                <input type="text" id="purchase-vendor" class="form-control" placeholder="เช่น โฮมโปร" />
+              </div>
+              <div class="form-group">
+                <label>จำนวน</label>
+                <input type="number" step="0.01" id="purchase-qty" class="form-control" placeholder="เช่น 5" />
+              </div>
+              <div class="form-group">
+                <label>หน่วย</label>
+                <input type="text" id="purchase-unit" class="form-control" placeholder="กล., กล่อง, ตรม." />
+              </div>
+              <div class="form-group">
+                <label>ราคา/หน่วย</label>
+                <input type="number" step="0.01" id="purchase-unit-price" class="form-control" placeholder="เช่น 450" />
+              </div>
+              <div class="form-group">
+                <label>กำหนดรับ/จ่าย</label>
+                <input type="date" id="purchase-due" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label>สถานะ</label>
+                <select id="purchase-status" class="form-control">
+                  <option value="pending">รอดำเนินการ</option>
+                  <option value="ordered">สั่งซื้อแล้ว</option>
+                  <option value="received">ได้รับของแล้ว</option>
+                  <option value="paid">จ่ายแล้ว</option>
+                  <option value="void">ยกเลิก</option>
+                </select>
+              </div>
+              <div class="form-group" style="grid-column:1 / -1;">
+                <label>หมายเหตุ</label>
+                <textarea id="purchase-note" class="form-control" rows="2" placeholder="วิธีติดตั้ง, เงื่อนไขจ่ายเงิน, ฯลฯ"></textarea>
+              </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 1rem;">
+              <button class="btn btn-secondary" id="purchase-cancel-btn">ปิด</button>
+              <button class="btn" id="purchase-save-btn">บันทึกรายการ</button>
+            </div>
+          </div>
         </div>
+      </div>
 
         <!-- Empty State -->
         <div class="todo-empty-state" id="todo-empty-state" style="display:none;">
@@ -1201,6 +1427,24 @@
       <button id="todo-add-btn" class="todo-add-btn" style="display:none;" title="เพิ่มงานใหม่">+</button>
 
     </div><!-- End Tab Todos -->
+
+    <!-- Purchase Overview Modal -->
+    <div id="purchase-overview-modal" class="modal">
+      <div class="modal-content print-only" style="max-width: 720px;">
+        <button class="modal-close" id="purchase-overview-close" style="top:10px;right:10px;z-index:15;">×</button>
+        <div class="modal-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.5rem;padding-right:32px;flex-wrap:wrap;">
+            <h3 style="margin:0;">รายการซื้อทั้งหมด</h3>
+            <div style="display:flex;gap:0.5rem;">
+              <button id="purchase-overview-print" class="btn btn-sm btn-secondary" style="padding:6px 10px;">พิมพ์</button>
+              <button id="purchase-overview-export" class="btn btn-sm" style="padding:6px 10px;">ส่งออก (CSV)</button>
+            </div>
+          </div>
+          <div id="purchase-overview-modal-summary" style="margin-bottom:0.75rem;color:#6b7280;font-size:12px;"></div>
+          <div id="purchase-overview-modal-list"></div>
+        </div>
+      </div>
+    </div>
 
 
 
@@ -1795,6 +2039,66 @@
         <!-- Iframe -->
         <iframe id="rb-report-frame"
           style="width:100%; height:100%; display:block; background:#fff; border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+  <!-- Confirm Modal -->
+  <div id="confirm-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px; border-radius: 12px; overflow: hidden;">
+      <div class="modal-header" style="background: #fdfbf7; border-bottom: 1px solid #f3e5ab; padding: 1rem 1.5rem;">
+        <h3 style="margin: 0; font-size: 1.25rem; color: #111;">ยืนยันการทำรายการ</h3>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem; text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+        <p id="confirm-modal-message" style="font-size: 1.1rem; color: #374151; margin: 0;">
+          คุณต้องการลบรายการนี้ใช่หรือไม่?</p>
+      </div>
+      <div class="modal-actions"
+        style="background: #fff; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e7eb; margin: 0;">
+        <button id="confirm-cancel-btn" class="btn btn-secondary">ยกเลิก</button>
+        <button id="confirm-ok-btn" class="btn btn-danger"
+          style="background: #dc2626; color: white; border: none;">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+  <!-- CONFIRM DELETE / SKIP MODAL -->
+  <div id="todo-action-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px; height: auto !important; max-height: 90vh !important;">
+      <button class="modal-close" id="todo-action-close">×</button>
+
+      <div class="modal-body">
+        <h3 style="margin-bottom: 1.5rem; text-align: center;">จัดการงานนี้อย่างไร?</h3>
+
+        <div class="action-choice-container">
+          <!-- Option 1: Delete -->
+          <button class="action-choice-btn danger" id="btn-choice-delete">
+            <div class="action-icon" style="color: #ef4444; background: #fee2e2;">🗑️</div>
+            <div class="action-info">
+              <h4>ลบรายการนี้ (Delete)</h4>
+              <p>ลบออกจากระบบถาวร</p>
+            </div>
+          </button>
+
+          <!-- Option 2: Skip -->
+          <button class="action-choice-btn" id="btn-choice-skip">
+            <div class="action-icon" style="color: #f59e0b; background: #fef3c7;">⏭️</div>
+            <div class="action-info">
+              <h4>ไม่ทำรายการนี้ (Skip)</h4>
+              <p>เก็บไว้ในรายการแต่นับว่ายกเลิก</p>
+            </div>
+          </button>
+        </div>
+
+        <!-- Skip Reason Textarea -->
+        <div id="skip-reason-container">
+          <label style="display:block; margin-bottom:0.5rem; font-weight:600;">ระบุเหตุผลที่ไม่ทำ:</label>
+          <textarea id="skip-reason-input" class="form-control" rows="3"
+            placeholder="ตัวอย่าง: เจ้าของบ้านเปลี่ยนใจ, งบประมาณไม่พอ..."></textarea>
+          <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end;">
+            <button class="btn btn-secondary" id="btn-skip-cancel">ยกเลิก</button>
+            <button class="btn" id="btn-skip-confirm">บันทึก</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

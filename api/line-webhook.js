@@ -2,15 +2,13 @@
 // รับ Webhook จาก LINE + log เข้า Supabase ผ่าน REST RPC (ไม่ใช้ supabase-js)
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; // webhook ใช้สิทธิ์สูง ต้องเป็น service-role เท่านั้น
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error('[line-webhook] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
 
 async function logWebhook(row) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.warn('Supabase env missing, skip logging');
-    return { ok: false, reason: 'missing_env' };
-  }
-
   const payload = {
     _level: row.level || 'info',
     _event: row.event || 'line_webhook',
@@ -52,9 +50,44 @@ async function logWebhook(row) {
   }
 }
 
+// Origin allowlist (ถ้า Origin ไม่ส่งมา เช่น จาก LINE จะไม่บล็อก)
+const ALLOWED_ORIGINS = new Set([
+  'http://praweenaproperty.com',
+  'http://localhost:8000',
+]);
+
+function checkOrigin(req, res) {
+  const origin = req.headers.origin;
+  if (!origin) return true; // webhook จาก LINE จะไม่มี Origin
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  res.status(403).json({ ok: false, error: 'forbidden_origin' });
+  return false;
+}
+
+// In-memory rate limit (เบื้องต้น) 5 ครั้ง/ชั่วโมงต่อ IP สำหรับ webhook
+const rateMap = new Map();
+const WINDOW_MS = 60 * 60 * 1000;
+const LIMIT = 5;
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = rateMap.get(ip) || [];
+  const recent = entry.filter(ts => now - ts < WINDOW_MS);
+  recent.push(now);
+  rateMap.set(ip, recent);
+  return recent.length > LIMIT;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
+  }
+
+  if (!checkOrigin(req, res)) return;
+
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ ok: false, error: 'rate_limited' });
   }
 
   const requestId =

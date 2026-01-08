@@ -25,6 +25,13 @@ import {
     scheduleNotificationCheck
 } from '../utils/notifications.js';
 
+import {
+    listPurchasesByTodo,
+    listPurchasesByProperty,
+    upsertPurchaseItem,
+    updatePurchaseStatus,
+    deletePurchaseItem
+} from '../services/todoPurchasesService.js';
 
 import { toast } from '../ui/toast.js';
 import { clear } from '../ui/dom.js';
@@ -35,6 +42,19 @@ let currentCategoryFilter = 'all';
 let allCategories = [];
 let allTodos = [];
 let notificationCheckInterval = null;
+let currentPurchaseTodoId = null;
+let currentPurchaseItems = [];
+let purchaseSummaryCache = {};
+let purchaseOverviewModal = null;
+
+// Confirm Modal State
+let confirmResolve = null;
+let confirmModal = null;
+
+// Action Modal State
+let actionModal = null;
+let currentActionTodoId = null;
+let purchaseModal = null;
 
 /**
  * Initialize the to-do tab
@@ -45,6 +65,18 @@ export async function initTodoTab() {
 
     // Setup notification banner
     setupNotificationBanner();
+
+    // Setup Confirm Modal
+    initConfirmModal();
+
+    // Setup Action Modal
+    initActionModal();
+
+    // Setup Purchase Modal
+    initPurchaseModal();
+
+    // Setup Purchase Overview Modal
+    initPurchaseOverviewModal();
 
     // Setup event listeners
     setupEventListeners();
@@ -98,7 +130,21 @@ function populateCategorySelects() {
             const btn = document.createElement('button');
             btn.className = 'category-filter-btn';
             btn.dataset.category = cat.id;
-            btn.innerHTML = `${cat.icon} ${cat.name} <span class="badge" id="badge-${cat.id}">0</span>`;
+
+            const iconSpan = document.createElement('span');
+            iconSpan.textContent = cat.icon || '📌';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = ` ${cat.name || ''}`;
+
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.id = `badge-${cat.id}`;
+            badge.textContent = '0';
+
+            btn.appendChild(iconSpan);
+            btn.appendChild(nameSpan);
+            btn.appendChild(badge);
             filterContainer.appendChild(btn);
         });
     }
@@ -165,6 +211,14 @@ function setupEventListeners() {
     if (addBtn) {
         addBtn.addEventListener('click', () => openTodoModal());
     }
+    const purchaseClose = document.getElementById('todo-purchase-close');
+    const purchaseCancel = document.getElementById('purchase-cancel-btn');
+    if (purchaseClose) purchaseClose.addEventListener('click', closePurchaseModal);
+    if (purchaseCancel) purchaseCancel.addEventListener('click', closePurchaseModal);
+    const purchaseSave = document.getElementById('purchase-save-btn');
+    if (purchaseSave) purchaseSave.addEventListener('click', handleSavePurchase);
+    const overviewBtn = document.getElementById('todo-purchase-overview-btn');
+    if (overviewBtn) overviewBtn.addEventListener('click', openPurchaseOverviewModal);
 
     // Modal close buttons
     const modalClose = document.getElementById('todo-modal-close');
@@ -243,6 +297,7 @@ async function loadTodosForProperty() {
 
     renderTodos();
     updateStats();
+    loadPurchaseOverview();
 }
 
 /**
@@ -272,6 +327,10 @@ function renderTodos() {
     container.style.display = 'block';
     if (emptyState) emptyState.style.display = 'none';
 
+    // Show purchase overview container
+    const overview = document.getElementById('todo-purchase-overview');
+    if (overview) overview.style.display = 'block';
+
     // Group by category
     const grouped = {};
     filteredTodos.forEach(todo => {
@@ -280,14 +339,22 @@ function renderTodos() {
         grouped[catId].push(todo);
     });
 
-    // Render each category section
-    Object.keys(grouped).forEach(catId => {
-        const todos = grouped[catId];
-        const category = allCategories.find(c => c.id === catId);
+    // Determine category order based on sort_order (DB already sorted, but ensure)
+    const orderedCategories = [...allCategories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-        const section = createCategorySection(category, todos);
+    // Render categories following renovation order; handle uncategorized last
+    orderedCategories.forEach(cat => {
+        const todos = grouped[cat.id];
+        if (!todos || todos.length === 0) return;
+        const section = createCategorySection(cat, todos.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
         container.appendChild(section);
     });
+
+    // If there are uncategorized tasks, render them at the end
+    if (grouped.uncategorized) {
+        const section = createCategorySection(null, grouped.uncategorized.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+        container.appendChild(section);
+    }
 
     // Initialize SortableJS for drag and drop
     initSortable();
@@ -302,11 +369,22 @@ function createCategorySection(category, todos) {
 
     const header = document.createElement('div');
     header.className = 'todo-category-header';
-    header.innerHTML = `
-    <span class="todo-category-icon">${category?.icon || '📌'}</span>
-    <h4 class="todo-category-title">${category?.name || 'ไม่มีหมวดหมู่'}</h4>
-    <span class="todo-category-count">${todos.length}</span>
-  `;
+
+    const iconEl = document.createElement('span');
+    iconEl.className = 'todo-category-icon';
+    iconEl.textContent = category?.icon || '📌';
+
+    const titleEl = document.createElement('h4');
+    titleEl.className = 'todo-category-title';
+    titleEl.textContent = category?.name || 'ไม่มีหมวดหมู่';
+
+    const countEl = document.createElement('span');
+    countEl.className = 'todo-category-count';
+    countEl.textContent = `${todos.length}`;
+
+    header.appendChild(iconEl);
+    header.appendChild(titleEl);
+    header.appendChild(countEl);
 
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'todo-items';
@@ -326,24 +404,28 @@ function createCategorySection(category, todos) {
  * Create a todo item card
  */
 function createTodoItem(todo) {
+    const isCancelled = todo.status === 'cancelled';
     const item = document.createElement('div');
-    item.className = `todo-item ${todo.status === 'completed' ? 'completed' : ''}`;
+    item.className = `todo-item ${todo.status === 'completed' ? 'completed' : ''} ${isCancelled ? 'cancelled' : ''}`;
     item.dataset.id = todo.id;
 
     const isCompleted = todo.status === 'completed';
 
     item.innerHTML = `
      <div class="todo-checkbox ${isCompleted ? 'checked' : ''}" data-id="${todo.id}"></div>
-    <div class="todo-content">
-      <div class="todo-title">${escapeHtml(todo.title)}</div>
-      ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ''}
-      <div class="todo-meta">
-        <span class="todo-priority ${todo.priority}">${getPriorityText(todo.priority)}</span>
-        ${todo.due_date ? `<span class="todo-due-date ${isOverdue(todo.due_date) ? 'overdue' : ''}">📅 ${formatDate(todo.due_date)}</span>` : ''}
-        ${todo.reminder_date ? `<span class="todo-reminder">🔔 ${formatDateTime(todo.reminder_date)}</span>` : ''}
-      </div>
+  <div class="todo-content">
+    <div class="todo-title">${escapeHtml(todo.title)}</div>
+    ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ''}
+    <div class="todo-meta">
+      <span class="todo-priority ${todo.priority}">${getPriorityText(todo.priority)}</span>
+      ${todo.due_date ? `<span class="todo-due-date ${isOverdue(todo.due_date) ? 'overdue' : ''}">📅 ${formatDate(todo.due_date)}</span>` : ''}
+      ${todo.reminder_date ? `<span class="todo-reminder">🔔 ${formatDateTime(todo.reminder_date)}</span>` : ''}
     </div>
-    <div class="todo-actions">
+    <div class="todo-meta" style="margin-top:4px;">
+      <button class="todo-action-btn purchase" data-id="${todo.id}" title="ของที่ต้องซื้อ" style="font-size: 13px; padding:4px 8px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">🛒 จัดการของ</button>
+    </div>
+  </div>
+  <div class="todo-actions">
       <button class="todo-action-btn edit" data-id="${todo.id}" title="แก้ไข">✏️</button>
       <div class="todo-move-controls" style="display: flex; flex-direction: column; gap: 2px; margin-right: 5px;">
         <button class="todo-move-btn up" data-id="${todo.id}" title="เลื่อนขึ้น" style="font-size: 10px; padding: 2px 6px; border: 1px solid #ddd; background: #fff; cursor: pointer; border-radius: 4px;">▲</button>
@@ -360,6 +442,29 @@ function createTodoItem(todo) {
 
     const editBtn = item.querySelector('.edit');
     editBtn.addEventListener('click', () => openTodoModal(todo));
+
+    const purchaseBtn = item.querySelector('.purchase');
+    if (purchaseBtn) purchaseBtn.addEventListener('click', () => openPurchaseModal(todo));
+
+    // Purchase summary badge
+    const purchaseSummary = document.createElement('div');
+    purchaseSummary.className = 'todo-purchase-summary';
+    purchaseSummary.dataset.purchaseSummary = todo.id;
+    purchaseSummary.style.cssText = 'font-size:12px;color:#6b7280;';
+    purchaseSummary.textContent = '🛒 โหลดข้อมูลการซื้อ...';
+
+    const purchaseInline = document.createElement('div');
+    purchaseInline.dataset.purchaseInline = todo.id;
+    purchaseInline.style.cssText = 'margin-top:2px;font-size:12px;color:#374151;';
+
+    const purchaseBlock = document.createElement('div');
+    purchaseBlock.style.cssText = 'margin-top:6px;padding:8px;border:1px dashed #e5e7eb;border-radius:8px;background:#f9fafb;';
+    purchaseBlock.innerHTML = `<div style="font-weight:600;font-size:12px;color:#111;">ของที่จะซื้อ</div>`;
+    purchaseBlock.appendChild(purchaseSummary);
+    purchaseBlock.appendChild(purchaseInline);
+
+    item.querySelector('.todo-content')?.appendChild(purchaseBlock);
+    loadPurchaseSummary(todo.id, purchaseSummary);
 
     // Move Up/Down Listeners
     const moveUpBtn = item.querySelector('.todo-move-btn.up');
@@ -406,34 +511,823 @@ async function handleToggleStatus(todoId, currentStatus) {
 }
 
 /**
- * Handle delete todo
+ * Handle delete/skip button click
  */
-async function handleDeleteTodo(todoId) {
-    if (!confirm('คุณต้องการลบงานนี้ใช่หรือไม่?')) return;
+function handleDeleteTodo(todoId) {
+    currentActionTodoId = todoId;
+    openActionModal();
+}
 
-    const { error } = await deleteTodo(todoId);
+/**
+ * Real Delete (after confirmation from new modal)
+ */
+async function handleConfirmDelete() {
+    if (!currentActionTodoId) return;
+
+    console.log('Attempting to delete from DB:', currentActionTodoId);
+    const { error } = await deleteTodo(currentActionTodoId);
 
     if (error) {
         console.error('Error deleting todo:', error);
-        toast('ไม่สามารถลบงานได้', 3000, 'error');
+        toast('ไม่สามารถลบงานได้: ' + error.message, 3000, 'error');
         return;
     }
 
     // Remove from local state
-    allTodos = allTodos.filter(t => t.id !== todoId);
+    allTodos = allTodos.filter(t => t.id !== currentActionTodoId);
 
     renderTodos();
     updateStats();
     toast('ลบงานเรียบร้อย', 2000, 'success');
+    closeActionModal();
 }
 
+/**
+ * Handle Skip (Cancel) Todo
+ */
+async function handleSkipTodo(reason) {
+    if (!currentActionTodoId) return;
+
+    // 1. Fetch current todo to get existing description
+    const todo = allTodos.find(t => t.id === currentActionTodoId);
+    if (!todo) return;
+
+    // 2. Append reason to description
+    const newDescription = (todo.description || '') + `\n\n[เหตุผลที่ไม่ทำ: ${reason}]`;
+
+    // 3. Update status to 'cancelled'
+    const updates = {
+        status: 'cancelled',
+        description: newDescription
+    };
+
+    const { data, error } = await updateTodo(currentActionTodoId, updates);
+
+    if (error) {
+        console.error('Error skipping todo:', error);
+        toast('ไม่สามารถบันทึกข้อมูลได้', 3000, 'error');
+        return;
+    }
+
+    // 4. Update local state
+    const index = allTodos.findIndex(t => t.id === currentActionTodoId);
+    if (index !== -1) {
+        allTodos[index] = data;
+    }
+
+    renderTodos();
+    updateStats();
+    toast('บันทึกการยกเลิกงานเรียบร้อย', 2000, 'success');
+    closeActionModal();
+}
+
+/**
+ * Initialize Action Modal (Delete/Skip)
+ */
+function initActionModal() {
+    actionModal = document.getElementById('todo-action-modal');
+
+    // Close buttons
+    const closeBtn = document.getElementById('todo-action-close');
+    if (closeBtn) closeBtn.addEventListener('click', closeActionModal);
+
+    // Choice Buttons
+    const btnDelete = document.getElementById('btn-choice-delete');
+    const btnSkip = document.getElementById('btn-choice-skip');
+
+    // Skip Form
+    const skipContainer = document.getElementById('skip-reason-container');
+    const btnSkipCancel = document.getElementById('btn-skip-cancel');
+    const btnSkipConfirm = document.getElementById('btn-skip-confirm');
+    const skipInput = document.getElementById('skip-reason-input');
+
+    if (btnDelete) {
+        btnDelete.addEventListener('click', async () => {
+            // Confirm again for permanent delete? Or just do it?
+            // The modal itself acts as a choice, but permanent delete is refined.
+            // Let's verify with the standard confirm just to be safe, or just do it.
+            // Given the UI, clicking "Delete Permanently" is an explicit action.
+            // But let's add a small confirm to be safe.
+            const sure = await showConfirmModal('ยืนยันลบถาวร? ข้อมูลจะหายไปทันที');
+            if (sure) {
+                handleConfirmDelete();
+            }
+        });
+    }
+
+    if (btnSkip) {
+        btnSkip.addEventListener('click', () => {
+            // Show reason input
+            if (skipContainer) skipContainer.style.display = 'block';
+            // Hide choices if we want, or just expand. Let's scroll to it.
+            skipInput.focus();
+        });
+    }
+
+    if (btnSkipCancel) {
+        btnSkipCancel.addEventListener('click', () => {
+            if (skipContainer) skipContainer.style.display = 'none';
+            if (skipInput) skipInput.value = '';
+        });
+    }
+
+    if (btnSkipConfirm) {
+        btnSkipConfirm.addEventListener('click', () => {
+            const reason = skipInput.value.trim();
+            if (!reason) {
+                toast('กรุณาระบุเหตุผล', 2000, 'warning');
+                return;
+            }
+            handleSkipTodo(reason);
+        });
+    }
+
+    // Close on click outside
+    if (actionModal) {
+        actionModal.addEventListener('click', (e) => {
+            if (e.target === actionModal) {
+                closeActionModal();
+            }
+        });
+    }
+}
+
+function initPurchaseModal() {
+    purchaseModal = document.getElementById('todo-purchase-modal');
+    if (!purchaseModal) return;
+    purchaseModal.addEventListener('click', (e) => {
+        if (e.target === purchaseModal) closePurchaseModal();
+    });
+}
+
+function initPurchaseOverviewModal() {
+    purchaseOverviewModal = document.getElementById('purchase-overview-modal');
+    if (!purchaseOverviewModal) return;
+    const closeBtn = document.getElementById('purchase-overview-close');
+    if (closeBtn) closeBtn.addEventListener('click', closePurchaseOverviewModal);
+    purchaseOverviewModal.addEventListener('click', (e) => {
+        if (e.target === purchaseOverviewModal) closePurchaseOverviewModal();
+    });
+    const printBtn = document.getElementById('purchase-overview-print');
+    if (printBtn) {
+        printBtn.addEventListener('click', handlePrintPurchaseOverview);
+    }
+    const exportBtn = document.getElementById('purchase-overview-export');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', handleExportPurchases);
+    }
+}
+
+function openActionModal() {
+    if (actionModal) {
+        actionModal.classList.add('open');
+        // Reset state
+        const skipContainer = document.getElementById('skip-reason-container');
+        const skipInput = document.getElementById('skip-reason-input');
+        if (skipContainer) skipContainer.style.display = 'none';
+        if (skipInput) skipInput.value = '';
+    }
+}
+
+function closeActionModal() {
+    if (actionModal) {
+        actionModal.classList.remove('open');
+    }
+    currentActionTodoId = null;
+}
+
+function openPurchaseModal(todo) {
+    currentPurchaseTodoId = todo.id;
+    const titleEl = document.getElementById('todo-purchase-title');
+    if (titleEl) titleEl.textContent = `รายการซื้อของ: ${todo.title}`;
+    renderPurchaseFormDefaults();
+    renderPurchaseListPlaceholder();
+    if (purchaseModal) purchaseModal.classList.add('open');
+    loadPurchaseItems(todo.id);
+}
+
+function closePurchaseModal() {
+    if (purchaseModal) purchaseModal.classList.remove('open');
+    currentPurchaseTodoId = null;
+    currentPurchaseItems = [];
+}
+
+function renderPurchaseFormDefaults() {
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+    setVal('purchase-title', '');
+    setVal('purchase-vendor', '');
+    setVal('purchase-qty', '');
+    setVal('purchase-unit', '');
+    setVal('purchase-unit-price', '');
+    setVal('purchase-due', '');
+    setVal('purchase-status', 'pending');
+    setVal('purchase-note', '');
+}
+
+function renderPurchaseListPlaceholder() {
+    const list = document.getElementById('todo-purchase-list');
+    if (list) list.innerHTML = '<small style="color:#6b7280;">กำลังโหลด...</small>';
+    const summary = document.getElementById('todo-purchase-summary');
+    if (summary) summary.textContent = '';
+}
+
+async function loadPurchaseItems(todoId) {
+    try {
+        const list = await listPurchasesByTodo(todoId);
+        currentPurchaseItems = list || [];
+        renderPurchaseList();
+        const badge = document.querySelector(`.todo-purchase-summary[data-purchase-summary="${todoId}"]`);
+        if (badge) loadPurchaseSummary(todoId, badge, list);
+        loadPurchaseOverview();
+    } catch (err) {
+        console.error('Load purchases failed', err);
+        const listEl = document.getElementById('todo-purchase-list');
+        if (listEl) listEl.innerHTML = '<small style="color:#dc2626;">โหลดรายการซื้อไม่สำเร็จ</small>';
+    }
+}
+
+function renderPurchaseList() {
+    const listEl = document.getElementById('todo-purchase-list');
+    const summaryEl = document.getElementById('todo-purchase-summary');
+    if (!listEl) return;
+
+    const sum = (arr, fn) => arr.filter(fn).reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.unit_price) || 0)), 0);
+    const total = sum(currentPurchaseItems, () => true);
+    const paid = sum(currentPurchaseItems, i => i.status === 'paid');
+    const pending = total - paid;
+
+    if (summaryEl) {
+        summaryEl.innerHTML = `
+          <span style="margin-right:8px;">รวม: ${formatCurrency(total)}</span>
+          <span style="color:#16a34a;margin-right:8px;">จ่ายแล้ว: ${formatCurrency(paid)}</span>
+          <span style="color:#f59e0b;">ค้าง: ${formatCurrency(pending)}</span>
+        `;
+    }
+
+    if (!currentPurchaseItems.length) {
+        listEl.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีรายการซื้อ</small>';
+        return;
+    }
+
+    const table = document.createElement('div');
+    table.style.display = 'flex';
+    table.style.flexDirection = 'column';
+    table.style.gap = '8px';
+
+    currentPurchaseItems.forEach(item => {
+        const qty = Number(item.quantity) || 0;
+        const unitPrice = Number(item.unit_price) || 0;
+        const totalItem = qty * unitPrice;
+        const fmtDate = (d) => {
+            if (!d) return '-';
+            const date = new Date(d);
+            if (isNaN(date)) return '-';
+            return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+        };
+        const badge = (status) => {
+            const color = {
+                pending: '#f59e0b',
+                ordered: '#3b82f6',
+                received: '#0ea5e9',
+                paid: '#16a34a',
+                void: '#6b7280'
+            }[status] || '#6b7280';
+            const text = {
+                pending: 'รอดำเนินการ',
+                ordered: 'สั่งซื้อแล้ว',
+                received: 'ได้รับของแล้ว',
+                paid: 'จ่ายแล้ว',
+                void: 'ยกเลิก'
+            }[status] || status;
+            return `<span style="background:${color}1a;color:${color};padding:2px 8px;border-radius:999px;font-size:12px;">${text}</span>`;
+        };
+
+        const row = document.createElement('div');
+        row.style.border = '1px solid #e5e7eb';
+        row.style.borderRadius = '8px';
+        row.style.padding = '8px 10px';
+        row.style.background = '#fff';
+        row.innerHTML = `
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+            <div style="font-weight:700;font-size:13px;">${escapeHtml(item.title || '')}</div>
+            ${badge(item.status)}
+          </div>
+          <div style="margin-top:2px;font-size:12px;">ร้าน: ${escapeHtml(item.vendor || '-')}</div>
+          <div style="margin-top:2px;font-size:12px;">จำนวน: ${qty} ${escapeHtml(item.unit || '')} @ ${formatCurrency(unitPrice)} = <b>${formatCurrency(totalItem)}</b></div>
+          <div style="margin-top:2px;font-size:12px;">กำหนด: ${fmtDate(item.due_date)}</div>
+          ${item.note ? `<div style="margin-top:4px;font-size:12px;color:#4b5563;">${escapeHtml(item.note)}</div>` : ''}
+          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+            ${item.status !== 'paid' ? `<button class="btn btn-sm mark-purchase" data-id="${item.id}" data-status="paid" style="background:#16a34a;color:#fff;border:none;padding:5px 8px;font-size:12px;">จ่ายแล้ว</button>` : ''}
+            ${item.status !== 'received' && item.status !== 'paid' ? `<button class="btn btn-sm mark-purchase" data-id="${item.id}" data-status="received" style="padding:5px 8px;font-size:12px;">รับของแล้ว</button>` : ''}
+            <button class="btn btn-sm btn-secondary delete-purchase" data-id="${item.id}" style="padding:5px 8px;font-size:12px;">ลบ</button>
+          </div>
+        `;
+        table.appendChild(row);
+    });
+
+    listEl.innerHTML = '';
+    listEl.appendChild(table);
+
+    listEl.querySelectorAll('.mark-purchase').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.dataset.id;
+            const status = e.currentTarget.dataset.status;
+            try {
+                await updatePurchaseStatus(id, status);
+                await loadPurchaseItems(currentPurchaseTodoId);
+                toast('อัปเดตสถานะแล้ว', 2000, 'success');
+            } catch (err) {
+                console.error(err);
+                toast('ไม่สามารถอัปเดตได้', 2500, 'error');
+            }
+        });
+    });
+
+    listEl.querySelectorAll('.delete-purchase').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.dataset.id;
+            if (!confirm('ลบรายการซื้อ?')) return;
+            try {
+                await deletePurchaseItem(id);
+                await loadPurchaseItems(currentPurchaseTodoId);
+                toast('ลบเรียบร้อย', 2000, 'success');
+            } catch (err) {
+                console.error(err);
+                toast('ลบไม่สำเร็จ', 2500, 'error');
+            }
+        });
+    });
+}
+
+async function handleSavePurchase() {
+    if (!currentPurchaseTodoId || !currentPropertyId) {
+        toast('กรุณาเลือกงานและบ้านก่อน', 2000, 'warning');
+        return;
+    }
+    const title = document.getElementById('purchase-title')?.value.trim();
+    if (!title) {
+        toast('กรุณากรอกชื่อของ', 2000, 'warning');
+        return;
+    }
+    const payload = {
+        todo_id: currentPurchaseTodoId,
+        property_id: currentPropertyId,
+        title,
+        vendor: document.getElementById('purchase-vendor')?.value.trim(),
+        quantity: parseFloat(document.getElementById('purchase-qty')?.value || '0') || null,
+        unit: document.getElementById('purchase-unit')?.value.trim(),
+        unit_price: parseFloat(document.getElementById('purchase-unit-price')?.value || '0') || null,
+        due_date: document.getElementById('purchase-due')?.value || null,
+        status: document.getElementById('purchase-status')?.value || 'pending',
+        note: document.getElementById('purchase-note')?.value.trim()
+    };
+    try {
+        await upsertPurchaseItem(payload);
+        renderPurchaseFormDefaults();
+        await loadPurchaseItems(currentPurchaseTodoId);
+        toast('บันทึกรายการซื้อแล้ว', 2000, 'success');
+    } catch (err) {
+        console.error(err);
+        toast('ไม่สามารถบันทึกได้', 2500, 'error');
+    }
+}
+
+async function loadPurchaseSummary(todoId, targetEl, preloadList = null) {
+    try {
+        const list = preloadList || await listPurchasesByTodo(todoId);
+        purchaseSummaryCache[todoId] = list;
+        const sum = (arr, fn) => arr.filter(fn).reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.unit_price) || 0)), 0);
+        const total = sum(list, () => true);
+        const paid = sum(list, i => i.status === 'paid');
+        const now = new Date();
+        const overdue = sum(list, i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < now);
+        const pending = total - paid;
+        const text = `🛒 ${list.length} รายการ | จ่ายแล้ว ${formatCurrency(paid)} | ค้าง ${formatCurrency(pending)}${overdue > 0 ? ` | เกินกำหนด ${formatCurrency(overdue)}` : ''}`;
+        targetEl.textContent = text;
+        targetEl.style.color = overdue > 0 ? '#dc2626' : '#374151';
+        renderPurchaseInline(todoId);
+    } catch (err) {
+        console.error('Load purchase summary failed', err);
+        targetEl.textContent = '🛒 โหลดข้อมูลไม่ได้';
+        targetEl.style.color = '#dc2626';
+    }
+}
+
+function renderPurchaseInline(todoId) {
+    const target = document.querySelector(`[data-purchase-inline="${todoId}"]`);
+    if (!target) return;
+    const list = purchaseSummaryCache[todoId] || [];
+    if (!list.length) {
+        target.innerHTML = '<div style="color:#9ca3af;">ยังไม่มีรายการซื้อ</div>';
+        return;
+    }
+    const items = list.slice(0, 3).map(i => {
+        const qty = Number(i.quantity) || 0;
+        const unit = i.unit || '';
+        const vendor = i.vendor ? ` • ${escapeHtml(i.vendor)}` : '';
+        return `<div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:13px;">${escapeHtml(i.title || '')}</span>
+          <span style="color:#6b7280;font-size:12px;">(${qty || ''} ${escapeHtml(unit)})${vendor}</span>
+        </div>`;
+    }).join('');
+    const more = list.length > 3 ? `<div style="color:#6b7280;font-size:12px;">… อีก ${list.length - 3} รายการ</div>` : '';
+    target.innerHTML = items + more;
+}
+
+async function loadPurchaseOverview() {
+    const block = document.getElementById('todo-purchase-overview');
+    const content = document.getElementById('todo-purchase-overview-content');
+    const summaryEl = document.getElementById('todo-purchase-overview-summary');
+    if (!block || !content) return;
+    if (!currentPropertyId) {
+        block.style.display = 'none';
+        return;
+    }
+    block.style.display = 'block';
+    content.innerHTML = '<small style="color:#6b7280;">กำลังโหลด...</small>';
+    if (summaryEl) summaryEl.textContent = '';
+
+    try {
+        const list = await listPurchasesByProperty(currentPropertyId);
+        if (!list.length) {
+            content.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีรายการซื้อ</small>';
+            return;
+        }
+        const sum = (arr, fn) => arr.filter(fn).reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.unit_price) || 0)), 0);
+        const total = sum(list, () => true);
+        const paid = sum(list, i => i.status === 'paid');
+        const now = new Date();
+        const overdue = sum(list, i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < now);
+        const pending = total - paid;
+        if (summaryEl) {
+            summaryEl.textContent = `รวม ${formatCurrency(total)} | จ่ายแล้ว ${formatCurrency(paid)} | ค้าง ${formatCurrency(pending)}${overdue > 0 ? ` | เกินกำหนด ${formatCurrency(overdue)}` : ''}`;
+        }
+
+        const summaryBox = document.createElement('div');
+        summaryBox.style.display = 'flex';
+        summaryBox.style.gap = '8px';
+        summaryBox.style.flexWrap = 'wrap';
+        const badge = (label, val, color) => `<span style="background:${color}1a;color:${color};padding:4px 10px;border-radius:999px;font-size:12px;">${label}: ${formatCurrency(val)}</span>`;
+        summaryBox.innerHTML = `
+          ${badge('รวม', total, '#111')}
+          ${badge('จ่ายแล้ว', paid, '#16a34a')}
+          ${badge('ค้าง', pending, '#f59e0b')}
+          ${badge('เกินกำหนด', overdue, '#dc2626')}
+        `;
+
+        const table = document.createElement('div');
+        table.style.marginTop = '8px';
+        table.style.display = 'grid';
+        table.style.gridTemplateColumns = 'repeat(auto-fit, minmax(260px, 1fr))';
+        table.style.gap = '8px';
+
+        const todoMap = Object.fromEntries(allTodos.map(t => [t.id, t.title]));
+
+        const fmtDate = (d) => {
+            if (!d) return '-';
+            const date = new Date(d);
+            if (isNaN(date)) return '-';
+            return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+        };
+
+        const badgeStatus = (status) => {
+            const color = {
+                pending: '#f59e0b',
+                ordered: '#3b82f6',
+                received: '#0ea5e9',
+                paid: '#16a34a',
+                void: '#6b7280'
+            }[status] || '#6b7280';
+            const text = {
+                pending: 'รอดำเนินการ',
+                ordered: 'สั่งซื้อแล้ว',
+                received: 'ได้รับของแล้ว',
+                paid: 'จ่ายแล้ว',
+                void: 'ยกเลิก'
+            }[status] || status;
+            return `<span style="background:${color}1a;color:${color};padding:2px 8px;border-radius:999px;font-size:12px;">${text}</span>`;
+        };
+
+        list.forEach(item => {
+            const qty = Number(item.quantity) || 0;
+            const unitPrice = Number(item.unit_price) || 0;
+            const totalItem = qty * unitPrice;
+            const card = document.createElement('div');
+            card.style.border = '1px solid #e5e7eb';
+            card.style.borderRadius = '10px';
+            card.style.padding = '10px';
+            card.style.background = '#fff';
+            card.innerHTML = `
+              <div style="display:flex;justify-content:space-between;gap:6px;align-items:center;">
+                <div style="font-weight:700;">${escapeHtml(item.title || '')}</div>
+                ${badgeStatus(item.status)}
+              </div>
+              <div style="color:#6b7280;font-size:12px;margin-top:2px;">งาน: ${escapeHtml(todoMap[item.todo_id] || '-')}</div>
+              <div style="margin-top:2px;font-size:12px;">ร้าน: ${escapeHtml(item.vendor || '-')}</div>
+              <div style="margin-top:2px;font-size:12px;">จำนวน: ${qty} ${escapeHtml(item.unit || '')} @ ${formatCurrency(unitPrice)} = <b>${formatCurrency(totalItem)}</b></div>
+              <div style="margin-top:2px;font-size:12px;">กำหนด: ${fmtDate(item.due_date)}</div>
+              ${item.note ? `<div style="margin-top:4px;font-size:12px;color:#4b5563;">${escapeHtml(item.note)}</div>` : ''}
+            `;
+            table.appendChild(card);
+        });
+
+        content.innerHTML = '';
+        content.appendChild(summaryBox);
+        content.appendChild(table);
+    } catch (err) {
+        console.error(err);
+        content.innerHTML = '<small style="color:#dc2626;">โหลดรายการซื้อไม่สำเร็จ</small>';
+    }
+}
+
+async function openPurchaseOverviewModal() {
+    if (!purchaseOverviewModal || !currentPropertyId) return;
+    purchaseOverviewModal.classList.add('open');
+    const modalSummary = document.getElementById('purchase-overview-modal-summary');
+    const modalList = document.getElementById('purchase-overview-modal-list');
+    if (modalSummary) modalSummary.textContent = 'กำลังโหลด...';
+    if (modalList) modalList.innerHTML = '';
+
+    try {
+        const list = await listPurchasesByProperty(currentPropertyId);
+        const sum = (arr, fn) => arr.filter(fn).reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.unit_price) || 0)), 0);
+        const total = sum(list, () => true);
+        const paid = sum(list, i => i.status === 'paid');
+        const now = new Date();
+        const overdue = sum(list, i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < now);
+        const pending = total - paid;
+        if (modalSummary) {
+            modalSummary.textContent = `รวม ${formatCurrency(total)} | จ่ายแล้ว ${formatCurrency(paid)} | ค้าง ${formatCurrency(pending)}${overdue > 0 ? ` | เกินกำหนด ${formatCurrency(overdue)}` : ''}`;
+        }
+        if (!modalList) return;
+        if (!list.length) {
+            modalList.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีรายการซื้อ</small>';
+            return;
+        }
+        const todoMap = Object.fromEntries(allTodos.map(t => [t.id, t.title]));
+        const fmtDate = (d) => {
+            if (!d) return '-';
+            const date = new Date(d);
+            if (isNaN(date)) return '-';
+            return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+        };
+        const badgeStatus = (status) => {
+            const color = {
+                pending: '#f59e0b',
+                ordered: '#3b82f6',
+                received: '#0ea5e9',
+                paid: '#16a34a',
+                void: '#6b7280'
+            }[status] || '#6b7280';
+            const text = {
+                pending: 'รอดำเนินการ',
+                ordered: 'สั่งซื้อแล้ว',
+                received: 'ได้รับของแล้ว',
+                paid: 'จ่ายแล้ว',
+                void: 'ยกเลิก'
+            }[status] || status;
+            return `<span style="background:${color}1a;color:${color};padding:2px 8px;border-radius:999px;font-size:11px;">${text}</span>`;
+        };
+        const rows = list.map((item, idx) => {
+            const qty = Number(item.quantity) || 0;
+            const unitPrice = Number(item.unit_price) || 0;
+            const totalItem = qty * unitPrice;
+            return `
+              <tr>
+                <td style="padding:6px;">${idx + 1}</td>
+                <td style="padding:6px;">${escapeHtml(item.title || '')}</td>
+                <td style="padding:6px;">${escapeHtml(todoMap[item.todo_id] || '-')}</td>
+                <td style="padding:6px;">${escapeHtml(item.vendor || '-')}</td>
+                <td style="padding:6px;">${qty} ${escapeHtml(item.unit || '')}</td>
+                <td style="padding:6px;text-align:right;">${formatCurrency(unitPrice)}</td>
+                <td style="padding:6px;text-align:right;">${formatCurrency(totalItem)}</td>
+                <td style="padding:6px;">${fmtDate(item.due_date)}</td>
+                <td style="padding:6px;">${badgeStatus(item.status)}</td>
+                <td style="padding:6px;">${escapeHtml(item.note || '')}</td>
+              </tr>
+            `;
+        }).join('');
+        modalList.innerHTML = `
+          <div style="overflow:auto; max-height:70vh;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead>
+                <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                  <th style="padding:6px;text-align:left;">#</th>
+                  <th style="padding:6px;text-align:left;">รายการ</th>
+                  <th style="padding:6px;text-align:left;">งาน</th>
+                  <th style="padding:6px;text-align:left;">ร้าน</th>
+                  <th style="padding:6px;text-align:left;">จำนวน</th>
+                  <th style="padding:6px;text-align:right;">ราคา/หน่วย</th>
+                  <th style="padding:6px;text-align:right;">รวม</th>
+                  <th style="padding:6px;text-align:left;">กำหนด</th>
+                  <th style="padding:6px;text-align:left;">สถานะ</th>
+                  <th style="padding:6px;text-align:left;">หมายเหตุ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `;
+    } catch (err) {
+        console.error(err);
+        if (modalSummary) modalSummary.textContent = 'โหลดไม่สำเร็จ';
+        if (modalList) modalList.innerHTML = '<small style="color:#dc2626;">โหลดรายการซื้อไม่สำเร็จ</small>';
+    }
+}
+
+/**
+ * พิมพ์/บันทึก PDF สำหรับ modal รายการซื้อ (ใช้ window แยกเพื่อเลี่ยงหน้าว่าง)
+ */
+async function handlePrintPurchaseOverview() {
+    if (!currentPropertyId) {
+        toast('กรุณาเลือกบ้านก่อน', 2000, 'warning');
+        return;
+    }
+    const btn = document.getElementById('purchase-overview-print');
+    if (btn) btn.disabled = true;
+    try {
+        const list = await listPurchasesByProperty(currentPropertyId);
+        const { total, paid, pending, overdue } = calcPurchaseTotals(list);
+        const todoMap = Object.fromEntries(allTodos.map(t => [t.id, t.title]));
+        const rows = list.map((item, idx) => {
+            const qty = Number(item.quantity) || 0;
+            const unitPrice = Number(item.unit_price) || 0;
+            const totalItem = qty * unitPrice;
+            return `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${escapeHtml(item.title || '')}</td>
+                <td>${escapeHtml(todoMap[item.todo_id] || '-')}</td>
+                <td>${escapeHtml(item.vendor || '-')}</td>
+                <td>${qty} ${escapeHtml(item.unit || '')}</td>
+                <td style="text-align:right;">${formatCurrency(unitPrice)}</td>
+                <td style="text-align:right;">${formatCurrency(totalItem)}</td>
+                <td>${formatShortDate(item.due_date)}</td>
+                <td>${formatStatusText(item.status)}</td>
+                <td>${escapeHtml(item.note || '')}</td>
+              </tr>
+            `;
+        }).join('');
+
+        const html = `
+          <html lang="th">
+            <head>
+              <meta charset="UTF-8" />
+              <title>รายการซื้อทั้งหมด</title>
+              <style>
+                @page { margin: 15mm; }
+                body { font-family: "Segoe UI", "Noto Sans Thai", sans-serif; color:#111827; margin:0; padding:10mm; box-sizing:border-box; }
+                h3 { margin:0 0 12px 0; }
+                table { width:100%; border-collapse: collapse; font-size:12px; }
+                th, td { padding:8px; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:top; }
+                thead th { background:#f9fafb; }
+                .summary { margin-bottom:12px; color:#6b7280; font-size:12px; }
+              </style>
+            </head>
+            <body>
+              <h3>รายการซื้อทั้งหมด</h3>
+              <div class="summary">รวม ${formatCurrency(total)} | จ่ายแล้ว ${formatCurrency(paid)} | ค้าง ${formatCurrency(pending)}${overdue > 0 ? ` | เกินกำหนด ${formatCurrency(overdue)}` : ''}</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>รายการ</th>
+                    <th>งาน</th>
+                    <th>ร้าน</th>
+                    <th>จำนวน</th>
+                    <th style="text-align:right;">ราคา/หน่วย</th>
+                    <th style="text-align:right;">รวม</th>
+                    <th>กำหนด</th>
+                    <th>สถานะ</th>
+                    <th>หมายเหตุ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows || '<tr><td colspan="10" style="text-align:center;color:#9ca3af;">ยังไม่มีรายการซื้อ</td></tr>'}
+                </tbody>
+              </table>
+            </body>
+          </html>
+        `;
+
+        // ใช้ iframe ซ่อนเพื่อความเสถียร (เลี่ยงหน้าว่าง/บล็อก popup)
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.srcdoc = html;
+        document.body.appendChild(iframe);
+
+        const triggerPrint = () => {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (e) {
+                console.error('iframe print failed', e);
+            } finally {
+                setTimeout(() => iframe.remove(), 300);
+            }
+        };
+
+        iframe.addEventListener('load', () => setTimeout(triggerPrint, 100));
+        // fallback
+        setTimeout(triggerPrint, 800);
+    } catch (err) {
+        console.error('Print failed', err);
+        toast('พิมพ์ไม่สำเร็จ', 2500, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function closePurchaseOverviewModal() {
+    if (purchaseOverviewModal) purchaseOverviewModal.classList.remove('open');
+}
+
+/**
+ * ส่งออก CSV (นำเข้า Opendocument / LibreOffice ได้)
+ */
+async function handleExportPurchases() {
+    if (!currentPropertyId) return;
+    const exportBtn = document.getElementById('purchase-overview-export');
+    if (exportBtn) exportBtn.disabled = true;
+
+    try {
+        const list = await listPurchasesByProperty(currentPropertyId);
+        if (!list || !list.length) {
+            toast('ไม่มีข้อมูลสำหรับส่งออก', 2500, 'warning');
+            return;
+        }
+
+        const todoMap = Object.fromEntries(allTodos.map(t => [t.id, t.title]));
+        const header = [
+            '#', 'รายการ', 'งาน', 'ร้าน', 'จำนวน', 'หน่วย', 'ราคา/หน่วย', 'รวม', 'กำหนด', 'สถานะ', 'หมายเหตุ'
+        ];
+        const csvRows = [header];
+
+        list.forEach((item, idx) => {
+            const qty = Number(item.quantity) || 0;
+            const unitPrice = Number(item.unit_price) || 0;
+            const totalItem = qty * unitPrice;
+            const fmtDate = (d) => {
+                if (!d) return '';
+                const date = new Date(d);
+                if (isNaN(date)) return '';
+                return date.toISOString().split('T')[0];
+            };
+            csvRows.push([
+                idx + 1,
+                item.title || '',
+                todoMap[item.todo_id] || '',
+                item.vendor || '',
+                qty,
+                item.unit || '',
+                unitPrice,
+                totalItem,
+                fmtDate(item.due_date),
+                item.status || '',
+                item.note || ''
+            ]);
+        });
+
+        const csv = csvRows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `purchases_${currentPropertyId}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast('ส่งออก CSV สำเร็จ', 2000, 'success');
+    } catch (err) {
+        console.error('Export failed', err);
+        toast('ส่งออกไม่สำเร็จ', 3000, 'error');
+    } finally {
+        if (exportBtn) exportBtn.disabled = false;
+    }
+}
+
+/**
+ * Handle generate default tasks
+ */
 /**
  * Handle generate default tasks
  */
 async function handleGenerateDefaults() {
     if (!currentPropertyId) return;
 
-    if (!confirm('ต้องการสร้างรายการงานมาตรฐานสำหรับบ้านหลังนี้ใช่หรือไม่?')) return;
+    const confirm = await showConfirmModal('ต้องการสร้างรายการงานมาตรฐานสำหรับบ้านหลังนี้ใช่หรือไม่?');
+    if (!confirm) return;
 
     const { error } = await generateDefaultTodos(currentPropertyId);
 
@@ -634,6 +1528,72 @@ async function checkNotifications() {
 }
 
 /**
+ * Initialize Confirm Modal
+ */
+function initConfirmModal() {
+    confirmModal = document.getElementById('confirm-modal');
+    const cancelBtn = document.getElementById('confirm-cancel-btn');
+    const okBtn = document.getElementById('confirm-ok-btn');
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            closeConfirmModal(false);
+        });
+    }
+
+    if (okBtn) {
+        okBtn.addEventListener('click', () => {
+            closeConfirmModal(true);
+        });
+    }
+
+    // Close on click outside
+    if (confirmModal) {
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) {
+                closeConfirmModal(false);
+            }
+        });
+    }
+}
+
+/**
+ * Show Confirm Modal
+ * @param {string} message 
+ * @returns {Promise<boolean>}
+ */
+function showConfirmModal(message) {
+    return new Promise((resolve) => {
+        if (!confirmModal) {
+            // Fallback if modal not found
+            const result = window.confirm(message);
+            resolve(result);
+            return;
+        }
+
+        const msgEl = document.getElementById('confirm-modal-message');
+        if (msgEl) msgEl.textContent = message;
+
+        confirmResolve = resolve;
+        confirmModal.classList.add('open');
+    });
+}
+
+/**
+ * Close Confirm Modal
+ */
+function closeConfirmModal(result) {
+    if (confirmModal) {
+        confirmModal.classList.remove('open');
+    }
+
+    if (confirmResolve) {
+        confirmResolve(result);
+        confirmResolve = null;
+    }
+}
+
+/**
  * Utility functions
  */
 function escapeHtml(text) {
@@ -675,6 +1635,47 @@ function isOverdue(dateStr) {
     const dueDate = new Date(dateStr);
     const now = new Date();
     return dueDate < now;
+}
+
+function formatCurrency(val) {
+    const num = Number(val) || 0;
+    return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function csvEscape(val) {
+    const str = `${val ?? ''}`.replace(/\r?\n|\r/g, ' ');
+    if (str.includes(',') || str.includes('"')) {
+        return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+}
+
+function formatShortDate(d) {
+    if (!d) return '-';
+    const date = new Date(d);
+    if (isNaN(date)) return '-';
+    return date.toISOString().split('T')[0];
+}
+
+function formatStatusText(status) {
+    const map = {
+        pending: 'รอดำเนินการ',
+        ordered: 'สั่งซื้อแล้ว',
+        received: 'ได้รับของแล้ว',
+        paid: 'จ่ายแล้ว',
+        void: 'ยกเลิก'
+    };
+    return map[status] || status || '-';
+}
+
+function calcPurchaseTotals(list = []) {
+    const sum = (arr, fn) => arr.filter(fn).reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.unit_price) || 0)), 0);
+    const total = sum(list, () => true);
+    const paid = sum(list, i => i.status === 'paid');
+    const now = new Date();
+    const overdue = sum(list, i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < now);
+    const pending = total - paid;
+    return { total, paid, pending, overdue };
 }
 
 /**

@@ -17,6 +17,7 @@ import { listContractorsForProperty, upsertPropertyContractor, deletePropertyCon
 import { upsertContractor } from '../services/contractorsService.js';
 import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '../services/renovationBookService.js';
 import { getArticles, createArticle, updateArticle, deleteArticle, uploadArticleImage } from '../services/articlesService.js';
+import { listPaymentsByProperty, upsertPaymentSchedule, markPaymentPaid, deletePaymentSchedule } from '../services/contractorPaymentsService.js';
 
 // To-Do Services
 import {
@@ -71,11 +72,19 @@ let propertiesData = []; // Cache loaded properties
 let currentRenovationPropertyId = null; // For renovation book tab
 let todoTabInitialized = false; // For to-do tab
 let articlesData = []; // Articles Cache
+let currentPropertyContractors = []; // สำหรับเลือกทีมช่างในงวดจ่าย
+let currentPaymentSchedules = [];
 
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
   return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
 };
+
+function escapeHtml(text = '') {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
 // ====================== Utility ======================
 function kmDistance(lat1, lon1, lat2, lon2) {
@@ -1411,6 +1420,7 @@ let currentRenovationData = null;
 // Populate the Renovation Property Select
 // Populate the Renovation Property Select (Searchable)
 let renovationPropertiesList = [];
+let paymentQuickModal = null;
 
 async function setupRenovationPropertySelect() {
   const searchInput = document.getElementById('rb-property-search');
@@ -1522,7 +1532,7 @@ function renderRenovationListView() {
 
   // Use renovationPropertiesList populated earlier
   if (!renovationPropertiesList || !renovationPropertiesList.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:2rem;text-align:center;color:#999;">ไม่มีข้อมูลบ้าน</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:2rem;text-align:center;color:#999;">ไม่มีข้อมูลบ้าน</td></tr>';
     return;
   }
 
@@ -1552,8 +1562,14 @@ function renderRenovationListView() {
                 <span style="background:#f3f4f6; padding:2px 8px; border-radius:12px; font-size:0.85rem;">${stage}</span>
             </td>
             <td style="padding:1rem;">${price}</td>
+            <td style="padding:1rem;">
+                <div class="payment-badge" data-property-id="${p.id}" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  <span style="font-size:0.9rem;color:#6b7280;">โหลด...</span>
+                </div>
+            </td>
             <td style="padding:1rem; text-align:right;">
                 <button class="btn btn-sm btn-secondary edit-renovation-btn">เปิดสมุด</button>
+                <button class="btn btn-sm" data-quick-pay="${p.id}" style="margin-left:6px;">ดูงวดจ่าย</button>
             </td>
         `;
 
@@ -1568,8 +1584,15 @@ function renderRenovationListView() {
     };
 
     tr.querySelector('.edit-renovation-btn').addEventListener('click', open);
+    const quickBtn = tr.querySelector('button[data-quick-pay]');
+    if (quickBtn) {
+      quickBtn.addEventListener('click', () => openPaymentQuickModal(p));
+    }
     tbody.appendChild(tr);
   });
+
+  // Fetch payment summary for each row
+  renovationPropertiesList.forEach(p => loadRowPaymentSummary(p.id));
 }
 
 async function loadRenovationForProperty(propertyId) {
@@ -1610,6 +1633,7 @@ async function loadRenovationForProperty(propertyId) {
     // Load Specs & Contractors
     await loadRenovationSpecs(propertyId);
     await loadRenovationContractors(propertyId);
+    await loadPaymentSchedules(propertyId);
 
   } catch (err) {
     console.error("Error loading renovation book:", err);
@@ -1827,10 +1851,34 @@ async function loadRenovationSpecs(propId) {
   }
 
   const ul = document.createElement('ul');
-  ul.style.paddingLeft = '1.2rem';
+  ul.style.paddingLeft = '0';
+  ul.style.display = 'grid';
+  ul.style.gridTemplateColumns = 'repeat(auto-fit, minmax(260px, 1fr))';
+  ul.style.gap = '10px';
   list.forEach(s => {
     const li = document.createElement('li');
-    li.innerHTML = `<b>${s.zone}:</b> ${s.item_type} (${s.brand || '-'}) <a href="#" class="text-red-500 del-spec" data-id="${s.id}" style="color:red;margin-left:5px;">×</a>`;
+    li.style.border = '1px solid #e5e7eb';
+    li.style.borderRadius = '8px';
+    li.style.padding = '10px 12px';
+    li.style.background = '#fff';
+    const info = [
+      s.item_type ? `<div><b>ประเภท:</b> ${escapeHtml(s.item_type)}</div>` : '',
+      s.brand ? `<div><b>ยี่ห้อ:</b> ${escapeHtml(s.brand)}</div>` : '',
+      s.model_or_series ? `<div><b>รุ่น/สี:</b> ${escapeHtml(s.model_or_series)}</div>` : '',
+      s.color_code ? `<div><b>โค้ดสี:</b> ${escapeHtml(s.color_code)}</div>` : '',
+      s.tile_pattern ? `<div><b>ลาย/รหัสกระเบื้อง:</b> ${escapeHtml(s.tile_pattern)}</div>` : '',
+      s.supplier ? `<div><b>ร้าน/ซัพพลายเออร์:</b> ${escapeHtml(s.supplier)}</div>` : '',
+      (s.quantity || s.unit) ? `<div><b>จำนวน:</b> ${escapeHtml(String(s.quantity || ''))} ${escapeHtml(s.unit || '')}</div>` : '',
+      s.note ? `<div style="color:#4b5563;">${escapeHtml(s.note)}</div>` : ''
+    ].filter(Boolean).join('');
+
+    li.innerHTML = `
+      <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(s.zone || '-')}</div>
+      ${info || '<div style="color:#9ca3af;">-</div>'}
+      <div style="margin-top:6px;">
+        <a href="#" class="text-red-500 del-spec" data-id="${s.id}" style="color:red;">ลบ</a>
+      </div>
+    `;
     ul.appendChild(li);
   });
   container.appendChild(ul);
@@ -1846,6 +1894,7 @@ async function loadRenovationSpecs(propId) {
 
 async function loadRenovationContractors(propId) {
   const list = await listContractorsForProperty(propId);
+  currentPropertyContractors = list || [];
   const container = document.getElementById('rb-contractors-container');
   if (!container) return;
   container.innerHTML = '';
@@ -1854,22 +1903,52 @@ async function loadRenovationContractors(propId) {
     container.innerHTML = '<small style="color:#999;">ยังไม่มีทีมช่าง</small>';
     return;
   }
-  const ul = document.createElement('ul');
-  ul.style.paddingLeft = '1.2rem';
+  const grid = document.createElement('div');
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(260px, 1fr))';
+  grid.style.gap = '10px';
+
   list.forEach(c => {
-    const name = c.contractor?.name || 'Unknown';
-    const li = document.createElement('li');
-    li.innerHTML = `<b>${name}</b> (${c.scope || '-'}) <a href="#" class="text-red-500 del-con" data-id="${c.id}" style="color:red;margin-left:5px;">×</a>`;
-    ul.appendChild(li);
+    const name = c.contractor?.name || 'ไม่ระบุ';
+    const card = document.createElement('div');
+    card.style.border = '1px solid #e5e7eb';
+    card.style.borderRadius = '10px';
+    card.style.padding = '10px 12px';
+    card.style.background = '#fff';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:6px;align-items:center;">
+        <div>
+          <div style="font-weight:700;">${escapeHtml(name)}</div>
+          <div style="color:#6b7280;font-size:12px;">${escapeHtml(c.scope || '-')}</div>
+        </div>
+        <a href="#" class="text-red-500 del-con" data-id="${c.id}" style="color:red;font-size:18px;line-height:1;">×</a>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-sm btn-secondary add-payment-for-contractor" data-pc="${c.id}" style="padding:6px 10px;">+ เพิ่มงวดจ่าย</button>
+      </div>
+      <div class="contractor-payments" data-payment-list-for="${c.id}" style="margin-top:8px;"></div>
+    `;
+    grid.appendChild(card);
   });
-  container.appendChild(ul);
-  ul.querySelectorAll('.del-con').forEach(a => a.addEventListener('click', async (e) => {
+  container.appendChild(grid);
+
+  container.querySelectorAll('.del-con').forEach(a => a.addEventListener('click', async (e) => {
     e.preventDefault();
     if (confirm('ลบ?')) {
       await deletePropertyContractor(e.target.dataset.id);
       await loadRenovationContractors(propId);
+      await loadPaymentSchedules(propId);
     }
   }));
+
+  container.querySelectorAll('.add-payment-for-contractor').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pcId = btn.dataset.pc;
+      openPaymentModal(pcId);
+    });
+  });
+
+  renderPaymentsIntoCards();
 }
 
 // Modal logic for Spec/Contractor Add (Basic)
@@ -1881,6 +1960,43 @@ function setupRenovationModals() {
   const form = document.getElementById('rb-modal-form');
   let mode = '';
 
+  function openPaymentModal(selectedPcId = null) {
+    mode = 'payment';
+    const contractorOptions = currentPropertyContractors.map(c => {
+      const name = c.contractor?.name || 'ไม่ระบุ';
+      const scope = c.scope ? ` (${c.scope})` : '';
+      return `<option value="${c.id}">${escapeHtml(name + scope)}</option>`;
+    }).join('');
+    document.getElementById('rb-modal-title').textContent = 'เพิ่มงวดจ่าย';
+    document.getElementById('rb-modal-fields-container').innerHTML = `
+            <div class="form-group"><label>ชื่องวด/เงื่อนไข</label><input name="title" class="form-control" placeholder="เช่น มัดจำ, ปูกระเบื้อง" required></div>
+            <div class="form-group"><label>ทีมช่าง</label>
+              <select name="property_contractor_id" class="form-control">
+                <option value="">-- ไม่ระบุ --</option>
+                ${contractorOptions}
+              </select>
+            </div>
+            <div class="form-group"><label>จำนวนเงิน (บาท)</label><input name="amount" type="number" step="0.01" class="form-control" required></div>
+            <div class="form-group"><label>กำหนดจ่าย</label><input name="due_date" type="date" class="form-control"></div>
+            <div class="form-group"><label>สถานะ</label>
+              <select name="status" class="form-control">
+                <option value="pending" selected>รอดำเนินการ</option>
+                <option value="paid">จ่ายแล้ว</option>
+                <option value="deferred">เลื่อน</option>
+              </select>
+            </div>
+            <div class="form-group"><label>หมายเหตุ/เงื่อนไข</label><textarea name="note" class="form-control" rows="2"></textarea></div>
+        `;
+    modal.classList.add('open');
+    if (selectedPcId) {
+      const sel = document.querySelector('#rb-modal-fields-container select[name="property_contractor_id"]');
+      if (sel) sel.value = selectedPcId;
+    }
+  }
+
+  // เปิดใช้ภายนอกสำหรับปุ่มในรายการทีมช่าง
+  window.openPaymentModal = openPaymentModal;
+
   const close = () => modal.classList.remove('open');
   if (closeBtn) closeBtn.onclick = close;
   if (cancelBtn) cancelBtn.onclick = close;
@@ -1889,10 +2005,20 @@ function setupRenovationModals() {
     mode = 'spec';
     document.getElementById('rb-modal-title').textContent = 'เพิ่มสเปก';
     document.getElementById('rb-modal-fields-container').innerHTML = `
-            <div class="form-group"><label>โซน</label><input name="zone" class="form-control" required></div>
-            <div class="form-group"><label>ประเภท</label><input name="item_type" class="form-control"></div>
+            <div class="form-group"><label>โซน</label><input name="zone" class="form-control" placeholder="เช่น ห้องนั่งเล่น, ห้องครัว" required></div>
+            <div class="form-group"><label>ประเภท</label><input name="item_type" class="form-control" placeholder="สี, กระเบื้อง, สุขภัณฑ์..."></div>
             <div class="form-group"><label>ยี่ห้อ</label><input name="brand" class="form-control"></div>
-            <div class="form-group"><label>รุ่น/สี</label><input name="model_or_series" class="form-control"></div>
+            <div class="form-group"><label>รุ่น/สี</label><input name="model_or_series" class="form-control" placeholder="รุ่น/ซีรีส์ หรือชื่อสี"></div>
+            <div class="form-group"><label>เบอร์สี / โค้ดสี</label><input name="color_code" class="form-control" placeholder="เช่น 1A02, #F5F5F5"></div>
+            <div class="form-group"><label>ลาย/รหัสกระเบื้อง</label><input name="tile_pattern" class="form-control" placeholder="เช่น รหัสสินค้า, ลายหินอ่อน"></div>
+            <div class="form-group"><label>ร้าน/ซัพพลายเออร์</label><input name="supplier" class="form-control" placeholder="ร้านที่ซื้อ/แหล่งสั่งของ"></div>
+            <div class="form-group"><label>จำนวน/หน่วย</label>
+              <div style="display:flex; gap:8px;">
+                <input name="quantity" type="number" step="0.01" class="form-control" style="flex:1;" placeholder="เช่น 5">
+                <input name="unit" class="form-control" style="width:120px;" placeholder="กล., กล่อง, ตรม.">
+              </div>
+            </div>
+            <div class="form-group"><label>โน้ต/วิธีติดตั้ง</label><textarea name="note" class="form-control" rows="2" placeholder="วิธีผสมสี, ทิศทางปูกระเบื้อง, อื่น ๆ"></textarea></div>
         `;
     modal.classList.add('open');
   });
@@ -1909,6 +2035,15 @@ function setupRenovationModals() {
     modal.classList.add('open');
   });
 
+  document.getElementById('rb-add-payment-btn')?.addEventListener('click', () => {
+    openPaymentModal();
+  });
+
+  // Quick payment modal controls
+  paymentQuickModal = document.getElementById('payment-quick-modal');
+  const pqClose = document.getElementById('payment-quick-close');
+  if (pqClose) pqClose.addEventListener('click', closePaymentQuickModal);
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
@@ -1918,7 +2053,13 @@ function setupRenovationModals() {
         zone: fd.get('zone'),
         item_type: fd.get('item_type'),
         brand: fd.get('brand'),
-        model_or_series: fd.get('model_or_series')
+        model_or_series: fd.get('model_or_series'),
+        color_code: fd.get('color_code'),
+        supplier: fd.get('supplier'),
+        unit: fd.get('unit'),
+        quantity: fd.get('quantity'),
+        note: fd.get('note'),
+        tile_pattern: fd.get('tile_pattern')
       });
       await loadRenovationSpecs(currentRenovationPropertyId);
     } else if (mode === 'contractor') {
@@ -1933,10 +2074,299 @@ function setupRenovationModals() {
         scope: fd.get('scope')
       });
       await loadRenovationContractors(currentRenovationPropertyId);
+      await loadPaymentSchedules(currentRenovationPropertyId);
+    } else if (mode === 'payment') {
+      const property_contractor_id = fd.get('property_contractor_id') || null;
+      const amount = parseFloat(fd.get('amount') || '0');
+      const status = fd.get('status') || 'pending';
+      const contractorLink = currentPropertyContractors.find(c => String(c.id) === String(property_contractor_id));
+      await upsertPaymentSchedule({
+        property_id: currentRenovationPropertyId,
+        property_contractor_id,
+        contractor_id: contractorLink?.contractor_id || null,
+        title: fd.get('title'),
+        amount,
+        due_date: fd.get('due_date') || null,
+        status,
+        note: fd.get('note'),
+        paid_at: status === 'paid' ? new Date().toISOString() : null
+      });
+      await loadPaymentSchedules(currentRenovationPropertyId);
     }
     close();
     toast('บันทึกสำเร็จ', 2000, 'success');
   });
+}
+
+async function loadPaymentSchedules(propId) {
+  const container = document.getElementById('rb-payments-container');
+  if (!container) return;
+  if (!propId) {
+    container.innerHTML = '<small style="color:#999;">เลือกบ้านก่อน</small>';
+    return;
+  }
+  container.innerHTML = '<small style="color:#999;">กำลังโหลด...</small>';
+
+  let list = [];
+  try {
+    list = await listPaymentsByProperty(propId);
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<small style="color:#dc2626;">โหลดงวดจ่ายไม่สำเร็จ</small>';
+    return;
+  }
+  currentPaymentSchedules = list || [];
+
+  container.innerHTML = '<small style="color:#6b7280;">จัดการงวดจ่ายจากทีมช่างด้านบน</small>';
+  renderPaymentsIntoCards();
+  renderPaymentSummary();
+}
+
+function renderPaymentsIntoCards() {
+  const contractorName = (payment) => {
+    const pc = currentPropertyContractors.find(c => c.id === payment.property_contractor_id);
+    if (pc?.contractor?.name) return pc.contractor.name;
+    if (payment.contractor?.name) return payment.contractor.name;
+    return 'ไม่ระบุทีม';
+  };
+
+  const badge = (status) => {
+    const color = {
+      pending: '#f59e0b',
+      paid: '#16a34a',
+      overdue: '#dc2626',
+      deferred: '#6b7280'
+    }[status] || '#6b7280';
+    const text = {
+      pending: 'รอดำเนินการ',
+      paid: 'จ่ายแล้ว',
+      overdue: 'เกินกำหนด',
+      deferred: 'เลื่อน'
+    }[status] || status;
+    return `<span style="background:${color}1a;color:${color};padding:2px 8px;border-radius:999px;font-size:12px;">${text}</span>`;
+  };
+
+  const fmtDate = (d) => {
+    if (!d) return '-';
+    const date = new Date(d);
+    if (isNaN(date)) return '-';
+    return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  document.querySelectorAll('.contractor-payments[data-payment-list-for]').forEach(wrap => {
+    const pcId = wrap.getAttribute('data-payment-list-for');
+    const list = currentPaymentSchedules.filter(p => String(p.property_contractor_id || '') === String(pcId));
+    wrap.innerHTML = '';
+    if (!list.length) {
+      wrap.innerHTML = '<small style="color:#999;">ยังไม่มีงวดจ่าย</small>';
+      return;
+    }
+    const stack = document.createElement('div');
+    stack.style.display = 'flex';
+    stack.style.flexDirection = 'column';
+    stack.style.gap = '8px';
+
+    list.forEach(p => {
+      const card = document.createElement('div');
+      card.style.border = '1px solid #e5e7eb';
+      card.style.borderRadius = '8px';
+      card.style.padding = '8px 10px';
+      card.style.background = '#f9fafb';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+          <div style="font-weight:700;font-size:13px;">${escapeHtml(p.title || 'งวดจ่าย')}</div>
+          ${badge(p.status)}
+        </div>
+        <div style="margin-top:2px;font-size:12px;">กำหนด: <b>${fmtDate(p.due_date)}</b></div>
+        <div style="margin-top:2px;font-size:12px;">จำนวน: <b>${formatPrice(p.amount || 0)} บาท</b></div>
+        ${p.paid_at ? `<div style="margin-top:2px;font-size:11px;color:#16a34a;">จ่ายเมื่อ ${fmtDate(p.paid_at)}</div>` : ''}
+        ${p.note ? `<div style="margin-top:4px;font-size:12px;color:#4b5563;">${escapeHtml(p.note)}</div>` : ''}
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+          ${p.status !== 'paid' ? `<button class="btn btn-sm pay-mark-paid" data-id="${p.id}" style="background:#16a34a;color:#fff;border:none;padding:5px 8px;font-size:12px;">จ่ายแล้ว</button>` : ''}
+          <button class="btn btn-sm btn-secondary pay-delete" data-id="${p.id}" style="padding:5px 8px;font-size:12px;">ลบ</button>
+        </div>
+      `;
+      stack.appendChild(card);
+    });
+
+    wrap.appendChild(stack);
+
+    wrap.querySelectorAll('.pay-mark-paid').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        try {
+          await markPaymentPaid(id);
+          await loadPaymentSchedules(currentRenovationPropertyId);
+          toast('บันทึกการจ่ายแล้ว', 2000, 'success');
+        } catch (err) {
+          console.error(err);
+          toast('ไม่สามารถอัปเดตสถานะได้', 2500, 'error');
+        }
+      });
+    });
+
+    wrap.querySelectorAll('.pay-delete').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const id = e.currentTarget.dataset.id;
+        if (!confirm('ลบงวดจ่ายนี้?')) return;
+        try {
+          await deletePaymentSchedule(id);
+          await loadPaymentSchedules(currentRenovationPropertyId);
+          toast('ลบเรียบร้อย', 2000, 'success');
+        } catch (err) {
+          console.error(err);
+          toast('ลบไม่สำเร็จ', 2500, 'error');
+        }
+      });
+    });
+  });
+}
+
+async function loadRowPaymentSummary(propertyId) {
+  const badge = document.querySelector(`.payment-badge[data-property-id="${propertyId}"]`);
+  if (!badge) return;
+  badge.innerHTML = '<span style="font-size:0.9rem;color:#6b7280;">โหลด...</span>';
+  try {
+    const list = await listPaymentsByProperty(propertyId);
+    const sum = (arr, condFn) => arr.filter(condFn).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const total = sum(list, () => true);
+    const paid = sum(list, p => p.status === 'paid');
+    const now = new Date();
+    const overdue = sum(list, p => p.status !== 'paid' && p.due_date && new Date(p.due_date) < now);
+    const pending = total - paid;
+
+    const pill = (label, val, color) => `<span style="background:${color}1a;color:${color};padding:2px 8px;border-radius:999px;font-size:12px;">${label}: ${formatPrice(val)}</span>`;
+    badge.innerHTML = `
+      ${pill('จ่ายแล้ว', paid, '#16a34a')}
+      ${pill('ค้าง', pending, '#f59e0b')}
+      ${pill('เกินกำหนด', overdue, '#dc2626')}
+    `;
+  } catch (err) {
+    console.error(err);
+    badge.innerHTML = '<span style="color:#dc2626;font-size:12px;">โหลดไม่ได้</span>';
+  }
+}
+
+async function openPaymentQuickModal(property) {
+  if (!property) return;
+  if (!paymentQuickModal) paymentQuickModal = document.getElementById('payment-quick-modal');
+  const title = document.getElementById('payment-quick-title');
+  const summary = document.getElementById('payment-quick-summary');
+  const listWrap = document.getElementById('payment-quick-list');
+  if (title) title.textContent = `งวดจ่าย: ${property.title || ''}`;
+  summary.innerHTML = 'กำลังโหลด...';
+  listWrap.innerHTML = '';
+
+  if (paymentQuickModal) paymentQuickModal.classList.add('open');
+
+  try {
+    const list = await listPaymentsByProperty(property.id);
+    const sum = (arr, condFn) => arr.filter(condFn).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const total = sum(list, () => true);
+    const paid = sum(list, p => p.status === 'paid');
+    const now = new Date();
+    const overdue = sum(list, p => p.status !== 'paid' && p.due_date && new Date(p.due_date) < now);
+    const pending = total - paid;
+    summary.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="background:#1111;color:#111;padding:2px 8px;border-radius:999px;font-size:12px;">รวม: ${formatPrice(total)}</span>
+        <span style="background:#16a34a1a;color:#16a34a;padding:2px 8px;border-radius:999px;font-size:12px;">จ่ายแล้ว: ${formatPrice(paid)}</span>
+        <span style="background:#f59e0b1a;color:#f59e0b;padding:2px 8px;border-radius:999px;font-size:12px;">ค้าง: ${formatPrice(pending)}</span>
+        <span style="background:#dc26261a;color:#dc2626;padding:2px 8px;border-radius:999px;font-size:12px;">เกินกำหนด: ${formatPrice(overdue)}</span>
+      </div>
+    `;
+
+    if (!list.length) {
+      listWrap.innerHTML = '<small style="color:#999;">ยังไม่มีงวดจ่าย</small>';
+      return;
+    }
+
+    const fmtDate = (d) => {
+      if (!d) return '-';
+      const date = new Date(d);
+      if (isNaN(date)) return '-';
+      return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    const badge = (status) => {
+      const color = {
+        pending: '#f59e0b',
+        paid: '#16a34a',
+        overdue: '#dc2626',
+        deferred: '#6b7280'
+      }[status] || '#6b7280';
+      const text = {
+        pending: 'รอดำเนินการ',
+        paid: 'จ่ายแล้ว',
+        overdue: 'เกินกำหนด',
+        deferred: 'เลื่อน'
+      }[status] || status;
+      return `<span style="background:${color}1a;color:${color};padding:2px 8px;border-radius:999px;font-size:12px;">${text}</span>`;
+    };
+
+    const listEl = document.createElement('div');
+    listEl.style.display = 'flex';
+    listEl.style.flexDirection = 'column';
+    listEl.style.gap = '8px';
+
+    list.forEach(p => {
+      const item = document.createElement('div');
+      item.style.border = '1px solid #e5e7eb';
+      item.style.borderRadius = '8px';
+      item.style.padding = '8px 10px';
+      item.style.background = '#fff';
+      item.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+          <div style="font-weight:700;font-size:13px;">${escapeHtml(p.title || 'งวดจ่าย')}</div>
+          ${badge(p.status)}
+        </div>
+        <div style="margin-top:2px;font-size:12px;">กำหนด: <b>${fmtDate(p.due_date)}</b></div>
+        <div style="margin-top:2px;font-size:12px;">จำนวน: <b>${formatPrice(p.amount || 0)} บาท</b></div>
+        ${p.paid_at ? `<div style="margin-top:2px;font-size:11px;color:#16a34a;">จ่ายเมื่อ ${fmtDate(p.paid_at)}</div>` : ''}
+        ${p.note ? `<div style="margin-top:4px;font-size:12px;color:#4b5563;">${escapeHtml(p.note)}</div>` : ''}
+      `;
+      listEl.appendChild(item);
+    });
+
+    listWrap.appendChild(listEl);
+  } catch (err) {
+    console.error(err);
+    summary.innerHTML = '<small style="color:#dc2626;">โหลดไม่สำเร็จ</small>';
+    listWrap.innerHTML = '';
+  }
+}
+
+function closePaymentQuickModal() {
+  if (paymentQuickModal) paymentQuickModal.classList.remove('open');
+}
+function renderPaymentSummary() {
+  const box = document.getElementById('rb-payments-summary');
+  if (!box) return;
+
+  const list = currentPaymentSchedules || [];
+  const sum = (arr, condFn) => arr.filter(condFn).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const total = sum(list, () => true);
+  const paid = sum(list, p => p.status === 'paid');
+  const now = new Date();
+  const overdue = sum(list, p => p.status !== 'paid' && p.due_date && new Date(p.due_date) < now);
+  const pending = total - paid;
+
+  const item = (label, value, color) => `
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;background:#fff;min-width:0;">
+      <div style="color:#6b7280;font-size:12px;">${label}</div>
+      <div style="font-weight:700;font-size:14px;color:${color};">${formatPrice(value)} บาท</div>
+    </div>
+  `;
+
+  box.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${item('รวมทั้งหมด', total, '#111')}
+      ${item('จ่ายแล้ว', paid, '#16a34a')}
+      ${item('ค้าง/รอดำเนินการ', pending, '#f59e0b')}
+      ${item('เกินกำหนด', overdue, '#dc2626')}
+    </div>
+  `;
 }
 
 // ==================== TO-DO TAB PROPERTY SELECTOR ====================

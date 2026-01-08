@@ -2,6 +2,7 @@
 -- SECURITY DEFINER allows this function to bypass RLS
 create or replace function public.is_admin()
 returns boolean
+set search_path = public, pg_temp
 language sql
 security definer
 as $$

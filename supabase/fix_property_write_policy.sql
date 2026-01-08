@@ -4,6 +4,7 @@
 -- 1. Ensure helper function exists
 create or replace function public.is_admin()
 returns boolean
+set search_path = public, pg_temp
 language sql
 security definer
 as $$

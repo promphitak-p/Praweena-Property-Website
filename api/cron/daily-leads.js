@@ -2,7 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY; // ถ้าไม่มี service-role จะใช้ anon แทน
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!url || !key) {
+  throw new Error('[daily-leads] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (service role is required for cron)');
+}
+
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 function todayRangeTZ(tzOffsetHours = 7) {

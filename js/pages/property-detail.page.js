@@ -845,7 +845,19 @@ async function renderPropertyDetails(property) {
             if (!Number.isFinite(plat) || !Number.isFinite(plng)) return;
             const style = colorOf(p.type);
             const marker = L.circleMarker([plat, plng], { radius: 6, color: style.stroke, fillColor: style.fill, fillOpacity: .9, weight: 2 }).addTo(detailMap);
-            marker.bindPopup(`${iconOf(p.type)} <strong>${p.name}</strong><br>ระยะทาง ${(p.distance_km ?? 0).toFixed(2)} กม.<br><a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}" target="_blank" style="color:#2563eb;">นำทางด้วย Google Maps</a>`);
+            marker.bindPopup(
+              `<div style="min-width:200px;max-width:260px;line-height:1.5;white-space:normal; background:rgba(255,255,255,0.95); padding:10px 12px; border-radius:10px; box-shadow:0 6px 16px rgba(0,0,0,0.18); border:1px solid rgba(0,0,0,0.05);">
+                <div style="font-weight:700;margin-bottom:6px;font-size:14px;">${iconOf(p.type)} ${escapeHtml(p.name || '')}</div>
+                <div style="color:#374151;font-size:13px;margin-bottom:4px;">ระยะทาง ${(p.distance_km ?? 0).toFixed(2)} กม.</div>
+                <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${plat},${plng}" target="_blank" style="color:#1d4ed8;text-decoration:underline;font-size:13px;">นำทางด้วย Google Maps</a>
+              </div>`,
+              {
+                offset: [0, 12],
+                autoPan: true,
+                autoPanPaddingTopLeft: [12, 60],
+                autoPanPaddingBottomRight: [12, 12],
+              }
+            );
             marker.on('click', () => {
               const fg = L.featureGroup([detailHouseMarker, marker]);
               detailMap.fitBounds(fg.getBounds().pad(0.35)); marker.openPopup();
@@ -863,19 +875,19 @@ async function renderPropertyDetails(property) {
           const first = pois.slice(0, maxShow);
           const rest = pois.slice(maxShow);
           const ul = document.createElement('ul');
-          ul.style.cssText = 'list-style:none;padding:0;margin:0';
+          ul.style.cssText = 'list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;';
 
           function addLi(p, i) {
             const km = (typeof p.distance_km === 'number') ? p.distance_km.toFixed(2) : '-';
             const li = document.createElement('li');
             li.dataset.index = i;
-            li.style.cssText = 'cursor:pointer;padding:8px 0;border-bottom:1px solid #eee;display:flex;gap:.5rem;align-items:baseline;';
+            li.style.cssText = 'cursor:pointer;padding:10px 12px;border:1px solid #eee;border-radius:8px;display:flex;gap:.75rem;align-items:flex-start;background:#fff;';
             li.innerHTML = `
-              <span style="font-size:1.1rem;">${iconOf(p.type)}</span>
-              <span>
-                <strong>${escapeHtml(p.name || '')}</strong> — ${escapeHtml(km)}
-                <span style="color:#6b7280;">(${escapeHtml(p.type || 'poi')})</span>
-                <button class="poi-nav-btn" data-i="${i}" style="margin-left:.5rem;background:transparent;border:0;color:#2563eb;cursor:pointer;">นำทาง</button>
+              <span style="font-size:1.2rem;line-height:1.4;">${iconOf(p.type)}</span>
+              <span style="display:flex;flex-direction:column;gap:2px;">
+                <span><strong>${escapeHtml(p.name || '')}</strong></span>
+                <span style="color:#374151;font-size:0.95rem;">${escapeHtml(km)} กม. • <span style="color:#6b7280;">${escapeHtml(p.type || 'poi')}</span></span>
+                <button class="poi-nav-btn" data-i="${i}" style="margin-top:2px;padding:4px 8px;background:#eff6ff;border:1px solid #dbeafe;border-radius:6px;color:#1d4ed8;cursor:pointer;align-self:flex-start;">นำทาง</button>
               </span>`;
             return li;
           }
@@ -908,6 +920,10 @@ async function renderPropertyDetails(property) {
               const idx = Number(li.dataset.index);
               const marker = poiMarkers[idx];
               if (!marker) return;
+              // เลื่อนหน้าให้แผนที่อยู่ในมุมมองก่อนโฟกัสจุด
+              if (mapEl && mapEl.scrollIntoView) {
+                mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
               const fg = L.featureGroup([detailHouseMarker, marker]);
               detailMap.fitBounds(fg.getBounds().pad(0.35)); marker.openPopup();
             });
@@ -1102,5 +1118,3 @@ document.addEventListener('DOMContentLoaded', () => {
   setupScrollToTop();
   loadProperty();   // ✅ แค่โหลดประกาศอย่างเดียว
 });
-
-

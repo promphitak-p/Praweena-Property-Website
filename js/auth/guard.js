@@ -2,8 +2,8 @@ import { getSession, supabase } from '../lib/supabaseClient.js';
 
 /**
  * ป้องกันการเข้าถึงหน้าหากผู้ใช้ยังไม่ได้ล็อกอิน หรือไม่ใช่ Admin
- * ถ้าไม่มี session, จะ redirect ไปยังหน้า auth (admin)
- * ถ้าไม่ใช่ admin, จะ redirect ไปหน้าแรก
+ * - ไม่มี session: redirect ไปหน้า login
+ * - ไม่ใช่ admin: redirect ไปหน้าแรก (การบล็อกจริงให้พึ่ง RLS + RPC)
  */
 export async function protectPage() {
   console.log('[Guard] Checking session...');
@@ -11,29 +11,21 @@ export async function protectPage() {
 
   if (!session) {
     console.warn('[Guard] No session found, redirecting to login.');
-    // ถ้าไม่มี session (ยังไม่ได้ล็อกอิน) ให้ส่งไปหน้าล็อกอิน
     window.location.href = '/admin/auth.html';
     return;
   }
 
   console.log('[Guard] Session found:', session.user.email);
 
-  // Check if user is admin
-  // (Assuming RLS allows read access to admin_emails for authenticated users, 
-  // or relying on the fact that if they CAN read it, they are likely okay. 
-  // If RLS blocks read, this might fail safe or fail hard. 
-  // Ideally, use a secure RPC, but for now, direct query as requested.)
+  // ตรวจสิทธิ์ admin ผ่าน RPC is_admin() (security definer) เพื่อให้ตรงกับ policy ฝั่ง DB
   try {
-    const { data, error } = await supabase
-      .from('admin_emails')
-      .select('email')
-      .eq('email', session.user.email)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('is_admin');
 
     if (error || !data) {
-      console.warn('Unauthorized: User is not an admin', session.user.email);
+      console.warn('Unauthorized: User is not an admin', session.user.email, error);
       alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (Not an Admin)');
-      window.location.href = '/'; // Kick to home
+      window.location.href = '/';
+      return;
     }
   } catch (err) {
     console.error('Admin check failed:', err);
