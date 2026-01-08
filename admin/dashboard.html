@@ -1527,65 +1527,199 @@
         </div>
 
         <div style="padding:1.5rem;">
+          <div style="display:grid; grid-template-columns: minmax(320px, 0.95fr) minmax(520px, 1.05fr); gap:1.5rem; align-items:start;">
 
-          <!-- Section: Hero Banner -->
-          <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #eee;">
-            <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">1. ส่วนหัว (Hero Banner)</h3>
+            <!-- Preview Left -->
+            <div style="position:sticky; top:80px; align-self:start;">
+              <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">พรีวิว (อัปเดตทันที)</h3>
+              <div id="homepage-preview" style="display:grid; grid-template-columns: 1fr; gap:1.5rem; align-items:start;">
+                <div style="background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:1.25rem; box-shadow:0 6px 20px rgba(0,0,0,0.04);">
+                  <div style="display:flex; gap:1rem;">
+                    <div style="flex:1;">
+                      <h3 id="preview-hero-title" style="margin:0 0 0.5rem 0; line-height:1.35; color:#1f2937;">มาตรฐานใหม่ ของการรีโนเวท</h3>
+                      <p id="preview-hero-subtitle" style="margin:0 0 0.75rem 0; color:#6b7280; font-size:0.95rem;">เรามุ่งมั่นยกระดับมาตรฐานบ้านมือสอง...</p>
+                      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+                        <a id="preview-hero-cta1" href="#why" style="padding:0.55rem 0.9rem; background:#111; color:#fff; border-radius:10px; text-decoration:none; font-weight:700; font-size:0.95rem;">ดูมาตรฐานงานรีโนเวท</a>
+                        <a id="preview-hero-cta2" href="#listings" style="padding:0.55rem 0.9rem; background:#f2efe8; color:#8c5300; border-radius:10px; text-decoration:none; font-weight:700; font-size:0.95rem;">ค้นหาบ้านที่เสร็จแล้ว</a>
+                      </div>
+                    </div>
+                    <div style="width:180px; min-height:180px; border-radius:12px; overflow:hidden; position:relative; background:#f3f4f6;">
+                      <img id="preview-hero-image" src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=800" alt="preview" style="width:100%; height:100%; object-fit:cover;">
+                      <div style="position:absolute; bottom:0; left:0; right:0; padding:0.65rem; background:linear-gradient(180deg, transparent, rgba(0,0,0,0.55)); color:#fff; font-size:0.9rem;">
+                        <p id="preview-hero-badge-top" style="margin:0 0 0.1rem 0; opacity:0.85;">โครงการตัวอย่าง</p>
+                        <strong id="preview-hero-badge-title" style="display:block; font-size:1.05rem;">งานรีโนเวททั้งระบบ</strong>
+                        <p id="preview-hero-badge-bottom" style="margin:0; opacity:0.85;">เปลี่ยนบ้านเก่า เป็นบ้านใหม่</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            <div class="form-group" style="margin-bottom:1rem;">
-              <label>พาดหัวหลัก (Title)</label>
-              <input type="text" id="hero-title-input" class="form-control" placeholder="มาตรฐานใหม่ ของการรีโนเวท">
-              <small style="color:#aaa;">ใช้ &lt;br&gt; เพื่อขึ้นบรรทัดใหม่</small>
-            </div>
-
-            <div class="form-group">
-              <label>ข้อความรอง (Subtitle)</label>
-              <textarea id="hero-subtitle-input" class="form-control" rows="3"
-                placeholder="เรามุ่งมั่นยกระดับมาตรฐาน..."></textarea>
-            </div>
-          </div>
-
-          <!-- Section: Before / After (Existing) -->
-          <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">2. รูปภาพ "บ้านในฝัน" (Before / After)</h3>
-          <p style="margin-bottom:1rem; color:#6b7280; font-size:0.95rem;">อัปโหลดรูปภาพเพื่อแสดงในส่วนเปรียบเทียบ
-            Before/After บนหน้าเว็บไซต์</p>
-
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
-            <!-- Before -->
-            <div class="form-group">
-              <label>รูปภาพ Before (ก่อนทำ)</label>
-              <div id="upload-before-area" class="upload-area"
-                style="position:relative; overflow:hidden; min-height:240px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-                <img id="preview-before"
-                  style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0;">
-                <div id="before-placeholder" style="text-align:center;">
-                  <span style="font-size:2rem;">📷</span>
-                  <p style="margin:0.5rem 0 0; font-size:0.9rem; color:#6b7280;">คลิกเพื่ออัปโหลด</p>
+                <div style="background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:1.25rem; box-shadow:0 6px 20px rgba(0,0,0,0.04);">
+                  <h4 id="preview-why-title" style="margin:0 0 0.35rem 0; color:#111827;">ทำไมต้องเลือกบ้านจาก Praweena Property</h4>
+                  <p id="preview-why-subtitle" style="margin:0 0 0.85rem 0; color:#6b7280; font-size:0.95rem;">เราใส่ใจทุกรายละเอียดของการปรับปรุงซ่อมแซมและตกแต่ง</p>
+                  <div style="display:grid; gap:0.75rem;">
+                    <div style="padding:0.75rem; border:1px solid #f3f4f6; border-radius:10px;">
+                      <strong id="preview-why-card1-title" style="display:block; margin-bottom:0.35rem;">ทำเลเด่น ทำเลศักยภาพ</strong>
+                      <span id="preview-why-card1-desc" style="color:#6b7280; font-size:0.93rem;">คัดสรรทำเลศักยภาพ เพื่อความสะดวกสบายในการใช้ชีวิต</span>
+                    </div>
+                    <div style="padding:0.75rem; border:1px solid #f3f4f6; border-radius:10px;">
+                      <strong id="preview-why-card2-title" style="display:block; margin-bottom:0.35rem;">ดีไซน์มินิมอล ทันสมัย</strong>
+                      <span id="preview-why-card2-desc" style="color:#6b7280; font-size:0.93rem;">ออกแบบภายในให้เรียบง่าย เน้นฟังก์ชันและการคุมโทน</span>
+                    </div>
+                    <div style="padding:0.75rem; border:1px solid #f3f4f6; border-radius:10px;">
+                      <strong id="preview-why-card3-title" style="display:block; margin-bottom:0.35rem;">วัสดุและระบบครบถ้วน</strong>
+                      <span id="preview-why-card3-desc" style="color:#6b7280; font-size:0.93rem;">ระบบสำคัญปรับใหม่ พร้อมวัสดุที่เลือกคุณภาพ</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <input type="file" id="file-before" accept="image/*" style="display:none;">
             </div>
 
-            <!-- After -->
-            <div class="form-group">
-              <label>รูปภาพ After (หลังทำ)</label>
-              <div id="upload-after-area" class="upload-area"
-                style="position:relative; overflow:hidden; min-height:240px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-                <img id="preview-after"
-                  style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0;">
-                <div id="after-placeholder" style="text-align:center;">
-                  <span style="font-size:2rem;">✨</span>
-                  <p style="margin:0.5rem 0 0; font-size:0.9rem; color:#6b7280;">คลิกเพื่ออัปโหลด</p>
+            <!-- Form Right -->
+            <div>
+              <!-- Section: Hero Banner -->
+              <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #eee;">
+                <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">1. ส่วนหัว (Hero Banner)</h3>
+
+                <div class="form-group" style="margin-bottom:1rem;">
+                  <label>พาดหัวหลัก (Title)</label>
+                  <input type="text" id="hero-title-input" class="form-control" placeholder="มาตรฐานใหม่ ของการรีโนเวท">
+                  <small style="color:#aaa;">ใช้ &lt;br&gt; เพื่อขึ้นบรรทัดใหม่</small>
+                </div>
+
+                <div class="form-group">
+                  <label>ข้อความรอง (Subtitle)</label>
+                  <textarea id="hero-subtitle-input" class="form-control" rows="3"
+                    placeholder="เรามุ่งมั่นยกระดับมาตรฐาน..."></textarea>
+                </div>
+
+                <div class="form-group" style="margin-top:1rem;">
+                  <label>รูป Hero (URL หรืออัปโหลด)</label>
+                  <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                      <input type="text" id="hero-image-input" class="form-control" placeholder="https://...">
+                      <small style="color:#666; display:block; margin-top:4px;">แนะนำแนวกว้าง 16:9 ขนาด 1600px+</small>
+                      <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <input type="file" id="hero-image-file" accept="image/*" style="display:none;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="hero-image-upload-btn">📂 เลือกรูป</button>
+                        <span id="hero-image-status" style="font-size:0.9rem; color:#666;"></span>
+                      </div>
+                    </div>
+                    <div style="width:180px; height:120px; border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#f7f7f7;">
+                      <img id="hero-image-preview" alt="Hero Preview"
+                        style="width:100%; height:100%; object-fit:cover; display:none;">
+                      <div id="hero-image-placeholder" style="display:flex; align-items:center; justify-content:center; height:100%; color:#999; font-size:0.9rem;">
+                        ยังไม่เลือกรูป
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-top:1rem;">
+                  <div class="form-group">
+                    <label>Badge บรรทัดบน</label>
+                    <input type="text" id="hero-badge-top" class="form-control" placeholder="โครงการตัวอย่าง">
+                  </div>
+                  <div class="form-group">
+                    <label>Badge บรรทัดกลาง</label>
+                    <input type="text" id="hero-badge-title" class="form-control" placeholder="งานรีโนเวททั้งระบบ">
+                  </div>
+                  <div class="form-group">
+                    <label>Badge บรรทัดล่าง</label>
+                    <input type="text" id="hero-badge-bottom" class="form-control" placeholder="เปลี่ยนบ้านเก่า เป็นบ้านใหม่">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top:1rem;">
+                  <label>ปุ่มหลัก (CTA 1)</label>
+                  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.75rem;">
+                    <input type="text" id="hero-cta1-text" class="form-control" placeholder="ดูมาตรฐานงานรีโนเวท">
+                    <input type="text" id="hero-cta1-link" class="form-control" placeholder="#why หรือ /path">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>ปุ่มรอง (CTA 2)</label>
+                  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.75rem;">
+                    <input type="text" id="hero-cta2-text" class="form-control" placeholder="ค้นหาบ้านที่เสร็จแล้ว">
+                    <input type="text" id="hero-cta2-link" class="form-control" placeholder="#listings หรือ /path">
+                  </div>
                 </div>
               </div>
-              <input type="file" id="file-after" accept="image/*" style="display:none;">
+
+              <!-- Section: Before / After (Existing) -->
+              <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">2. รูปภาพ "บ้านในฝัน" (Before / After)</h3>
+              <p style="margin-bottom:1rem; color:#6b7280; font-size:0.95rem;">อัปโหลดรูปภาพเพื่อแสดงในส่วนเปรียบเทียบ
+                Before/After บนหน้าเว็บไซต์</p>
+
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
+                <!-- Before -->
+                <div class="form-group">
+                  <label>รูปภาพ Before (ก่อนทำ)</label>
+                  <div id="upload-before-area" class="upload-area"
+                    style="position:relative; overflow:hidden; min-height:240px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                    <img id="preview-before"
+                      style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0;">
+                    <div id="before-placeholder" style="text-align:center;">
+                      <span style="font-size:2rem;">📷</span>
+                      <p style="margin:0.5rem 0 0; font-size:0.9rem; color:#6b7280;">คลิกเพื่ออัปโหลด</p>
+                    </div>
+                  </div>
+                  <input type="file" id="file-before" accept="image/*" style="display:none;">
+                </div>
+
+                <!-- After -->
+                <div class="form-group">
+                  <label>รูปภาพ After (หลังทำ)</label>
+                  <div id="upload-after-area" class="upload-area"
+                    style="position:relative; overflow:hidden; min-height:240px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                    <img id="preview-after"
+                      style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0;">
+                    <div id="after-placeholder" style="text-align:center;">
+                      <span style="font-size:2rem;">✨</span>
+                      <p style="margin:0.5rem 0 0; font-size:0.9rem; color:#6b7280;">คลิกเพื่ออัปโหลด</p>
+                    </div>
+                  </div>
+                  <input type="file" id="file-after" accept="image/*" style="display:none;">
+                </div>
+              </div>
+
+              <!-- Section: Why Us -->
+              <div style="margin-top:2rem; padding-top:2rem; border-top:1px solid #eee;">
+                <h3 style="font-size:1.1rem; margin-bottom:1rem; color:#f37335;">3. เหตุผลที่เลือกเรา (Why Section)</h3>
+                <div class="form-group">
+                  <label>หัวข้อหลัก</label>
+                  <input type="text" id="why-title-input" class="form-control" placeholder="ทำไมต้องเลือกบ้านจาก Praweena Property">
+                </div>
+                <div class="form-group">
+                  <label>คำโปรย</label>
+                  <input type="text" id="why-subtitle-input" class="form-control" placeholder="เราใส่ใจทุกรายละเอียดของการปรับปรุงซ่อมแซมและตกแต่ง">
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin-top:1rem;">
+                  <div class="form-group" style="border:1px solid #eee; border-radius:10px; padding:1rem;">
+                    <label>การ์ดที่ 1</label>
+                    <input type="text" id="why-card1-title" class="form-control" placeholder="ทำเลเด่น ทำเลศักยภาพ" style="margin-bottom:0.5rem;">
+                    <textarea id="why-card1-desc" class="form-control" rows="3" placeholder="คัดสรรทำเลศักยภาพ เพื่อความสะดวกสบายในการใช้ชีวิต"></textarea>
+                  </div>
+                  <div class="form-group" style="border:1px solid #eee; border-radius:10px; padding:1rem;">
+                    <label>การ์ดที่ 2</label>
+                    <input type="text" id="why-card2-title" class="form-control" placeholder="ดีไซน์มินิมอล ทันสมัย" style="margin-bottom:0.5rem;">
+                    <textarea id="why-card2-desc" class="form-control" rows="3" placeholder="ออกแบบภายในให้เรียบง่าย เน้นฟังก์ชันและการคุมโทน"></textarea>
+                  </div>
+                  <div class="form-group" style="border:1px solid #eee; border-radius:10px; padding:1rem;">
+                    <label>การ์ดที่ 3</label>
+                    <input type="text" id="why-card3-title" class="form-control" placeholder="วัสดุและระบบครบถ้วน" style="margin-bottom:0.5rem;">
+                    <textarea id="why-card3-desc" class="form-control" rows="3" placeholder="ระบบสำคัญปรับใหม่ พร้อมวัสดุที่เลือกคุณภาพ"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top:2rem; text-align:right;">
+                <button id="save-content-btn" class="btn" style="padding:0.75rem 2rem;">บันทึกการเปลี่ยนแปลง</button>
+              </div>
             </div>
-          </div>
 
-          <div style="margin-top:2rem; text-align:right;">
-            <button id="save-content-btn" class="btn" style="padding:0.75rem 2rem;">บันทึกการเปลี่ยนแปลง</button>
           </div>
-
         </div>
       </div>
     </div>

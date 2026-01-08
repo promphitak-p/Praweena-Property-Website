@@ -602,6 +602,53 @@ async function loadHomepageConfig() {
           const subCtx = document.getElementById('hero-subtitle');
           if (subCtx) subCtx.innerText = config.heroSubtitle;
         }
+        if (config.heroImage) {
+          const heroImg = document.getElementById('hero-image');
+          if (heroImg) heroImg.src = config.heroImage;
+        }
+        if (config.heroCta1Text || config.heroCta1Link) {
+          const el = document.getElementById('hero-cta1');
+          if (el) {
+            if (config.heroCta1Text) el.textContent = config.heroCta1Text;
+            if (config.heroCta1Link) el.href = config.heroCta1Link;
+          }
+        }
+        if (config.heroCta2Text || config.heroCta2Link) {
+          const el = document.getElementById('hero-cta2');
+          if (el) {
+            if (config.heroCta2Text) el.textContent = config.heroCta2Text;
+            if (config.heroCta2Link) el.href = config.heroCta2Link;
+          }
+        }
+        if (config.heroBadgeTop) {
+          const el = document.getElementById('hero-badge-top');
+          if (el) el.innerText = config.heroBadgeTop;
+        }
+        if (config.heroBadgeTitle) {
+          const el = document.getElementById('hero-badge-title');
+          if (el) el.innerText = config.heroBadgeTitle;
+        }
+        if (config.heroBadgeBottom) {
+          const el = document.getElementById('hero-badge-bottom');
+          if (el) el.innerText = config.heroBadgeBottom;
+        }
+        if (config.whyTitle) {
+          const el = document.getElementById('why-title');
+          if (el) el.innerHTML = config.whyTitle;
+        }
+        if (config.whySubtitle) {
+          const el = document.getElementById('why-subtitle');
+          if (el) el.innerText = config.whySubtitle;
+        }
+        const applyWhyCard = (idTitle, idDesc, title, desc) => {
+          const t = document.getElementById(idTitle);
+          const d = document.getElementById(idDesc);
+          if (title && t) t.innerText = title;
+          if (desc && d) d.innerText = desc;
+        };
+        applyWhyCard('why-card1-title', 'why-card1-desc', config.whyCard1Title, config.whyCard1Desc);
+        applyWhyCard('why-card2-title', 'why-card2-desc', config.whyCard2Title, config.whyCard2Desc);
+        applyWhyCard('why-card3-title', 'why-card3-desc', config.whyCard3Title, config.whyCard3Desc);
       }
 
       // 2. Before/After Images
@@ -686,4 +733,3 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-

@@ -74,6 +74,7 @@ let todoTabInitialized = false; // For to-do tab
 let articlesData = []; // Articles Cache
 let currentPropertyContractors = []; // สำหรับเลือกทีมช่างในงวดจ่าย
 let currentPaymentSchedules = [];
+let renderPreview = () => {};
 
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -2477,6 +2478,28 @@ async function initSiteContentTab() {
   const previewAfter = document.getElementById('preview-after');
   const msgAfter = document.getElementById('after-placeholder');
 
+  const heroImageInput = document.getElementById('hero-image-input');
+  const heroImageFile = document.getElementById('hero-image-file');
+  const heroImagePreview = document.getElementById('hero-image-preview');
+  const heroImagePlaceholder = document.getElementById('hero-image-placeholder');
+  const heroImageUploadBtn = document.getElementById('hero-image-upload-btn');
+  const heroImageStatus = document.getElementById('hero-image-status');
+  const heroBadgeTopInput = document.getElementById('hero-badge-top');
+  const heroBadgeTitleInput = document.getElementById('hero-badge-title');
+  const heroBadgeBottomInput = document.getElementById('hero-badge-bottom');
+  const heroCta1Text = document.getElementById('hero-cta1-text');
+  const heroCta1Link = document.getElementById('hero-cta1-link');
+  const heroCta2Text = document.getElementById('hero-cta2-text');
+  const heroCta2Link = document.getElementById('hero-cta2-link');
+  const whyTitleInput = document.getElementById('why-title-input');
+  const whySubtitleInput = document.getElementById('why-subtitle-input');
+  const whyCard1Title = document.getElementById('why-card1-title');
+  const whyCard1Desc = document.getElementById('why-card1-desc');
+  const whyCard2Title = document.getElementById('why-card2-title');
+  const whyCard2Desc = document.getElementById('why-card2-desc');
+  const whyCard3Title = document.getElementById('why-card3-title');
+  const whyCard3Desc = document.getElementById('why-card3-desc');
+
   const saveBtn = document.getElementById('save-content-btn');
 
   // Helpers for file input
@@ -2491,6 +2514,7 @@ async function initSiteContentTab() {
           preview.src = ev.target.result;
           preview.style.display = 'block';
           if (msg) msg.style.display = 'none';
+          renderPreview();
         };
         reader.readAsDataURL(file);
       }
@@ -2499,6 +2523,97 @@ async function initSiteContentTab() {
 
   setupUpload(uploadBefore, fileBefore, previewBefore, msgBefore);
   setupUpload(uploadAfter, fileAfter, previewAfter, msgAfter);
+
+  // Hero image input/update
+  const setHeroPreview = (url) => {
+    if (!heroImagePreview || !heroImagePlaceholder) return;
+    if (url) {
+      heroImagePreview.src = url;
+      heroImagePreview.style.display = 'block';
+      heroImagePlaceholder.style.display = 'none';
+    } else {
+      heroImagePreview.removeAttribute('src');
+      heroImagePreview.style.display = 'none';
+      heroImagePlaceholder.style.display = 'flex';
+    }
+    renderPreview();
+  };
+
+  if (heroImageInput) {
+    heroImageInput.addEventListener('input', (e) => setHeroPreview(e.target.value.trim()));
+  }
+
+  if (heroImageUploadBtn && heroImageFile) {
+    heroImageUploadBtn.addEventListener('click', () => heroImageFile.click());
+  }
+
+  if (heroImageFile) {
+    heroImageFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => setHeroPreview(ev.target.result);
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  renderPreview = () => {
+    // Hero
+    const setText = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val || '';
+    };
+    const setHtml = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = val || '';
+    };
+    setHtml('preview-hero-title', document.getElementById('hero-title-input')?.value || '');
+    setText('preview-hero-subtitle', document.getElementById('hero-subtitle-input')?.value || '');
+    const heroImg = document.getElementById('preview-hero-image');
+    if (heroImg) heroImg.src = heroImagePreview?.src || document.getElementById('hero-image-input')?.value || heroImg.src;
+    const cta1 = document.getElementById('preview-hero-cta1');
+    if (cta1) {
+      cta1.textContent = heroCta1Text?.value || 'ดูมาตรฐานงานรีโนเวท';
+      cta1.href = heroCta1Link?.value || '#why';
+    }
+    const cta2 = document.getElementById('preview-hero-cta2');
+    if (cta2) {
+      cta2.textContent = heroCta2Text?.value || 'ค้นหาบ้านที่เสร็จแล้ว';
+      cta2.href = heroCta2Link?.value || '#listings';
+    }
+    setText('preview-hero-badge-top', heroBadgeTopInput?.value || '');
+    setText('preview-hero-badge-title', heroBadgeTitleInput?.value || '');
+    setText('preview-hero-badge-bottom', heroBadgeBottomInput?.value || '');
+
+    // Why
+    setHtml('preview-why-title', whyTitleInput?.value || '');
+    setText('preview-why-subtitle', whySubtitleInput?.value || '');
+    setText('preview-why-card1-title', whyCard1Title?.value || '');
+    setText('preview-why-card1-desc', whyCard1Desc?.value || '');
+    setText('preview-why-card2-title', whyCard2Title?.value || '');
+    setText('preview-why-card2-desc', whyCard2Desc?.value || '');
+    setText('preview-why-card3-title', whyCard3Title?.value || '');
+    setText('preview-why-card3-desc', whyCard3Desc?.value || '');
+  };
+
+  // Bind realtime preview
+  const bindPreviewInputs = (selectors = []) => {
+    selectors.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', renderPreview);
+    });
+  };
+  bindPreviewInputs([
+    'hero-title-input', 'hero-subtitle-input',
+    'hero-cta1-text', 'hero-cta1-link',
+    'hero-cta2-text', 'hero-cta2-link',
+    'hero-badge-top', 'hero-badge-title', 'hero-badge-bottom',
+    'why-title-input', 'why-subtitle-input',
+    'why-card1-title', 'why-card1-desc',
+    'why-card2-title', 'why-card2-desc',
+    'why-card3-title', 'why-card3-desc'
+  ]);
 
   // Save
   if (saveBtn) {
@@ -2546,7 +2661,40 @@ async function initSiteContentTab() {
         // Prepare Hero Config
         const heroTitle = document.getElementById('hero-title-input')?.value || '';
         const heroSubtitle = document.getElementById('hero-subtitle-input')?.value || '';
-        const configObj = { heroTitle, heroSubtitle };
+        let heroImage = heroImageInput?.value?.trim() || getCurrentUrl(heroImagePreview) || '';
+
+        if (heroImageFile?.files?.[0]) {
+          if (heroImageStatus) heroImageStatus.textContent = 'กำลังอัปโหลด...';
+          try {
+            heroImage = await uploadToCloudinary(heroImageFile.files[0]);
+            if (heroImageStatus) heroImageStatus.textContent = 'อัปโหลดสำเร็จ';
+          } catch (e) {
+            console.error('Upload Hero failed', e);
+            if (heroImageStatus) heroImageStatus.textContent = 'อัปโหลดไม่สำเร็จ';
+            toast('อัปโหลดรูป Hero ไม่สำเร็จ: ' + e.message, 4000, 'error');
+          }
+        }
+
+        const configObj = {
+          heroTitle,
+          heroSubtitle,
+          heroImage,
+          heroBadgeTop: heroBadgeTopInput?.value || '',
+          heroBadgeTitle: heroBadgeTitleInput?.value || '',
+          heroBadgeBottom: heroBadgeBottomInput?.value || '',
+          heroCta1Text: heroCta1Text?.value || '',
+          heroCta1Link: heroCta1Link?.value || '',
+          heroCta2Text: heroCta2Text?.value || '',
+          heroCta2Link: heroCta2Link?.value || '',
+          whyTitle: whyTitleInput?.value || '',
+          whySubtitle: whySubtitleInput?.value || '',
+          whyCard1Title: whyCard1Title?.value || '',
+          whyCard1Desc: whyCard1Desc?.value || '',
+          whyCard2Title: whyCard2Title?.value || '',
+          whyCard2Desc: whyCard2Desc?.value || '',
+          whyCard3Title: whyCard3Title?.value || '',
+          whyCard3Desc: whyCard3Desc?.value || ''
+        };
 
         // Combine Images + Config into Gallery Array: [before, after, config]
         const combinedGallery = [beforeUrl, afterUrl, configObj];
@@ -2589,6 +2737,8 @@ async function initSiteContentTab() {
   // Load immediately if active (e.g. reload on this tab)
   if (tabBtn.classList.contains('active')) {
     loadSiteContent();
+  } else {
+    renderPreview();
   }
 }
 
@@ -2620,8 +2770,41 @@ async function loadSiteContent() {
     // Set Hero Inputs
     const heroTitleInput = document.getElementById('hero-title-input');
     const heroSubtitleInput = document.getElementById('hero-subtitle-input');
+    const heroImageInput = document.getElementById('hero-image-input');
+    const heroBadgeTopInput = document.getElementById('hero-badge-top');
+    const heroBadgeTitleInput = document.getElementById('hero-badge-title');
+    const heroBadgeBottomInput = document.getElementById('hero-badge-bottom');
+    const heroCta1Text = document.getElementById('hero-cta1-text');
+    const heroCta1Link = document.getElementById('hero-cta1-link');
+    const heroCta2Text = document.getElementById('hero-cta2-text');
+    const heroCta2Link = document.getElementById('hero-cta2-link');
+    const whyTitleInput = document.getElementById('why-title-input');
+    const whySubtitleInput = document.getElementById('why-subtitle-input');
+    const whyCard1Title = document.getElementById('why-card1-title');
+    const whyCard1Desc = document.getElementById('why-card1-desc');
+    const whyCard2Title = document.getElementById('why-card2-title');
+    const whyCard2Desc = document.getElementById('why-card2-desc');
+    const whyCard3Title = document.getElementById('why-card3-title');
+    const whyCard3Desc = document.getElementById('why-card3-desc');
+
     if (heroTitleInput) heroTitleInput.value = config.heroTitle || '';
     if (heroSubtitleInput) heroSubtitleInput.value = config.heroSubtitle || '';
+    if (heroImageInput) heroImageInput.value = config.heroImage || '';
+    if (heroBadgeTopInput) heroBadgeTopInput.value = config.heroBadgeTop || '';
+    if (heroBadgeTitleInput) heroBadgeTitleInput.value = config.heroBadgeTitle || '';
+    if (heroBadgeBottomInput) heroBadgeBottomInput.value = config.heroBadgeBottom || '';
+    if (heroCta1Text) heroCta1Text.value = config.heroCta1Text || '';
+    if (heroCta1Link) heroCta1Link.value = config.heroCta1Link || '';
+    if (heroCta2Text) heroCta2Text.value = config.heroCta2Text || '';
+    if (heroCta2Link) heroCta2Link.value = config.heroCta2Link || '';
+    if (whyTitleInput) whyTitleInput.value = config.whyTitle || '';
+    if (whySubtitleInput) whySubtitleInput.value = config.whySubtitle || '';
+    if (whyCard1Title) whyCard1Title.value = config.whyCard1Title || '';
+    if (whyCard1Desc) whyCard1Desc.value = config.whyCard1Desc || '';
+    if (whyCard2Title) whyCard2Title.value = config.whyCard2Title || '';
+    if (whyCard2Desc) whyCard2Desc.value = config.whyCard2Desc || '';
+    if (whyCard3Title) whyCard3Title.value = config.whyCard3Title || '';
+    if (whyCard3Desc) whyCard3Desc.value = config.whyCard3Desc || '';
 
     // Set Images
     const setPreview = (url, imgEl, msgEl) => {
@@ -2637,10 +2820,27 @@ async function loadSiteContent() {
       }
     };
 
+    const setHeroPreview = (url) => {
+      const heroImagePreview = document.getElementById('hero-image-preview');
+      const heroImagePlaceholder = document.getElementById('hero-image-placeholder');
+      if (!heroImagePreview || !heroImagePlaceholder) return;
+      if (url && typeof url === 'string' && url !== 'null') {
+        heroImagePreview.src = url;
+        heroImagePreview.style.display = 'block';
+        heroImagePlaceholder.style.display = 'none';
+      } else {
+        heroImagePreview.removeAttribute('src');
+        heroImagePreview.style.display = 'none';
+        heroImagePlaceholder.style.display = 'flex';
+      }
+    };
+
     if (Array.isArray(gallery) && gallery.length >= 2) {
       setPreview(gallery[0], previewBefore, msgBefore);
       setPreview(gallery[1], previewAfter, msgAfter);
     }
+    setHeroPreview(config.heroImage || null);
+    renderPreview();
 
   } catch (err) {
     console.error('Error loading site content:', err);
