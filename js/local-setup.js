@@ -5,6 +5,9 @@
   const w = window;
   w.__SUPABASE = w.__SUPABASE || {};
 
+  const hostname = (w.location && w.location.hostname) || '';
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local');
+
   console.log('[Local Setup] Checking for Supabase credentials...');
 
   // Try to load from localStorage
@@ -30,6 +33,12 @@
     // cache valid server config to local
     localStorage.setItem('SUPABASE_URL', w.__SUPABASE.url);
     localStorage.setItem('SUPABASE_ANON_KEY', w.__SUPABASE.anonKey);
+    return;
+  }
+
+  // If not local environment, do not show modal (avoid blocking production users)
+  if (!isLocalHost) {
+    console.warn('[Local Setup] Missing Supabase config but not on localhost; skipping modal.');
     return;
   }
 
