@@ -8,8 +8,10 @@
 (function loadSupabaseEnvSync() {
   try {
     const xhr = new XMLHttpRequest();
+    const cacheBuster = `v=${Date.now()}`;
     // Synchronous request to ensure config is loaded before other scripts run
-    xhr.open('GET', '/api/env.js', false);
+    xhr.open('GET', `/api/env.js?${cacheBuster}`, false);
+    xhr.setRequestHeader('Cache-Control', 'no-cache');
     xhr.send(null);
 
     if (xhr.status === 200) {

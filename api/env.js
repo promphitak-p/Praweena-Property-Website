@@ -44,6 +44,8 @@ export default function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
+  // Prevent cache to avoid 304 with empty body
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
 
   res.setHeader('Content-Type', 'application/javascript');
   res.status(200).send(`window.__SUPABASE = { url: "${url}", anonKey: "${anon}" };`);
