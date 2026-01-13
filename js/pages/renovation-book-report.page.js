@@ -34,6 +34,44 @@ function fieldFull(label, value) {
   `;
 }
 
+function escapeHtml(text = '') {
+  return String(text).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[m]);
+}
+
+function parseLinkList(value) {
+  return String(value || '')
+    .split(/[\r\n,]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function linkFieldFull(label, value) {
+  const links = parseLinkList(value);
+  const htmlValue = links.length
+    ? `<ul style="margin:0; padding-left:1.2rem;">
+        ${links.map((raw) => {
+          const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+          const safeHref = escapeHtml(href);
+          const safeText = escapeHtml(raw);
+          return `<li><a href="${safeHref}" target="_blank" rel="noopener">${safeText}</a></li>`;
+        }).join('')}
+      </ul>`
+    : '—';
+
+  return `
+    <div class="rbr-field rbr-field-full" style="grid-column:1/-1;">
+      <div class="rb-report-field-label">${label}</div>
+      <div class="rb-report-field-value">${htmlValue}</div>
+    </div>
+  `;
+}
+
 // ---------------- mappings ----------------
 const TH_MAP = {
   // House Type
@@ -116,7 +154,7 @@ async function renderHeader(property, book) {
       </div>
       <div class="rbr-header-right">
         <div class="rbr-logo-block">
-          <div class="rbr-logo-mark">PP</div>
+          <img src="/assets/img/logo.png" alt="Praweena Property" class="rbr-logo-img">
           <div class="rbr-logo-text">Praweena Property</div>
         </div>
       </div>
@@ -163,6 +201,8 @@ function renderSection2(book) {
     ${fieldFull('ระบบน้ำดี', book.water_supply_issues)}
     ${fieldFull('ระบบไฟฟ้า', book.electrical_issues)}
     ${fieldFull('ความเสี่ยงอื่น ๆ', book.other_risks)}
+    ${linkFieldFull('ลิงก์แบบแปลน / รูปตัวอย่าง', book.plan_reference_links)}
+    ${linkFieldFull('ลิงก์รูปก่อนปรับปรุง', book.before_photos_links)}
   `;
 }
 

@@ -1569,7 +1569,9 @@ function renderRenovationListView() {
                 </div>
             </td>
             <td style="padding:1rem; text-align:right;">
-                <button class="btn btn-sm btn-secondary edit-renovation-btn">เปิดสมุด</button>
+                <button class="btn btn-sm btn-secondary edit-renovation-btn">แก้ไข</button>
+                <button class="btn btn-sm btn-secondary view-renovation-report-btn" data-property-id="${p.id}"
+                  style="margin-left:6px;">ดูรายงาน</button>
                 <button class="btn btn-sm" data-quick-pay="${p.id}" style="margin-left:6px;">ดูงวดจ่าย</button>
             </td>
         `;
@@ -1585,6 +1587,13 @@ function renderRenovationListView() {
     };
 
     tr.querySelector('.edit-renovation-btn').addEventListener('click', open);
+    const viewBtn = tr.querySelector('.view-renovation-report-btn');
+    if (viewBtn) {
+      viewBtn.addEventListener('click', () => {
+        const url = `/admin/renovation-book-report.html?property_id=${p.id}`;
+        window.open(url, '_blank', 'noopener');
+      });
+    }
     const quickBtn = tr.querySelector('button[data-quick-pay]');
     if (quickBtn) {
       quickBtn.addEventListener('click', () => openPaymentQuickModal(p));
@@ -1669,6 +1678,8 @@ function fillRenovationFields(data) {
   setVal('rb_water_supply_issues', data.water_supply_issues);
   setVal('rb_electrical_issues', data.electrical_issues);
   setVal('rb_other_risks', data.other_risks);
+  setVal('rb_plan_reference_links', data.plan_reference_links);
+  setVal('rb_before_photos_links', data.before_photos_links);
 
   // Card 3
   setVal('rb_remove_old_screed', data.remove_old_screed);
@@ -1764,6 +1775,8 @@ function collectRenovationData() {
     water_supply_issues: getVal('rb_water_supply_issues'),
     electrical_issues: getVal('rb_electrical_issues'),
     other_risks: getVal('rb_other_risks'),
+    plan_reference_links: getVal('rb_plan_reference_links'),
+    before_photos_links: getVal('rb_before_photos_links'),
     remove_old_screed: getVal('rb_remove_old_screed'),
     old_screed_thickness: getVal('rb_old_screed_thickness'),
     new_screed_spec: getVal('rb_new_screed_spec'),

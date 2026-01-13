@@ -1,0 +1,277 @@
+:root {
+  --rbr-ink: #1f2937;
+  --rbr-muted: #6b645d;
+  --rbr-gold: #d4af37;
+  --rbr-gold-dark: #b8860b;
+  --rbr-paper: #fdfbf7;
+  --rbr-card: #ffffff;
+  --rbr-border: rgba(184, 134, 11, 0.18);
+  --rbr-shadow: 0 20px 50px rgba(31, 41, 55, 0.08);
+}
+
+body[data-page="renovation-book-report"] {
+  background:
+    radial-gradient(800px 400px at 20% 0%, rgba(212, 175, 55, 0.12), transparent 60%),
+    radial-gradient(700px 300px at 100% 10%, rgba(184, 134, 11, 0.08), transparent 65%),
+    var(--rbr-paper);
+  color: var(--rbr-ink);
+}
+
+.rbr-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rbr-header-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(253, 251, 247, 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--rbr-border);
+}
+
+.rbr-toolbar {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.9rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rbr-btn-print {
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background: linear-gradient(140deg, #f9f1d1 0%, #fff4cf 50%, #f1dfb0 100%);
+  color: #5b3f0b;
+  font-weight: 700;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(184, 134, 11, 0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rbr-btn-print:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(184, 134, 11, 0.2);
+}
+
+.rbr-content {
+  flex: 1;
+  padding: 2rem 1rem 4rem;
+}
+
+.rbr-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: var(--rbr-card);
+  border-radius: 24px;
+  padding: 2.5rem 3rem;
+  box-shadow: var(--rbr-shadow);
+  border: 1px solid var(--rbr-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.rbr-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, rgba(212, 175, 55, 0.08), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.04) 0 2px, transparent 2px 12px);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.rbr-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rbr-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(184, 134, 11, 0.2);
+}
+
+.rbr-title-main {
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #2d2416;
+}
+
+.rbr-title-sub {
+  color: var(--rbr-muted);
+  margin-top: 0.2rem;
+  font-size: 1rem;
+}
+
+.rbr-meta {
+  margin-top: 0.75rem;
+  color: #5b4d3a;
+  line-height: 1.6;
+}
+
+.rbr-logo-block {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: end;
+}
+
+.rbr-logo-img {
+  width: 120px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(184, 134, 11, 0.2));
+}
+
+.rbr-logo-text {
+  font-weight: 600;
+  color: #6b645d;
+}
+
+.rbr-section {
+  margin-top: 2rem;
+}
+
+.rbr-section-title {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  color: #2b2a28;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.35);
+  display: inline-block;
+}
+
+.rbr-summary-card {
+  margin-top: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  box-shadow: 0 12px 24px rgba(31, 41, 55, 0.06);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.rbr-field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.rb-report-field-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(107, 100, 93, 0.85);
+  font-weight: 600;
+}
+
+.rb-report-field-value {
+  font-size: 1rem;
+  color: var(--rbr-ink);
+}
+
+.rbr-table-wrapper {
+  margin-top: 1rem;
+  background: #fffdf7;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  padding: 0.5rem 1rem 1rem;
+  box-shadow: 0 10px 25px rgba(31, 41, 55, 0.06);
+  overflow-x: auto;
+}
+
+.rbr-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rbr-table th {
+  text-align: left;
+  font-size: 0.85rem;
+  padding: 0.75rem 0.5rem;
+  color: #6b645d;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(184, 134, 11, 0.2);
+}
+
+.rbr-table td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid rgba(184, 134, 11, 0.12);
+  color: #2b2a28;
+}
+
+.rbr-note {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.rbr-footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(184, 134, 11, 0.2);
+  display: flex;
+  justify-content: space-between;
+  color: #6b645d;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .rbr-page {
+    padding: 2rem;
+  }
+
+  .rbr-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rbr-logo-block {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 600px) {
+  .rbr-toolbar {
+    justify-content: center;
+  }
+
+  .rbr-page {
+    padding: 1.5rem;
+    border-radius: 18px;
+  }
+
+  .rbr-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+@media print {
+  body[data-page="renovation-book-report"] {
+    background: #fff;
+  }
+
+  .rbr-header-bar {
+    display: none;
+  }
+
+  .rbr-page {
+    box-shadow: none;
+    border: none;
+    padding: 0;
+  }
+
+  .rbr-page::before {
+    display: none;
+  }
+}
