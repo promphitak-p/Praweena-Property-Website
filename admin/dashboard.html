@@ -546,6 +546,15 @@
       border-bottom-right-radius: 20px;
     }
 
+    .rb-action-footer {
+      margin: 1.25rem 0 0 0;
+      padding: 1rem 1.25rem;
+      border: 1px solid #e5e7eb;
+      border-top: 1px solid #f3f4f6;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+    }
+
     .modal-header h3 {
       font-size: 1.5rem;
       font-weight: 800;
@@ -602,6 +611,144 @@
         opacity: 1;
         transform: translateY(0);
       }
+    }
+
+    /* Renovation Sub Tabs */
+    .rb-subtabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .rb-subtab-btn {
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #6b7280;
+      padding: 0.5rem 0.9rem;
+      border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+
+    .rb-subtab-btn.active {
+      border-color: var(--gold-primary);
+      color: var(--gold-dark);
+      background: #fffcf5;
+      box-shadow: 0 4px 10px rgba(184, 134, 11, 0.15);
+    }
+
+    .rb-subtab-panel {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .rb-subtab-panel.active {
+      display: block;
+    }
+
+    .rb-rating-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.35rem;
+    }
+
+    .rb-rating-chip {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #6b7280;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .rb-rating-chip.active {
+      background: var(--gold-primary);
+      border-color: var(--gold-primary);
+      color: #fff;
+      box-shadow: 0 6px 12px rgba(184, 134, 11, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .contractor-directory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .contractor-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .contractor-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .contractor-status {
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #f3f4f6;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    .contractor-status.working {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .contractor-status.waiting {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .contractor-status.new {
+      background: #e0f2fe;
+      color: #075985;
+    }
+
+    .contractor-status.not_fit {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .contractor-contact a {
+      color: #1f2937;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .contractor-contact a:hover {
+      color: var(--gold-dark);
+    }
+
+    .contractor-work-list {
+      display: grid;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #4b5563;
     }
 
     /* Renovation Card Overrides within Dashboard */
@@ -880,6 +1027,7 @@
       <button class="tab-btn active" data-tab="properties">ประกาศทั้งหมด</button>
       <button class="tab-btn" data-tab="renovation">สมุดรีโนเวท</button>
       <button class="tab-btn" data-tab="todos">รายการงาน</button>
+      <button class="tab-btn" data-tab="contractors">ทีมช่าง</button>
       <button class="tab-btn" data-tab="content">จัดการหน้าแรก</button>
       <button class="tab-btn" data-tab="articles">บทความ</button>
     </div>
@@ -949,6 +1097,14 @@
               To save tokens and complexity, I will paste the core structure from renovation-book.html here 
               but adjusted for the dashboard context. -->
 
+        <div class="rb-subtabs">
+          <button type="button" class="rb-subtab-btn active" data-subtab="overview">ข้อมูลบ้าน</button>
+          <button type="button" class="rb-subtab-btn" data-subtab="conditions">สภาพเดิม</button>
+          <button type="button" class="rb-subtab-btn" data-subtab="systems">ระบบ/แผน</button>
+          <button type="button" class="rb-subtab-btn" data-subtab="summary">ทีมช่าง/งบ</button>
+        </div>
+
+        <div class="rb-subtab-panel active" data-subtab="overview">
         <!-- CARD 1: ข้อมูลบ้าน & โปรเจกต์ -->
         <section class="card">
           <div class="card-header">
@@ -1008,7 +1164,9 @@
                 class="form-control"></textarea></div>
           </div>
         </section>
+        </div>
 
+        <div class="rb-subtab-panel" data-subtab="conditions">
         <!-- CARD 2: สภาพเดิม & ปัญหาหลัก -->
         <section class="card">
           <div class="card-header">
@@ -1035,7 +1193,9 @@
             </div>
           </div>
         </section>
+        </div>
 
+        <div class="rb-subtab-panel" data-subtab="systems">
         <!-- CARD 3: แผนโครงสร้าง + พื้น -->
         <section class="card">
           <div class="card-header">
@@ -1123,7 +1283,9 @@
                 class="form-control"></textarea></div>
           </div>
         </section>
+        </div>
 
+        <div class="rb-subtab-panel" data-subtab="summary">
         <!-- CARD 7: สเปก & ทีมช่าง & งบ -->
         <!-- Note: For simplicity in Dashboard, we might reduce complexity or rely on modal popups for detailed separate tables.
               But user wants full functionality. I will add placeholders for the dynamic tables. -->
@@ -1226,13 +1388,13 @@
             </div>
           </div>
         </section>
+        </div>
 
         <!-- Action Footer for Renovation -->
 
 
 
-        <div class="modal-actions"
-          style="position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e5e7eb; padding: 1rem 0; margin-top: 2rem;">
+        <div class="modal-actions rb-action-footer">
           <div id="rb-save-status" style="margin-right: auto; color: #6b7280; font-size: 0.9rem;"></div>
           <button type="button" id="rb-view-report-btn" class="btn btn-secondary">ดูรายงาน (PDF View)</button>
           <button type="button" id="rb-save-btn" class="btn">บันทึกสมุดรีโนเวท</button>
@@ -1435,6 +1597,33 @@
       <button id="todo-add-btn" class="todo-add-btn" style="display:none;" title="เพิ่มงานใหม่">+</button>
 
     </div><!-- End Tab Todos -->
+
+    <!-- TAB 4: CONTRACTORS DIRECTORY -->
+    <div id="tab-contractors" class="tab-content">
+      <header class="page-header" style="margin-top: 1rem;">
+        <div class="page-header-left">
+          <h1 style="margin:0;">ทีมช่าง</h1>
+          <p style="color:#6b7280;margin:0;">รวบรวมข้อมูลช่างทั้งหมด พร้อมช่องทางติดต่อและประวัติการทำงาน</p>
+        </div>
+        <div class="page-header-actions">
+          <div class="filter-input" style="min-width:220px;">
+            <input type="text" id="contractor-search" class="form-control" placeholder="ค้นหาช่าง / สายงาน">
+          </div>
+          <div style="min-width:200px;">
+            <select id="contractor-status-filter" class="form-control">
+              <option value="">ทุกสถานะ</option>
+              <option value="working">ได้ทำงานแล้ว</option>
+              <option value="new">ช่างใหม่</option>
+              <option value="waiting">รอร่วมงาน</option>
+              <option value="not_fit">ไม่น่าร่วมงานด้วย</option>
+            </select>
+          </div>
+          <button type="button" id="contractor-add-btn" class="btn">+ เพิ่มทีมช่าง</button>
+        </div>
+      </header>
+
+      <div id="contractor-directory-container"></div>
+    </div><!-- End Tab Contractors -->
 
     <!-- Purchase Overview Modal -->
     <div id="purchase-overview-modal" class="modal">
@@ -2241,6 +2430,46 @@
             <button class="btn" id="btn-skip-confirm">บันทึก</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contractors Directory Modal -->
+  <div id="contractor-directory-modal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <button class="modal-close" id="contractor-modal-close">×</button>
+      <div class="modal-body">
+        <h3 id="contractor-modal-title" style="margin-bottom: 1rem;">เพิ่มทีมช่าง</h3>
+        <form id="contractor-modal-form">
+          <input type="hidden" name="id">
+          <div class="form-grid">
+            <div class="form-group"><label>ชื่อช่าง</label><input name="name" class="form-control" required></div>
+            <div class="form-group"><label>สายงาน</label><input name="trade" class="form-control"></div>
+            <div class="form-group"><label>เบอร์โทร</label><input name="phone" class="form-control"></div>
+            <div class="form-group"><label>อีเมล</label><input name="email" class="form-control"></div>
+            <div class="form-group"><label>Line</label><input name="line_url" class="form-control" placeholder="https://line.me/..."></div>
+            <div class="form-group"><label>Facebook</label><input name="facebook_url" class="form-control" placeholder="https://facebook.com/..."></div>
+            <div class="form-group"><label>ช่องทางอื่น ๆ</label><input name="other_contact" class="form-control" placeholder="เช่น IG / Website"></div>
+            <div class="form-group">
+              <label>สถานะ</label>
+              <select name="status" class="form-control">
+                <option value="">-- ไม่ระบุ --</option>
+                <option value="working">ได้ทำงานแล้ว</option>
+                <option value="new">ช่างใหม่</option>
+                <option value="waiting">รอร่วมงาน</option>
+                <option value="not_fit">ไม่น่าร่วมงานด้วย</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>บันทึกเพิ่มเติม</label>
+              <textarea name="note" class="form-control" rows="3"></textarea>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" id="contractor-modal-cancel">ยกเลิก</button>
+            <button type="submit" class="btn">บันทึก</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

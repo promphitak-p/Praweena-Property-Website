@@ -122,6 +122,18 @@ function t(val) {
   return TH_MAP[val] || val;
 }
 
+function calcRatingTotal(quality, timeliness, commitment, cleanliness, systemFit, fallbackTotal) {
+  if (Number.isFinite(Number(fallbackTotal))) {
+    return Math.round(Number(fallbackTotal) * 10) / 10;
+  }
+  const vals = [quality, timeliness, commitment, cleanliness, systemFit]
+    .map(v => Number(v))
+    .filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  const avg = vals.reduce((sum, v) => sum + v, 0) / vals.length;
+  return Math.round(avg * 10) / 10;
+}
+
 // ---------------- header ----------------
 async function renderHeader(property, book) {
   const box = $('#rb-report-header');
@@ -347,6 +359,14 @@ async function renderContractors(propertyId) {
     const rows = links
       .map((link) => {
         const c = link.contractor || {};
+        const ratingTotal = calcRatingTotal(
+          link.rating_quality,
+          link.rating_timeliness,
+          link.rating_commitment,
+          link.rating_cleanliness,
+          link.rating_system_fit,
+          link.rating_total
+        );
         return `
           <tr>
             <td>${c.name || ''}</td>
@@ -354,6 +374,12 @@ async function renderContractors(propertyId) {
             <td>${c.phone || ''}</td>
             <td>${link.scope || ''}</td>
             <td>${link.warranty_months ?? ''}</td>
+            <td>${link.rating_quality ?? '-'}</td>
+            <td>${link.rating_timeliness ?? '-'}</td>
+            <td>${link.rating_commitment ?? '-'}</td>
+            <td>${link.rating_cleanliness ?? '-'}</td>
+            <td>${link.rating_system_fit ?? '-'}</td>
+            <td>${Number.isFinite(ratingTotal) ? ratingTotal : '-'}</td>
           </tr>
         `;
       })
@@ -368,6 +394,12 @@ async function renderContractors(propertyId) {
             <th>เบอร์ติดต่อ</th>
             <th>ขอบเขตงาน</th>
             <th>รับประกัน (เดือน)</th>
+            <th>ผลงาน</th>
+            <th>ตรงต่อเวลา</th>
+            <th>รักษาคำพูด</th>
+            <th>ความสะอาดหน้างาน</th>
+            <th>ความเข้ากันได้กับระบบ</th>
+            <th>คะแนนรวม</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>

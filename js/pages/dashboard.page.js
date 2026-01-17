@@ -14,7 +14,7 @@ import { setupScrollToTop } from '../utils/scroll.js';
 // Renovation Services
 import { listSpecsByProperty, upsertSpec, deleteSpec } from '../services/propertySpecsService.js';
 import { listContractorsForProperty, upsertPropertyContractor, deletePropertyContractor } from '../services/propertyContractorsService.js';
-import { upsertContractor } from '../services/contractorsService.js';
+import { listContractorsWithAssignments, upsertContractor, deleteContractor } from '../services/contractorsService.js';
 import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '../services/renovationBookService.js';
 import { getArticles, createArticle, updateArticle, deleteArticle, uploadArticleImage } from '../services/articlesService.js';
 import { listPaymentsByProperty, upsertPaymentSchedule, markPaymentPaid, deletePaymentSchedule } from '../services/contractorPaymentsService.js';
@@ -75,6 +75,8 @@ let articlesData = []; // Articles Cache
 let currentPropertyContractors = []; // สำหรับเลือกทีมช่างในงวดจ่าย
 let currentPaymentSchedules = [];
 let renderPreview = () => {};
+let contractorsDirectory = [];
+let contractorsDirectoryInitialized = false;
 
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -85,6 +87,15 @@ function escapeHtml(text = '') {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function calcContractorRatingTotal(quality, timeliness, commitment, cleanliness, systemFit) {
+  const vals = [quality, timeliness, commitment, cleanliness, systemFit]
+    .map(v => Number(v))
+    .filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  const avg = vals.reduce((sum, v) => sum + v, 0) / vals.length;
+  return Math.round(avg * 10) / 10;
 }
 
 // ====================== Utility ======================
@@ -1334,6 +1345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Renovation Init
   setupTabs();
+  setupRenovationSubTabs();
   initSiteContentTab();
   await setupRenovationPropertySelect();
   document.getElementById('rb-save-btn')?.addEventListener('click', saveRenovationBookHandler);
@@ -1408,11 +1420,246 @@ function setupTabs() {
         setupTodoPropertySelector();
       }
 
+      if (btn.dataset.tab === 'contractors') {
+        initContractorsDirectory();
+      }
+
       if (btn.dataset.tab === 'articles') {
         loadArticlesList();
       }
     });
   });
+}
+
+function setupRenovationSubTabs() {
+  const wrap = document.querySelector('.rb-subtabs');
+  if (!wrap) return;
+  const buttons = Array.from(wrap.querySelectorAll('.rb-subtab-btn'));
+  const panels = Array.from(document.querySelectorAll('.rb-subtab-panel'));
+  if (!buttons.length || !panels.length) return;
+
+  const activate = (name) => {
+    buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.subtab === name));
+    panels.forEach(panel => panel.classList.toggle('active', panel.dataset.subtab === name));
+  };
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      activate(btn.dataset.subtab);
+    });
+  });
+
+  const initial = wrap.querySelector('.rb-subtab-btn.active') || buttons[0];
+  if (initial) activate(initial.dataset.subtab);
+}
+
+function contractorStatusMeta(status) {
+  const map = {
+    working: { label: 'ได้ทำงานแล้ว', className: 'working' },
+    new: { label: 'ช่างใหม่', className: 'new' },
+    waiting: { label: 'รอร่วมงาน', className: 'waiting' },
+    not_fit: { label: 'ไม่น่าร่วมงานด้วย', className: 'not_fit' }
+  };
+  return map[status] || { label: 'ไม่ระบุ', className: '' };
+}
+
+function renderContractorDirectoryList() {
+  const container = document.getElementById('contractor-directory-container');
+  if (!container) return;
+
+  const searchInput = document.getElementById('contractor-search');
+  const statusFilter = document.getElementById('contractor-status-filter');
+  const query = (searchInput?.value || '').trim().toLowerCase();
+  const status = statusFilter?.value || '';
+
+  let list = contractorsDirectory || [];
+  if (query) {
+    list = list.filter(c => {
+      const hay = [c.name, c.trade, c.phone, c.note].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(query);
+    });
+  }
+  if (status) {
+    list = list.filter(c => (c.status || '') === status);
+  }
+
+  if (!list.length) {
+    container.innerHTML = '<p style="color:#9ca3af;">ไม่พบข้อมูลทีมช่าง</p>';
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'contractor-directory-grid';
+
+  list.forEach(c => {
+    const meta = contractorStatusMeta(c.status);
+    const statusClass = meta.className ? `contractor-status ${meta.className}` : 'contractor-status';
+    const assignments = Array.isArray(c.property_contractors) ? c.property_contractors : [];
+
+    const contactLines = [];
+    if (c.phone) contactLines.push(`<a href="tel:${c.phone}">โทร: ${escapeHtml(c.phone)}</a>`);
+    if (c.line_url) contactLines.push(`<a href="${escapeHtml(c.line_url)}" target="_blank" rel="noopener">Line</a>`);
+    if (c.facebook_url) contactLines.push(`<a href="${escapeHtml(c.facebook_url)}" target="_blank" rel="noopener">Facebook</a>`);
+    if (c.email) contactLines.push(`<a href="mailto:${escapeHtml(c.email)}">Email</a>`);
+    if (c.other_contact) contactLines.push(`<span>${escapeHtml(c.other_contact)}</span>`);
+
+    const workItems = assignments.length
+      ? assignments.map(link => {
+          const prop = link.property || {};
+          const propName = [prop.title].filter(Boolean).join(' ');
+          const total = calcContractorRatingTotal(
+            link.rating_quality,
+            link.rating_timeliness,
+            link.rating_commitment,
+            link.rating_cleanliness,
+            link.rating_system_fit
+          );
+          const ratingText = Number.isFinite(total) ? `${total}/10` : '-';
+          return `
+            <div>
+              <div style="font-weight:600;">${escapeHtml(propName || 'ไม่ระบุบ้าน')}</div>
+              <div>คะแนนรวม: <b>${ratingText}</b></div>
+              ${link.work_comment ? `<div style="color:#6b7280;">${escapeHtml(link.work_comment)}</div>` : ''}
+            </div>
+          `;
+        }).join('')
+      : '<div style="color:#9ca3af;">ยังไม่มีผลงานที่บันทึกไว้</div>';
+
+    const card = document.createElement('div');
+    card.className = 'contractor-card';
+    card.innerHTML = `
+      <div class="contractor-card-header">
+        <div>
+          <div style="font-weight:700;font-size:1.05rem;">${escapeHtml(c.name || '-')}</div>
+          <div style="color:#6b7280;">${escapeHtml(c.trade || '-')}</div>
+        </div>
+        <span class="${statusClass}">${meta.label}</span>
+      </div>
+      <div class="contractor-contact" style="display:grid;gap:0.35rem;">
+        ${contactLines.length ? contactLines.join('') : '<span style="color:#9ca3af;">ไม่มีช่องทางติดต่อ</span>'}
+      </div>
+      <div>
+        <div style="font-weight:600;margin-bottom:0.35rem;">ประวัติบ้านที่ทำ</div>
+        <div class="contractor-work-list">${workItems}</div>
+      </div>
+      ${c.note ? `<div style="color:#4b5563;">${escapeHtml(c.note)}</div>` : ''}
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-secondary contractor-edit-btn" data-id="${c.id}">แก้ไข</button>
+        <button class="btn btn-sm btn-danger contractor-delete-btn" data-id="${c.id}">ลบ</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(grid);
+
+  container.querySelectorAll('.contractor-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const contractor = contractorsDirectory.find(item => String(item.id) === String(id));
+      openContractorDirectoryModal(contractor);
+    });
+  });
+
+  container.querySelectorAll('.contractor-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!confirm('ลบทีมช่างนี้?')) return;
+      try {
+        await deleteContractor(id);
+        toast('ลบทีมช่างเรียบร้อย', 2000, 'success');
+        await loadContractorsDirectory();
+      } catch (err) {
+        console.error(err);
+        toast('ลบไม่สำเร็จ', 2500, 'error');
+      }
+    });
+  });
+}
+
+async function loadContractorsDirectory() {
+  const container = document.getElementById('contractor-directory-container');
+  if (!container) return;
+  container.innerHTML = '<p style="color:#9ca3af;">กำลังโหลด...</p>';
+  try {
+    contractorsDirectory = await listContractorsWithAssignments();
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<p style="color:#dc2626;">โหลดข้อมูลทีมช่างไม่สำเร็จ</p>';
+    return;
+  }
+  renderContractorDirectoryList();
+}
+
+function openContractorDirectoryModal(contractor = null) {
+  const modal = document.getElementById('contractor-directory-modal');
+  const form = document.getElementById('contractor-modal-form');
+  const title = document.getElementById('contractor-modal-title');
+  if (!modal || !form || !title) return;
+
+  title.textContent = contractor ? 'แก้ไขทีมช่าง' : 'เพิ่มทีมช่าง';
+  form.reset();
+  form.elements.id.value = contractor?.id || '';
+  form.elements.name.value = contractor?.name || '';
+  form.elements.trade.value = contractor?.trade || '';
+  form.elements.phone.value = contractor?.phone || '';
+  form.elements.email.value = contractor?.email || '';
+  form.elements.line_url.value = contractor?.line_url || '';
+  form.elements.facebook_url.value = contractor?.facebook_url || '';
+  form.elements.other_contact.value = contractor?.other_contact || '';
+  form.elements.status.value = contractor?.status || '';
+  form.elements.note.value = contractor?.note || '';
+
+  modal.classList.add('open');
+}
+
+function initContractorsDirectory() {
+  if (contractorsDirectoryInitialized) return;
+  contractorsDirectoryInitialized = true;
+
+  const addBtn = document.getElementById('contractor-add-btn');
+  const searchInput = document.getElementById('contractor-search');
+  const statusFilter = document.getElementById('contractor-status-filter');
+  const modal = document.getElementById('contractor-directory-modal');
+  const closeBtn = document.getElementById('contractor-modal-close');
+  const cancelBtn = document.getElementById('contractor-modal-cancel');
+  const form = document.getElementById('contractor-modal-form');
+
+  addBtn?.addEventListener('click', () => openContractorDirectoryModal());
+  searchInput?.addEventListener('input', () => renderContractorDirectoryList());
+  statusFilter?.addEventListener('change', () => renderContractorDirectoryList());
+
+  const close = () => modal?.classList.remove('open');
+  closeBtn?.addEventListener('click', close);
+  cancelBtn?.addEventListener('click', close);
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    try {
+      await upsertContractor({
+        id: fd.get('id') || undefined,
+        name: fd.get('name'),
+        trade: fd.get('trade'),
+        phone: fd.get('phone'),
+        email: fd.get('email'),
+        line_url: fd.get('line_url'),
+        facebook_url: fd.get('facebook_url'),
+        other_contact: fd.get('other_contact'),
+        status: fd.get('status'),
+        note: fd.get('note')
+      });
+      toast('บันทึกทีมช่างเรียบร้อย', 2000, 'success');
+      close();
+      await loadContractorsDirectory();
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกไม่สำเร็จ', 2500, 'error');
+    }
+  });
+
+  loadContractorsDirectory();
 }
 
 // ==================== RENOVATION LOGIC ====================
@@ -1924,6 +2171,18 @@ async function loadRenovationContractors(propId) {
 
   list.forEach(c => {
     const name = c.contractor?.name || 'ไม่ระบุ';
+    const ratingTotal = Number.isFinite(Number(c.rating_total))
+      ? Number(c.rating_total)
+      : calcContractorRatingTotal(
+          c.rating_quality,
+          c.rating_timeliness,
+          c.rating_commitment,
+          c.rating_cleanliness,
+          c.rating_system_fit
+        );
+    const ratingText = Number.isFinite(ratingTotal)
+      ? `${ratingTotal}/10`
+      : 'ยังไม่ให้คะแนน';
     const card = document.createElement('div');
     card.style.border = '1px solid #e5e7eb';
     card.style.borderRadius = '10px';
@@ -1937,7 +2196,11 @@ async function loadRenovationContractors(propId) {
         </div>
         <a href="#" class="text-red-500 del-con" data-id="${c.id}" style="color:red;font-size:18px;line-height:1;">×</a>
       </div>
+      <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+        คะแนนรวม: <b style="color:#111827;">${ratingText}</b>
+      </div>
       <div style="margin-top:8px;">
+        <button class="btn btn-sm btn-secondary edit-contractor-rating" data-pc="${c.id}" style="padding:6px 10px;">ให้คะแนน</button>
         <button class="btn btn-sm btn-secondary add-payment-for-contractor" data-pc="${c.id}" style="padding:6px 10px;">+ เพิ่มงวดจ่าย</button>
       </div>
       <div class="contractor-payments" data-payment-list-for="${c.id}" style="margin-top:8px;"></div>
@@ -1962,6 +2225,15 @@ async function loadRenovationContractors(propId) {
     });
   });
 
+  container.querySelectorAll('.edit-contractor-rating').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pcId = btn.dataset.pc;
+      if (typeof window.openContractorRatingModal === 'function') {
+        window.openContractorRatingModal(pcId);
+      }
+    });
+  });
+
   renderPaymentsIntoCards();
 }
 
@@ -1973,6 +2245,65 @@ function setupRenovationModals() {
   const cancelBtn = document.getElementById('rb-modal-cancel');
   const form = document.getElementById('rb-modal-form');
   let mode = '';
+
+  const buildRatingChips = (name, value) => {
+    const current = Number(value);
+    const chips = Array.from({ length: 10 }, (_, i) => {
+      const val = i + 1;
+      const active = Number.isFinite(current) && val === current ? ' active' : '';
+      return `<button type="button" class="rb-rating-chip${active}" data-value="${val}">${val}</button>`;
+    }).join('');
+    return `
+      <input type="hidden" name="${name}" value="${Number.isFinite(current) ? current : ''}">
+      <div class="rb-rating-group" data-rating-group="${name}">
+        ${chips}
+      </div>
+    `;
+  };
+
+  function bindRatingChips(container) {
+    container.querySelectorAll('.rb-rating-group').forEach(group => {
+      const name = group.dataset.ratingGroup;
+      const hidden = container.querySelector(`input[name="${name}"]`);
+      if (!hidden) return;
+      group.querySelectorAll('.rb-rating-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const val = chip.dataset.value;
+          hidden.value = val;
+          hidden.dispatchEvent(new Event('input', { bubbles: true }));
+          group.querySelectorAll('.rb-rating-chip').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.value === val);
+          });
+        });
+      });
+    });
+  }
+
+  function bindRatingAutoCalc(container) {
+    const qualityInput = container.querySelector('[name="rating_quality"]');
+    const timeInput = container.querySelector('[name="rating_timeliness"]');
+    const commitmentInput = container.querySelector('[name="rating_commitment"]');
+    const cleanlinessInput = container.querySelector('[name="rating_cleanliness"]');
+    const systemFitInput = container.querySelector('[name="rating_system_fit"]');
+    const totalInput = container.querySelector('[name="rating_total"]');
+    if (!qualityInput || !timeInput || !commitmentInput || !cleanlinessInput || !systemFitInput || !totalInput) return;
+
+    const update = () => {
+      const total = calcContractorRatingTotal(
+        qualityInput.value,
+        timeInput.value,
+        commitmentInput.value,
+        cleanlinessInput.value,
+        systemFitInput.value
+      );
+      totalInput.value = Number.isFinite(total) ? total : '';
+    };
+
+    [qualityInput, timeInput, commitmentInput, cleanlinessInput, systemFitInput].forEach((inp) => {
+      inp.addEventListener('input', update);
+    });
+    update();
+  }
 
   function openPaymentModal(selectedPcId = null) {
     mode = 'payment';
@@ -2008,8 +2339,32 @@ function setupRenovationModals() {
     }
   }
 
+  function openContractorRatingModal(pcId) {
+    const pc = currentPropertyContractors.find(c => String(c.id) === String(pcId));
+    if (!pc) return;
+    const name = pc.contractor?.name || 'ไม่ระบุ';
+    mode = 'contractor-rating';
+    document.getElementById('rb-modal-title').textContent = 'ให้คะแนนทีมช่าง';
+    document.getElementById('rb-modal-fields-container').innerHTML = `
+            <input type="hidden" name="property_contractor_id" value="${pc.id}">
+            <div class="form-group"><label>ทีมช่าง</label><input class="form-control" value="${escapeHtml(name)}" readonly></div>
+            <div class="form-group"><label>ผลงาน (1-10)</label>${buildRatingChips('rating_quality', pc.rating_quality)}</div>
+            <div class="form-group"><label>ตรงต่อเวลา (1-10)</label>${buildRatingChips('rating_timeliness', pc.rating_timeliness)}</div>
+            <div class="form-group"><label>รักษาคำพูด (1-10)</label>${buildRatingChips('rating_commitment', pc.rating_commitment)}</div>
+            <div class="form-group"><label>ความสะอาดของหน้างาน (1-10)</label>${buildRatingChips('rating_cleanliness', pc.rating_cleanliness)}</div>
+            <div class="form-group"><label>ความเข้ากันได้กับระบบ (1-10)</label>${buildRatingChips('rating_system_fit', pc.rating_system_fit)}</div>
+            <div class="form-group"><label>คอมเมนต์งานที่ทำ</label><textarea name="work_comment" class="form-control" rows="2">${escapeHtml(pc.work_comment || '')}</textarea></div>
+            <div class="form-group"><label>คะแนนรวม (เฉลี่ย)</label><input name="rating_total" class="form-control" readonly></div>
+        `;
+    modal.classList.add('open');
+    const fieldsContainer = document.getElementById('rb-modal-fields-container');
+    bindRatingChips(fieldsContainer);
+    bindRatingAutoCalc(fieldsContainer);
+  }
+
   // เปิดใช้ภายนอกสำหรับปุ่มในรายการทีมช่าง
   window.openPaymentModal = openPaymentModal;
+  window.openContractorRatingModal = openContractorRatingModal;
 
   const close = () => modal.classList.remove('open');
   if (closeBtn) closeBtn.onclick = close;
@@ -2045,8 +2400,17 @@ function setupRenovationModals() {
             <div class="form-group"><label>สายงาน</label><input name="contractor_trade" class="form-control"></div>
             <div class="form-group"><label>เบอร์โทร</label><input name="contractor_phone" class="form-control"></div>
             <div class="form-group"><label>ขอบเขตงาน</label><input name="scope" class="form-control"></div>
+            <div class="form-group"><label>ผลงาน (1-10)</label>${buildRatingChips('rating_quality')}</div>
+            <div class="form-group"><label>ตรงต่อเวลา (1-10)</label>${buildRatingChips('rating_timeliness')}</div>
+            <div class="form-group"><label>รักษาคำพูด (1-10)</label>${buildRatingChips('rating_commitment')}</div>
+            <div class="form-group"><label>ความสะอาดของหน้างาน (1-10)</label>${buildRatingChips('rating_cleanliness')}</div>
+            <div class="form-group"><label>ความเข้ากันได้กับระบบ (1-10)</label>${buildRatingChips('rating_system_fit')}</div>
+            <div class="form-group"><label>คะแนนรวม (เฉลี่ย)</label><input name="rating_total" class="form-control" readonly></div>
         `;
     modal.classList.add('open');
+    const fieldsContainer = document.getElementById('rb-modal-fields-container');
+    bindRatingChips(fieldsContainer);
+    bindRatingAutoCalc(fieldsContainer);
   });
 
   document.getElementById('rb-add-payment-btn')?.addEventListener('click', () => {
@@ -2077,6 +2441,18 @@ function setupRenovationModals() {
       });
       await loadRenovationSpecs(currentRenovationPropertyId);
     } else if (mode === 'contractor') {
+      const ratingQuality = parseFloat(fd.get('rating_quality') || '');
+      const ratingTimeliness = parseFloat(fd.get('rating_timeliness') || '');
+      const ratingCommitment = parseFloat(fd.get('rating_commitment') || '');
+      const ratingCleanliness = parseFloat(fd.get('rating_cleanliness') || '');
+      const ratingSystemFit = parseFloat(fd.get('rating_system_fit') || '');
+      const ratingTotal = calcContractorRatingTotal(
+        ratingQuality,
+        ratingTimeliness,
+        ratingCommitment,
+        ratingCleanliness,
+        ratingSystemFit
+      );
       const contractor = await upsertContractor({
         name: fd.get('contractor_name'),
         trade: fd.get('contractor_trade'),
@@ -2085,10 +2461,49 @@ function setupRenovationModals() {
       await upsertPropertyContractor({
         property_id: currentRenovationPropertyId,
         contractor_id: contractor.id,
-        scope: fd.get('scope')
+        scope: fd.get('scope'),
+        rating_quality: Number.isFinite(ratingQuality) ? ratingQuality : null,
+        rating_timeliness: Number.isFinite(ratingTimeliness) ? ratingTimeliness : null,
+        rating_commitment: Number.isFinite(ratingCommitment) ? ratingCommitment : null,
+        rating_cleanliness: Number.isFinite(ratingCleanliness) ? ratingCleanliness : null,
+        rating_system_fit: Number.isFinite(ratingSystemFit) ? ratingSystemFit : null,
+        rating_total: Number.isFinite(ratingTotal) ? ratingTotal : null
       });
       await loadRenovationContractors(currentRenovationPropertyId);
       await loadPaymentSchedules(currentRenovationPropertyId);
+    } else if (mode === 'contractor-rating') {
+      const propertyContractorId = fd.get('property_contractor_id') || null;
+      const pc = currentPropertyContractors.find(c => String(c.id) === String(propertyContractorId));
+      if (!pc) throw new Error('ไม่พบทีมช่างที่ต้องการให้คะแนน');
+      const ratingQuality = parseFloat(fd.get('rating_quality') || '');
+      const ratingTimeliness = parseFloat(fd.get('rating_timeliness') || '');
+      const ratingCommitment = parseFloat(fd.get('rating_commitment') || '');
+      const ratingCleanliness = parseFloat(fd.get('rating_cleanliness') || '');
+      const ratingSystemFit = parseFloat(fd.get('rating_system_fit') || '');
+      const ratingTotal = calcContractorRatingTotal(
+        ratingQuality,
+        ratingTimeliness,
+        ratingCommitment,
+        ratingCleanliness,
+        ratingSystemFit
+      );
+      await upsertPropertyContractor({
+        id: pc.id,
+        property_id: pc.property_id,
+        contractor_id: pc.contractor_id,
+        scope: pc.scope,
+        start_date: pc.start_date,
+        end_date: pc.end_date,
+        warranty_months: pc.warranty_months,
+        work_comment: fd.get('work_comment'),
+        rating_quality: Number.isFinite(ratingQuality) ? ratingQuality : null,
+        rating_timeliness: Number.isFinite(ratingTimeliness) ? ratingTimeliness : null,
+        rating_commitment: Number.isFinite(ratingCommitment) ? ratingCommitment : null,
+        rating_cleanliness: Number.isFinite(ratingCleanliness) ? ratingCleanliness : null,
+        rating_system_fit: Number.isFinite(ratingSystemFit) ? ratingSystemFit : null,
+        rating_total: Number.isFinite(ratingTotal) ? ratingTotal : null
+      });
+      await loadRenovationContractors(currentRenovationPropertyId);
     } else if (mode === 'payment') {
       const property_contractor_id = fd.get('property_contractor_id') || null;
       const amount = parseFloat(fd.get('amount') || '0');
