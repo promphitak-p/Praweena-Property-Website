@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เครื่องมืออื่นๆ - Praweena Property</title>
+
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <script src="/js/env-loader.js"></script>
+  <script src="/js/local-setup.js"></script>
+  <style>
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+
+    .tool-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+      display: block;
+    }
+
+    .tool-card:hover {
+      transform: translateY(-2px);
+      border-color: #d4af37;
+      box-shadow: 0 12px 26px -12px rgba(0, 0, 0, 0.22);
+    }
+
+    .tool-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+      color: #111827;
+    }
+
+    .tool-card p {
+      margin: 0;
+      color: #6b7280;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page page-admin" style="min-height: 80vh; padding: 2rem 0;">
+    <div class="container">
+      <header class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <h1 style="margin:0 0 .25rem;">เครื่องมืออื่นๆ</h1>
+          <p style="margin:0;color:#6b7280;">รวมเครื่องมือเสริมสำหรับงานหลังบ้าน</p>
+        </div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+          <a href="/admin.html" class="btn btn-secondary">← กลับหน้า Admin</a>
+          <button id="sign-out-btn" class="btn btn-secondary">ออกจากระบบ</button>
+        </div>
+      </header>
+
+      <section class="tools-grid">
+        <a class="tool-card" href="/rdm.html" target="_blank" rel="noopener">
+          <h3>RDM: เครื่องคำนวณรายรับรายจ่าย</h3>
+          <p>เปิดหน้า <code>rdm.html</code> สำหรับช่วยคำนวณ วางแผน และส่งออกข้อมูล</p>
+        </a>
+
+        <a class="tool-card" href="/logs.html" target="_blank" rel="noopener">
+          <h3>Event Logs</h3>
+          <p>ตรวจสอบ event log ของระบบและ export เป็น CSV</p>
+        </a>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/js/pages/admin.page.js"></script>
+</body>
+
+</html>

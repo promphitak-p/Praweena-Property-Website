@@ -19,6 +19,13 @@ import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '
 import { getArticles, createArticle, updateArticle, deleteArticle, uploadArticleImage } from '../services/articlesService.js';
 import { listPaymentsByProperty, upsertPaymentSchedule, markPaymentPaid, deletePaymentSchedule } from '../services/contractorPaymentsService.js';
 import { listQuotesByProperty, upsertPropertyQuote, deletePropertyQuote, uploadQuoteFile } from '../services/quotesService.js';
+import {
+  listDocumentsByProperty,
+  upsertPropertyDocument,
+  deletePropertyDocument,
+  deletePropertyDocumentFile,
+  uploadPropertyDocumentFile
+} from '../services/propertyDocumentsService.js';
 
 // To-Do Services
 import {
@@ -80,6 +87,13 @@ let contractorsDirectory = [];
 let contractorsDirectoryInitialized = false;
 let currentQuotes = [];
 let selectedQuoteIds = new Set();
+let currentDocuments = [];
+let currentDocumentFilter = 'all';
+let currentDocumentPropertyId = null;
+let currentDocumentQuotes = [];
+let documentsTabInitialized = false;
+let currentDocumentModalPropertyId = null;
+let currentDocumentModalPropertyLabel = '';
 
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -100,6 +114,16 @@ function calcContractorRatingTotal(quality, timeliness, commitment, cleanliness,
   const avg = vals.reduce((sum, v) => sum + v, 0) / vals.length;
   return Math.round(avg * 10) / 10;
 }
+
+const DOCUMENT_TYPE_META = {
+  receipt: { label: 'ใบเสร็จ', color: '#16a34a' },
+  quote: { label: 'ใบเสนอราคา', color: '#2563eb' },
+  invoice: { label: 'ใบแจ้งหนี้', color: '#f59e0b' },
+  contract: { label: 'สัญญา', color: '#7c3aed' },
+  warranty: { label: 'ใบรับประกัน', color: '#0ea5e9' },
+  permit: { label: 'เอกสารราชการ', color: '#9333ea' },
+  other: { label: 'อื่นๆ', color: '#6b7280' }
+};
 
 // ====================== Utility ======================
 function kmDistance(lat1, lon1, lat2, lon2) {
@@ -1396,6 +1420,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   setupRenovationModals();
   setupQuoteModal();
+  setupDocumentModal();
 });
 
 // ==================== TAB LOGIC ====================
@@ -1429,10 +1454,63 @@ function setupTabs() {
         initContractorsDirectory();
       }
 
+      if (btn.dataset.tab === 'documents') {
+        initDocumentsTab();
+        if (currentRenovationPropertyId) {
+          const select = document.getElementById('documents-property-select');
+          if (select && String(select.value || '') !== String(currentRenovationPropertyId)) {
+            select.value = String(currentRenovationPropertyId);
+            loadDocuments(currentRenovationPropertyId);
+          }
+        }
+      }
+
       if (btn.dataset.tab === 'articles') {
         loadArticlesList();
       }
     });
+  });
+}
+
+function initDocumentsTab() {
+  if (documentsTabInitialized) return;
+  documentsTabInitialized = true;
+
+  const propertySelect = document.getElementById('documents-property-select');
+  if (!propertySelect) return;
+
+  const sourceList = (renovationPropertiesList && renovationPropertiesList.length)
+    ? renovationPropertiesList
+    : (propertiesData || []);
+
+  const options = ['<option value="">-- เลือกบ้าน --</option>'];
+  sourceList.forEach(p => {
+    options.push(`<option value="${p.id}">${escapeHtml(p.title || p.code || `บ้าน #${p.id}`)}</option>`);
+  });
+  propertySelect.innerHTML = options.join('');
+
+  if (currentRenovationPropertyId) {
+    propertySelect.value = String(currentRenovationPropertyId);
+  }
+
+  const initialId = propertySelect.value || sourceList[0]?.id || '';
+  if (initialId) {
+    propertySelect.value = String(initialId);
+    loadDocuments(initialId);
+  } else {
+    renderDocumentsList();
+  }
+
+  propertySelect.addEventListener('change', () => {
+    const propertyId = propertySelect.value || '';
+    if (!propertyId) {
+      currentDocumentPropertyId = null;
+      currentDocumentQuotes = [];
+      currentDocuments = [];
+      renderDocumentsList();
+      return;
+    }
+    loadDocuments(propertyId);
   });
 }
 
@@ -1960,6 +2038,307 @@ function setupQuoteModal() {
     } catch (err) {
       console.error(err);
       toast('บันทึกไม่สำเร็จ', 2500, 'error');
+    }
+  });
+}
+
+function docTypeMeta(type = 'other') {
+  return DOCUMENT_TYPE_META[type] || DOCUMENT_TYPE_META.other;
+}
+
+function formatDocDate(dateStr) {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function getQuoteLabelById(quoteId) {
+  if (!quoteId) return '-';
+  const quote = (currentDocumentQuotes || []).find(q => String(q.id) === String(quoteId));
+  if (!quote) return `#${quoteId}`;
+  return quote.title || quote.vendor_name || `ใบเสนอราคา #${quote.id}`;
+}
+
+function populateDocumentSourceQuoteOptions(selectedId = '') {
+  const select = document.getElementById('document-source-quote-select');
+  if (!select) return;
+
+  const options = ['<option value="">-- ไม่อ้างอิง --</option>'];
+  (currentDocumentQuotes || []).forEach(q => {
+    const label = q.title || q.vendor_name || `ใบเสนอราคา #${q.id}`;
+    options.push(`<option value="${q.id}">${escapeHtml(label)}</option>`);
+  });
+  select.innerHTML = options.join('');
+  select.value = selectedId ? String(selectedId) : '';
+}
+
+function renderDocumentsList() {
+  const container = document.getElementById('rb-documents-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!currentDocumentPropertyId) {
+    container.innerHTML = '<small style="color:#9ca3af;">กรุณาเลือกบ้านก่อน</small>';
+    return;
+  }
+
+  const list = (currentDocuments || []).filter(doc => {
+    if (!currentDocumentFilter || currentDocumentFilter === 'all') return true;
+    return String(doc.doc_type || 'other') === String(currentDocumentFilter);
+  });
+
+  if (!list.length) {
+    container.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีเอกสารในหมวดนี้</small>';
+    return;
+  }
+
+  const stack = document.createElement('div');
+  stack.style.display = 'flex';
+  stack.style.flexDirection = 'column';
+  stack.style.gap = '8px';
+
+  list.forEach(doc => {
+    const meta = docTypeMeta(doc.doc_type);
+    const card = document.createElement('div');
+    card.style.border = '1px solid #e5e7eb';
+    card.style.borderRadius = '10px';
+    card.style.padding = '10px 12px';
+    card.style.background = '#fff';
+    const amountText = doc.amount ? formatPrice(Number(doc.amount)) : '-';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+        <div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span style="font-weight:700;">${escapeHtml(doc.title || 'เอกสาร')}</span>
+            <span style="background:${meta.color}1a;color:${meta.color};padding:2px 8px;border-radius:999px;font-size:12px;">${meta.label}</span>
+          </div>
+          <div style="color:#6b7280;font-size:12px;margin-top:2px;">วันที่เอกสาร: ${formatDocDate(doc.doc_date)}</div>
+          <div style="color:#6b7280;font-size:12px;">ผู้ออกเอกสาร: ${escapeHtml(doc.vendor_name || '-')}</div>
+          ${doc.source_quote_id ? `<div style="color:#6b7280;font-size:12px;">อ้างอิง: ${escapeHtml(getQuoteLabelById(doc.source_quote_id))}</div>` : ''}
+          <div style="color:#6b7280;font-size:12px;">จำนวนเงิน: ${amountText}</div>
+          ${doc.note ? `<div style="color:#4b5563;font-size:12px;margin-top:4px;">${escapeHtml(doc.note)}</div>` : ''}
+        </div>
+        <div style="text-align:right;min-width:120px;">
+          ${doc.file_url ? `<a href="${escapeHtml(doc.file_url)}" target="_blank" rel="noopener" style="font-size:12px;">เปิดเอกสาร</a>` : '<span style="font-size:12px;color:#9ca3af;">ไม่มีไฟล์</span>'}
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-secondary document-edit-btn" data-id="${doc.id}">แก้ไข</button>
+        <button class="btn btn-sm btn-secondary document-delete-db-btn" data-id="${doc.id}">ลบเฉพาะรายการ</button>
+        <button class="btn btn-sm btn-danger document-delete-with-file-btn" data-id="${doc.id}">ลบไฟล์+รายการ</button>
+      </div>
+    `;
+    stack.appendChild(card);
+  });
+
+  container.appendChild(stack);
+
+  container.querySelectorAll('.document-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const doc = currentDocuments.find(item => String(item.id) === String(btn.dataset.id));
+      openDocumentModal(doc);
+    });
+  });
+
+  container.querySelectorAll('.document-delete-db-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!confirm('ลบเฉพาะข้อมูลเอกสารนี้ในฐานข้อมูล?')) return;
+      try {
+        await deletePropertyDocument(id);
+        toast('ลบรายการเอกสารแล้ว', 2000, 'success');
+        await loadDocuments(currentDocumentPropertyId);
+      } catch (err) {
+        console.error(err);
+        toast('ลบเอกสารไม่สำเร็จ', 2500, 'error');
+      }
+    });
+  });
+
+  container.querySelectorAll('.document-delete-with-file-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const doc = currentDocuments.find(item => String(item.id) === String(id));
+      if (!doc) return;
+      if (!confirm('ลบไฟล์ใน Storage และลบรายการเอกสารนี้?')) return;
+      try {
+        if (doc.file_url) {
+          await deletePropertyDocumentFile(doc.file_url);
+        }
+        await deletePropertyDocument(id);
+        toast('ลบไฟล์และรายการเอกสารแล้ว', 2200, 'success');
+        await loadDocuments(currentDocumentPropertyId);
+      } catch (err) {
+        console.error(err);
+        toast('ลบไฟล์/เอกสารไม่สำเร็จ', 2600, 'error');
+      }
+    });
+  });
+}
+
+async function loadDocuments(propId) {
+  currentDocumentPropertyId = propId ? String(propId) : null;
+  if (!currentDocumentPropertyId) {
+    currentDocumentQuotes = [];
+    currentDocuments = [];
+    renderDocumentsList();
+    return;
+  }
+
+  try {
+    const [docs, quotes] = await Promise.all([
+      listDocumentsByProperty(currentDocumentPropertyId, 'all'),
+      listQuotesByProperty(currentDocumentPropertyId)
+    ]);
+    currentDocuments = docs || [];
+    currentDocumentQuotes = quotes || [];
+  } catch (err) {
+    console.error(err);
+    currentDocuments = [];
+    currentDocumentQuotes = [];
+  }
+
+  populateDocumentSourceQuoteOptions();
+  renderDocumentsList();
+}
+
+function openDocumentModal(doc = null) {
+  const modal = document.getElementById('document-modal');
+  const form = document.getElementById('document-modal-form');
+  const titleEl = document.getElementById('document-modal-title');
+  const propertyDisplay = document.getElementById('document-property-display');
+  const propertySelect = document.getElementById('documents-property-select');
+  if (!modal || !form || !titleEl) return;
+
+  const modalPropertyId = currentDocumentPropertyId ? String(currentDocumentPropertyId) : '';
+  if (!modalPropertyId) {
+    toast('กรุณาเลือกบ้านก่อน', 2200, 'warning');
+    return;
+  }
+
+  let modalPropertyLabel = '';
+  if (propertySelect) {
+    const selectedOption = propertySelect.options[propertySelect.selectedIndex];
+    modalPropertyLabel = (selectedOption?.textContent || '').trim();
+  }
+  if (!modalPropertyLabel) {
+    const match = (renovationPropertiesList || []).find(p => String(p.id) === modalPropertyId)
+      || (propertiesData || []).find(p => String(p.id) === modalPropertyId);
+    modalPropertyLabel = match?.title || match?.code || `บ้าน #${modalPropertyId}`;
+  }
+
+  currentDocumentModalPropertyId = modalPropertyId;
+  currentDocumentModalPropertyLabel = modalPropertyLabel;
+  if (propertySelect) propertySelect.disabled = true;
+
+  titleEl.textContent = doc
+    ? `แก้ไขเอกสาร · ${modalPropertyLabel}`
+    : `เพิ่มเอกสาร · ${modalPropertyLabel}`;
+  form.reset();
+  form.elements.id.value = doc?.id || '';
+  form.elements.file_url.value = doc?.file_url || '';
+  form.elements.title.value = doc?.title || '';
+  form.elements.doc_type.value = doc?.doc_type || 'receipt';
+  form.elements.doc_date.value = doc?.doc_date || '';
+  form.elements.amount.value = doc?.amount ?? '';
+  form.elements.vendor_name.value = doc?.vendor_name || '';
+  form.elements.source_quote_id.value = doc?.source_quote_id || '';
+  form.elements.note.value = doc?.note || '';
+  if (propertyDisplay) {
+    propertyDisplay.textContent = modalPropertyLabel;
+    propertyDisplay.title = modalPropertyLabel;
+  }
+  populateDocumentSourceQuoteOptions(doc?.source_quote_id || '');
+  modal.classList.add('open');
+}
+
+function setupDocumentModal() {
+  const modal = document.getElementById('document-modal');
+  const closeBtn = document.getElementById('document-modal-close');
+  const cancelBtn = document.getElementById('document-modal-cancel');
+  const form = document.getElementById('document-modal-form');
+  const addBtn = document.getElementById('rb-add-document-btn');
+  const filterSelect = document.getElementById('rb-documents-filter');
+  const propertySelect = document.getElementById('documents-property-select');
+  const propertyDisplay = document.getElementById('document-property-display');
+
+  const close = () => {
+    modal?.classList.remove('open');
+    currentDocumentModalPropertyId = null;
+    currentDocumentModalPropertyLabel = '';
+    if (propertySelect) propertySelect.disabled = false;
+    if (propertyDisplay) {
+      propertyDisplay.textContent = '-';
+      propertyDisplay.title = '';
+    }
+  };
+
+  closeBtn?.addEventListener('click', close);
+  cancelBtn?.addEventListener('click', close);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) close();
+  });
+
+  addBtn?.addEventListener('click', () => {
+    if (!currentDocumentPropertyId) {
+      toast('กรุณาเลือกบ้านก่อน', 2200, 'warning');
+      return;
+    }
+    openDocumentModal();
+  });
+
+  if (filterSelect) {
+    currentDocumentFilter = filterSelect.value || 'all';
+    filterSelect.addEventListener('change', () => {
+      currentDocumentFilter = filterSelect.value || 'all';
+      renderDocumentsList();
+    });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const modalPropertyId = currentDocumentModalPropertyId
+      || (currentDocumentPropertyId ? String(currentDocumentPropertyId) : '');
+
+    if (!modalPropertyId) {
+      toast('กรุณาเลือกบ้านก่อน', 2200, 'warning');
+      return;
+    }
+
+    const fd = new FormData(form);
+    const file = fd.get('file');
+    let fileUrl = fd.get('file_url') || '';
+
+    try {
+      if (file && file.size) {
+        fileUrl = await uploadPropertyDocumentFile(file, modalPropertyId);
+      }
+
+      if (!fileUrl) {
+        toast('กรุณาอัปโหลดไฟล์เอกสาร', 2200, 'warning');
+        return;
+      }
+
+      await upsertPropertyDocument({
+        id: fd.get('id') || undefined,
+        property_id: modalPropertyId,
+        title: fd.get('title'),
+        doc_type: fd.get('doc_type') || 'other',
+        doc_date: fd.get('doc_date') || null,
+        amount: fd.get('amount') ? Number(fd.get('amount')) : null,
+        vendor_name: fd.get('vendor_name') || null,
+        source_quote_id: fd.get('source_quote_id') || null,
+        note: fd.get('note') || null,
+        file_url: fileUrl
+      });
+
+      toast('บันทึกเอกสารแล้ว', 2000, 'success');
+      close();
+      await loadDocuments(modalPropertyId);
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกเอกสารไม่สำเร็จ', 2500, 'error');
     }
   });
 }
@@ -3860,3 +4239,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
