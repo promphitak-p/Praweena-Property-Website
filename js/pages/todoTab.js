@@ -33,6 +33,17 @@ import {
     deletePurchaseItem
 } from '../services/todoPurchasesService.js';
 
+import { listContractorsForProperty } from '../services/propertyContractorsService.js';
+import {
+    listIssuesByProperty,
+    upsertIssue,
+    deleteIssue
+} from '../services/renovationIssuesService.js';
+import {
+    getPhaseLockSetting,
+    savePhaseLockSetting
+} from '../services/renovationPhaseService.js';
+
 import { toast } from '../ui/toast.js';
 import { clear } from '../ui/dom.js';
 
@@ -46,6 +57,23 @@ let currentPurchaseTodoId = null;
 let currentPurchaseItems = [];
 let purchaseSummaryCache = {};
 let purchaseOverviewModal = null;
+let dependencyOverviewVisible = false;
+let currentTodoView = localStorage.getItem('todoViewMode') || 'list';
+let calendarMonthOffset = 0;
+let currentPropertyContractors = [];
+let contractorLookup = new Map();
+let currentIssues = [];
+let phaseLockEnabled = false;
+let phaseStatusCache = null;
+
+const PHASES = [
+    { key: 'prep', label: 'เตรียมงาน' },
+    { key: 'structure', label: 'โครงสร้าง' },
+    { key: 'systems', label: 'ระบบ' },
+    { key: 'finishes', label: 'ตกแต่ง' },
+    { key: 'exterior', label: 'ภายนอก' },
+    { key: 'other', label: 'อื่นๆ' }
+];
 
 // Confirm Modal State
 let confirmResolve = null;
@@ -211,6 +239,27 @@ function setupEventListeners() {
     if (addBtn) {
         addBtn.addEventListener('click', () => openTodoModal());
     }
+    const depToggle = document.getElementById('todo-dependency-toggle');
+    const depBox = document.getElementById('todo-dependency-overview');
+    if (depToggle && depBox) {
+        depToggle.addEventListener('click', () => {
+            dependencyOverviewVisible = !dependencyOverviewVisible;
+            depBox.style.display = dependencyOverviewVisible ? 'grid' : 'none';
+            depToggle.textContent = dependencyOverviewVisible ? 'ซ่อนลำดับงาน' : 'ดูลำดับงาน';
+            if (dependencyOverviewVisible) {
+                renderDependencyOverview();
+            }
+        });
+    }
+    const phaseToggle = document.getElementById('todo-phase-lock-toggle');
+    if (phaseToggle) {
+        phaseToggle.addEventListener('change', async (e) => {
+            phaseLockEnabled = !!e.target.checked;
+            await persistPhaseLockSetting();
+            renderPhaseOverview();
+            renderTodos();
+        });
+    }
     const purchaseClose = document.getElementById('todo-purchase-close');
     const purchaseCancel = document.getElementById('purchase-cancel-btn');
     if (purchaseClose) purchaseClose.addEventListener('click', closePurchaseModal);
@@ -219,6 +268,20 @@ function setupEventListeners() {
     if (purchaseSave) purchaseSave.addEventListener('click', handleSavePurchase);
     const overviewBtn = document.getElementById('todo-purchase-overview-btn');
     if (overviewBtn) overviewBtn.addEventListener('click', openPurchaseOverviewModal);
+    const issueAddBtn = document.getElementById('todo-issue-add-btn');
+    if (issueAddBtn) issueAddBtn.addEventListener('click', () => openIssueModal());
+    const issueClose = document.getElementById('todo-issue-close');
+    const issueCancel = document.getElementById('todo-issue-cancel');
+    if (issueClose) issueClose.addEventListener('click', closeIssueModal);
+    if (issueCancel) issueCancel.addEventListener('click', closeIssueModal);
+    const issueForm = document.getElementById('todo-issue-form');
+    if (issueForm) issueForm.addEventListener('submit', handleIssueSubmit);
+    const issueModal = document.getElementById('todo-issue-modal');
+    if (issueModal) {
+        issueModal.addEventListener('click', (e) => {
+            if (e.target === issueModal) closeIssueModal();
+        });
+    }
 
     // Modal close buttons
     const modalClose = document.getElementById('todo-modal-close');
@@ -244,6 +307,16 @@ function setupEventListeners() {
             }
         });
     }
+
+    const viewSwitch = document.getElementById('todo-view-switch');
+    if (viewSwitch) {
+        viewSwitch.addEventListener('click', (e) => {
+            const btn = e.target.closest('.todo-view-btn');
+            if (!btn) return;
+            setTodoView(btn.dataset.view);
+        });
+        setTodoView(currentTodoView);
+    }
 }
 
 /**
@@ -263,6 +336,10 @@ export function setTodoProperty(propertyId, propertyTitle) {
     const addBtn = document.getElementById('todo-add-btn');
     if (contentArea) contentArea.style.display = 'block';
     if (addBtn) addBtn.style.display = 'flex';
+
+    loadPhaseSettings();
+    loadContractorsForProperty();
+    loadIssuesForProperty();
 
     // Load todos for this property
     loadTodosForProperty();
@@ -298,6 +375,11 @@ async function loadTodosForProperty() {
     renderTodos();
     updateStats();
     loadPurchaseOverview();
+    renderPhaseOverview();
+    renderCriticalPath();
+    refreshBudgetSummary();
+    populateIssueTodoSelect();
+    renderIssueList();
 }
 
 /**
@@ -309,8 +391,6 @@ function renderTodos() {
 
     if (!container) return;
 
-    clear(container);
-
     // Filter todos
     let filteredTodos = allTodos;
     if (currentCategoryFilter !== 'all') {
@@ -321,17 +401,76 @@ function renderTodos() {
     if (filteredTodos.length === 0) {
         container.style.display = 'none';
         if (emptyState) emptyState.style.display = 'block';
+        document.querySelectorAll('.todo-view-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+        const phaseList = document.getElementById('todo-phase-list');
+        if (phaseList) phaseList.innerHTML = '';
+        const criticalList = document.getElementById('todo-critical-list');
+        if (criticalList) criticalList.innerHTML = '';
+        const budgetSummary = document.getElementById('todo-budget-summary');
+        if (budgetSummary) budgetSummary.textContent = '';
+        renderIssueList();
         return;
     }
 
     container.style.display = 'block';
     if (emptyState) emptyState.style.display = 'none';
+    document.querySelectorAll('.todo-view-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `todo-view-${currentTodoView}`);
+    });
 
     // Show purchase overview container
     const overview = document.getElementById('todo-purchase-overview');
     if (overview) overview.style.display = 'block';
 
-    // Group by category
+    if (currentTodoView === 'list') {
+        renderListView(filteredTodos);
+    } else if (currentTodoView === 'kanban') {
+        renderKanbanView(filteredTodos);
+    } else if (currentTodoView === 'timeline') {
+        renderTimelineView(filteredTodos);
+    } else if (currentTodoView === 'calendar') {
+        renderCalendarView(filteredTodos);
+    } else if (currentTodoView === 'gantt') {
+        renderGanttView(filteredTodos);
+    } else if (currentTodoView === 'city') {
+        renderCityView(filteredTodos);
+    } else if (currentTodoView === 'tree') {
+        renderTechTreeView(filteredTodos);
+    } else if (currentTodoView === 'floor') {
+        renderFloorView(filteredTodos);
+    }
+
+    renderPhaseOverview();
+    renderCriticalPath();
+    refreshBudgetSummary();
+    populateIssueTodoSelect();
+
+    if (dependencyOverviewVisible) {
+        renderDependencyOverview();
+    }
+}
+
+function getDependencyNote(todo) {
+    const dependencyIds = parseDependencyIds(todo.dependency_ids);
+    if (!dependencyIds.length) return '';
+    const pending = dependencyIds
+        .map(id => ({ id, ...dependencyStatus(id) }))
+        .filter(d => !d.done);
+    const titles = dependencyIds
+        .map(id => dependencyStatus(id).title || `งาน ${id}`)
+        .filter(Boolean);
+    if (!titles.length) return '';
+    if (pending.length) return `ต้องทำก่อน: ${titles.join(', ')}`;
+    return `ทำก่อนแล้ว: ${titles.join(', ')}`;
+}
+
+function renderListView(filteredTodos) {
+    const container = document.getElementById('todo-list-container');
+    if (!container) return;
+    clear(container);
+
     const grouped = {};
     filteredTodos.forEach(todo => {
         const catId = todo.category_id || 'uncategorized';
@@ -339,10 +478,7 @@ function renderTodos() {
         grouped[catId].push(todo);
     });
 
-    // Determine category order based on sort_order (DB already sorted, but ensure)
     const orderedCategories = [...allCategories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-
-    // Render categories following renovation order; handle uncategorized last
     orderedCategories.forEach(cat => {
         const todos = grouped[cat.id];
         if (!todos || todos.length === 0) return;
@@ -350,14 +486,769 @@ function renderTodos() {
         container.appendChild(section);
     });
 
-    // If there are uncategorized tasks, render them at the end
     if (grouped.uncategorized) {
         const section = createCategorySection(null, grouped.uncategorized.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
         container.appendChild(section);
     }
 
-    // Initialize SortableJS for drag and drop
     initSortable();
+}
+
+function renderKanbanView(filteredTodos) {
+    const wrap = document.getElementById('todo-view-kanban');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const columns = [
+        { key: 'pending', label: 'รอดำเนินการ' },
+        { key: 'in_progress', label: 'กำลังทำ' },
+        { key: 'completed', label: 'เสร็จแล้ว' },
+        { key: 'cancelled', label: 'ยกเลิก/ข้าม' }
+    ];
+
+    const grid = document.createElement('div');
+    grid.className = 'todo-kanban';
+
+    columns.forEach(col => {
+        const colEl = document.createElement('div');
+        colEl.className = 'todo-kanban-col';
+        colEl.innerHTML = `<h4>${col.label}</h4>`;
+        const list = filteredTodos.filter(t => t.status === col.key);
+        list.forEach(todo => {
+            const depNote = getDependencyNote(todo);
+            const card = document.createElement('div');
+            card.className = 'todo-kanban-card';
+            card.innerHTML = `
+        <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+        ${todo.due_date ? `<div style="color:#6b7280;">📅 ${formatDate(todo.due_date)}</div>` : ''}
+        ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
+      `;
+            colEl.appendChild(card);
+        });
+        grid.appendChild(colEl);
+    });
+
+    wrap.appendChild(grid);
+}
+
+function renderTimelineView(filteredTodos) {
+    const wrap = document.getElementById('todo-view-timeline');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const sorted = filteredTodos.slice().sort((a, b) => {
+        const aDate = a.due_date ? new Date(a.due_date) : new Date(8640000000000000);
+        const bDate = b.due_date ? new Date(b.due_date) : new Date(8640000000000000);
+        return aDate - bDate;
+    });
+
+    const list = document.createElement('div');
+    list.className = 'todo-timeline';
+
+    sorted.forEach(todo => {
+        const depNote = getDependencyNote(todo);
+        const item = document.createElement('div');
+        item.className = 'todo-timeline-item';
+        item.innerHTML = `
+      <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+      <div style="color:#6b7280;">${todo.due_date ? `📅 ${formatDate(todo.due_date)}` : 'ไม่มีวันกำหนด'}</div>
+      ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
+    `;
+        list.appendChild(item);
+    });
+
+    wrap.appendChild(list);
+}
+
+function renderCalendarView(filteredTodos) {
+    const wrap = document.getElementById('todo-view-calendar');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const now = new Date();
+    const viewDate = new Date(now.getFullYear(), now.getMonth() + calendarMonthOffset, 1);
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDay = firstDay.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const header = document.createElement('div');
+    header.className = 'todo-calendar-header';
+    header.innerHTML = `
+    <button type="button" class="btn btn-sm btn-secondary" data-cal-nav="-1">เดือนก่อน</button>
+    <div style="font-weight:700;">${firstDay.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}</div>
+    <button type="button" class="btn btn-sm btn-secondary" data-cal-nav="1">เดือนถัดไป</button>
+  `;
+
+    const grid = document.createElement('div');
+    grid.className = 'todo-calendar-grid';
+
+    const dayNames = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+    dayNames.forEach(name => {
+        const cell = document.createElement('div');
+        cell.className = 'todo-calendar-day';
+        cell.innerHTML = `<div class="day-number">${name}</div>`;
+        grid.appendChild(cell);
+    });
+
+    for (let i = 0; i < startDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'todo-calendar-day';
+        grid.appendChild(empty);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = new Date(year, month, day).toISOString().slice(0, 10);
+        const tasks = filteredTodos.filter(t => t.due_date === dateKey);
+        const cell = document.createElement('div');
+        cell.className = 'todo-calendar-day';
+        cell.innerHTML = `<div class="day-number">${day}</div>`;
+        tasks.forEach(todo => {
+            const depNote = getDependencyNote(todo);
+            const taskEl = document.createElement('div');
+            taskEl.className = 'todo-calendar-task';
+            taskEl.innerHTML = `
+        <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+        ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
+      `;
+            cell.appendChild(taskEl);
+        });
+        grid.appendChild(cell);
+    }
+
+    const box = document.createElement('div');
+    box.className = 'todo-calendar';
+    box.appendChild(header);
+    box.appendChild(grid);
+    wrap.appendChild(box);
+
+    wrap.querySelectorAll('[data-cal-nav]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            calendarMonthOffset += Number(btn.dataset.calNav);
+            renderCalendarView(filteredTodos);
+        });
+    });
+}
+
+function renderGanttView(filteredTodos) {
+    const wrap = document.getElementById('todo-view-gantt');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const list = document.createElement('div');
+    list.className = 'todo-gantt';
+
+    const sorted = filteredTodos.slice().sort((a, b) => {
+        const aDate = a.due_date ? new Date(a.due_date) : new Date(8640000000000000);
+        const bDate = b.due_date ? new Date(b.due_date) : new Date(8640000000000000);
+        return aDate - bDate;
+    });
+
+    sorted.forEach(todo => {
+        const depNote = getDependencyNote(todo);
+        const progress = todo.status === 'completed' || todo.status === 'cancelled'
+            ? 100
+            : todo.status === 'in_progress'
+                ? 60
+                : 20;
+        const row = document.createElement('div');
+        row.className = 'todo-gantt-row';
+        row.innerHTML = `
+      <div>
+        <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+        ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
+      </div>
+      <div>${todo.due_date ? formatDate(todo.due_date) : '-'}</div>
+      <div class="todo-gantt-bar"><span style="width:${progress}%"></span></div>
+    `;
+        list.appendChild(row);
+    });
+
+    wrap.appendChild(list);
+}
+
+function formatTodoStatus(status) {
+    const map = {
+        pending: 'รอดำเนินการ',
+        in_progress: 'กำลังทำ',
+        completed: 'เสร็จแล้ว',
+        cancelled: 'ข้ามแล้ว'
+    };
+    return map[status] || status || '-';
+}
+
+function renderCityView(filteredTodos) {
+    const wrap = document.getElementById('todo-view-city');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const grouped = new Map();
+    filteredTodos.forEach(todo => {
+        const key = todo.category_id ? String(todo.category_id) : 'uncategorized';
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(todo);
+    });
+
+    const orderedCategories = [...allCategories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const grid = document.createElement('div');
+    grid.className = 'todo-city-grid';
+
+    orderedCategories.forEach(cat => {
+        const todos = grouped.get(String(cat.id));
+        if (!todos || todos.length === 0) return;
+
+        const tile = document.createElement('div');
+        tile.className = 'todo-city-tile';
+
+        const title = document.createElement('div');
+        title.className = 'todo-city-title';
+        title.textContent = `${cat.icon || '•'} ${cat.name || 'Category'}`;
+        tile.appendChild(title);
+
+        const doneCount = todos.filter(t => t.status === 'completed' || t.status === 'cancelled').length;
+        const meta = document.createElement('div');
+        meta.style.color = '#6b7280';
+        meta.style.fontSize = '0.8rem';
+        meta.textContent = `เสร็จแล้ว ${doneCount}/${todos.length}`;
+        tile.appendChild(meta);
+
+        const list = document.createElement('div');
+        list.style.display = 'grid';
+        list.style.gap = '0.4rem';
+        todos
+            .slice()
+            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+            .slice(0, 4)
+            .forEach(todo => {
+                const depNote = getDependencyNote(todo);
+                const item = document.createElement('div');
+                item.innerHTML = `
+          <div style="display:flex;justify-content:space-between;gap:0.5rem;">
+            <span>${escapeHtml(todo.title || '-')}</span>
+            <span style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</span>
+          </div>
+          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
+        `;
+                list.appendChild(item);
+            });
+        tile.appendChild(list);
+
+        if (todos.length > 4) {
+            const more = document.createElement('div');
+            more.style.color = '#9ca3af';
+            more.style.fontSize = '0.75rem';
+            more.textContent = `+อีก ${todos.length - 4} งาน`;
+            tile.appendChild(more);
+        }
+
+        grid.appendChild(tile);
+    });
+
+    if (grouped.has('uncategorized')) {
+        const todos = grouped.get('uncategorized');
+        if (todos && todos.length) {
+            const tile = document.createElement('div');
+            tile.className = 'todo-city-tile';
+
+            const title = document.createElement('div');
+            title.className = 'todo-city-title';
+            title.textContent = '• ไม่ระบุหมวด';
+            tile.appendChild(title);
+
+            const list = document.createElement('div');
+            list.style.display = 'grid';
+            list.style.gap = '0.4rem';
+            todos.slice(0, 4).forEach(todo => {
+                const depNote = getDependencyNote(todo);
+                const item = document.createElement('div');
+                item.innerHTML = `
+          <div style="display:flex;justify-content:space-between;gap:0.5rem;">
+            <span>${escapeHtml(todo.title || '-')}</span>
+            <span style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</span>
+          </div>
+          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
+        `;
+                list.appendChild(item);
+            });
+            tile.appendChild(list);
+            grid.appendChild(tile);
+        }
+    }
+
+    wrap.appendChild(grid);
+}
+
+function renderTechTreeView(filteredTodos) {
+    const wrap = document.getElementById('todo-view-tree');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const todoMap = new Map(filteredTodos.map(todo => [String(todo.id), todo]));
+    const depthMemo = new Map();
+    const visiting = new Set();
+
+    const getDepth = (todoId) => {
+        if (depthMemo.has(todoId)) return depthMemo.get(todoId);
+        if (visiting.has(todoId)) return 0;
+        visiting.add(todoId);
+
+        const todo = todoMap.get(todoId);
+        if (!todo) {
+            visiting.delete(todoId);
+            return 0;
+        }
+
+        const deps = parseDependencyIds(todo.dependency_ids)
+            .map(id => String(id))
+            .filter(id => todoMap.has(id));
+        let maxDepth = -1;
+        deps.forEach(id => {
+            maxDepth = Math.max(maxDepth, getDepth(id));
+        });
+        const depth = maxDepth + 1;
+        depthMemo.set(todoId, depth);
+        visiting.delete(todoId);
+        return depth;
+    };
+
+    filteredTodos.forEach(todo => getDepth(String(todo.id)));
+
+    const columns = {};
+    depthMemo.forEach((depth, id) => {
+        if (!columns[depth]) columns[depth] = [];
+        columns[depth].push(todoMap.get(id));
+    });
+
+    const levels = Object.keys(columns).map(Number).sort((a, b) => a - b);
+    const grid = document.createElement('div');
+    grid.className = 'todo-tree-grid';
+
+    const orderMap = new Map(allCategories.map(cat => [String(cat.id), cat.sort_order || 0]));
+
+    levels.forEach(level => {
+        const col = document.createElement('div');
+        col.className = 'todo-tree-col';
+
+        const title = document.createElement('div');
+        title.style.fontWeight = '700';
+        title.style.color = '#374151';
+        title.style.fontSize = '0.85rem';
+        title.textContent = `ช่วงที่ ${level + 1}`;
+        col.appendChild(title);
+
+        columns[level]
+            .slice()
+            .sort((a, b) => {
+                const aOrder = orderMap.get(String(a.category_id)) ?? 999;
+                const bOrder = orderMap.get(String(b.category_id)) ?? 999;
+                if (aOrder !== bOrder) return aOrder - bOrder;
+                return (a.sort_order || 0) - (b.sort_order || 0);
+            })
+            .forEach(todo => {
+                const deps = parseDependencyIds(todo.dependency_ids)
+                    .map(id => String(id))
+                    .filter(id => todoMap.has(id));
+                const depTitles = deps.map(id => todoMap.get(id)?.title || `#${id}`);
+                const depText = depTitles.length ? `ต้องทำก่อน: ${depTitles.join(', ')}` : '';
+                const depNote = getDependencyNote(todo);
+                const node = document.createElement('div');
+                node.className = 'todo-tree-node';
+                node.innerHTML = `
+          <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+          <div style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</div>
+          ${depText ? `<div style="color:#6b7280;font-size:0.75rem;">${escapeHtml(depText)}</div>` : ''}
+          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
+        `;
+                col.appendChild(node);
+            });
+
+        grid.appendChild(col);
+    });
+
+    wrap.appendChild(grid);
+}
+
+function renderFloorView(filteredTodos) {
+    const wrap = document.getElementById('todo-view-floor');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const categoryMap = new Map(allCategories.map(cat => [String(cat.id), cat]));
+    const zones = [
+        { key: 'structure', title: 'โครงสร้าง', keywords: ['structure', 'structural', 'foundation', 'roof', 'floor', 'wall', 'โครงสร้าง', 'หลังคา', 'พื้น', 'ผนัง'] },
+        { key: 'systems', title: 'ระบบ', keywords: ['plumbing', 'electrical', 'hvac', 'ไฟฟ้า', 'ประปา', 'สุขาภิบาล', 'ท่อ'] },
+        { key: 'wet', title: 'พื้นที่เปียก', keywords: ['bath', 'toilet', 'ห้องน้ำ', 'สุขา'] },
+        { key: 'kitchen', title: 'ครัว', keywords: ['kitchen', 'ครัว'] },
+        { key: 'interior', title: 'งานตกแต่งภายใน', keywords: ['interior', 'finish', 'paint', 'สี', 'ตกแต่ง', 'เฟอร์', 'built', 'บิ้ว', 'ตกแต่ง'] },
+        { key: 'exterior', title: 'งานภายนอก', keywords: ['exterior', 'garden', 'yard', 'facade', 'ภายนอก', 'สวน', 'รั้ว'] }
+    ];
+
+    const zoneBuckets = new Map(zones.map(zone => [zone.key, []]));
+    const otherBucket = [];
+
+    const findZoneKey = (label) => {
+        const name = (label || '').toLowerCase();
+        for (const zone of zones) {
+            if (zone.keywords.some(keyword => name.includes(keyword))) {
+                return zone.key;
+            }
+        }
+        return null;
+    };
+
+    filteredTodos.forEach(todo => {
+        const cat = categoryMap.get(String(todo.category_id));
+        const catLabel = cat ? `${cat.name || ''}` : '';
+        const zoneKey = findZoneKey(catLabel);
+        if (zoneKey && zoneBuckets.has(zoneKey)) {
+            zoneBuckets.get(zoneKey).push(todo);
+        } else {
+            otherBucket.push(todo);
+        }
+    });
+
+    const grid = document.createElement('div');
+    grid.className = 'todo-floor-grid';
+
+    zones.forEach(zone => {
+        const list = zoneBuckets.get(zone.key) || [];
+        if (!list.length) return;
+        const panel = document.createElement('div');
+        panel.className = 'todo-floor-zone';
+        panel.innerHTML = `<h4>${zone.title}</h4>`;
+
+        list
+            .slice()
+            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+            .forEach(todo => {
+                const cat = categoryMap.get(String(todo.category_id));
+                const depNote = getDependencyNote(todo);
+                const item = document.createElement('div');
+                item.innerHTML = `
+          <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+          <div style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}${cat ? ` • ${escapeHtml(cat.name || '')}` : ''}</div>
+          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
+        `;
+                panel.appendChild(item);
+            });
+
+        grid.appendChild(panel);
+    });
+
+    if (otherBucket.length) {
+        const panel = document.createElement('div');
+        panel.className = 'todo-floor-zone';
+        panel.innerHTML = '<h4>อื่นๆ</h4>';
+        otherBucket.forEach(todo => {
+            const depNote = getDependencyNote(todo);
+            const item = document.createElement('div');
+            item.innerHTML = `
+        <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+        <div style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</div>
+        ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
+      `;
+            panel.appendChild(item);
+        });
+        grid.appendChild(panel);
+    }
+
+    wrap.appendChild(grid);
+}
+
+function buildContractorLookup(list = []) {
+    contractorLookup = new Map();
+    list.forEach(row => {
+        const contractor = row.contractor || row.contractors || row.contractor_id;
+        const contractorId = row.contractor_id || contractor?.id;
+        if (!contractorId) return;
+        contractorLookup.set(String(contractorId), {
+            name: contractor?.name || row.contractor_name || 'ทีมช่าง',
+            trade: contractor?.trade || row.trade || ''
+        });
+    });
+}
+
+async function loadContractorsForProperty() {
+    if (!currentPropertyId) return;
+    try {
+        const list = await listContractorsForProperty(currentPropertyId);
+        currentPropertyContractors = list || [];
+        buildContractorLookup(currentPropertyContractors);
+        populateContractorSelect();
+    } catch (err) {
+        console.error('Load contractors failed', err);
+        currentPropertyContractors = [];
+        contractorLookup = new Map();
+        populateContractorSelect();
+    }
+}
+
+function populateContractorSelect() {
+    const select = document.getElementById('todo-contractor');
+    if (!select) return;
+    clear(select);
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = '-- เลือกทีมช่าง --';
+    select.appendChild(empty);
+
+    const seen = new Set();
+    currentPropertyContractors.forEach(row => {
+        const contractor = row.contractor || row.contractors;
+        if (!contractor?.id || seen.has(contractor.id)) return;
+        seen.add(contractor.id);
+        const option = document.createElement('option');
+        option.value = contractor.id;
+        option.textContent = contractor.trade
+            ? `${contractor.name} (${contractor.trade})`
+            : contractor.name;
+        select.appendChild(option);
+    });
+}
+
+async function loadPhaseSettings() {
+    if (!currentPropertyId) return;
+    const { data, error } = await getPhaseLockSetting(currentPropertyId);
+    if (error) {
+        const fallback = localStorage.getItem(`todoPhaseLock:${currentPropertyId}`);
+        phaseLockEnabled = fallback === 'true';
+    } else {
+        phaseLockEnabled = !!data?.lock_enabled;
+        localStorage.setItem(`todoPhaseLock:${currentPropertyId}`, phaseLockEnabled ? 'true' : 'false');
+    }
+    const toggle = document.getElementById('todo-phase-lock-toggle');
+    if (toggle) toggle.checked = phaseLockEnabled;
+}
+
+async function persistPhaseLockSetting() {
+    if (!currentPropertyId) return;
+    const { error } = await savePhaseLockSetting(currentPropertyId, phaseLockEnabled);
+    if (error) {
+        localStorage.setItem(`todoPhaseLock:${currentPropertyId}`, phaseLockEnabled ? 'true' : 'false');
+    }
+}
+
+function getPhaseKeyByCategory(categoryName = '') {
+    const name = categoryName.toLowerCase();
+    if (/(admin|เอกสาร|เตรียม|pre|plan)/i.test(name)) return 'prep';
+    if (/(structure|struct|หลังคา|โครงสร้าง|รื้อ|ถอน|พื้น|ผนัง)/i.test(name)) return 'structure';
+    if (/(ไฟฟ้า|ประปา|ระบบ|plumbing|electrical|system|สุขาภิบาล)/i.test(name)) return 'systems';
+    if (/(ตกแต่ง|สี|เฟอร์|finish|interior|บิ้ว)/i.test(name)) return 'finishes';
+    if (/(ภายนอก|สวน|รั้ว|exterior|external)/i.test(name)) return 'exterior';
+    return 'other';
+}
+
+function getTodoPhaseKey(todo) {
+    const cat = allCategories.find(c => String(c.id) === String(todo.category_id));
+    const catName = cat?.name || todo?.category?.name || '';
+    return getPhaseKeyByCategory(catName);
+}
+
+function computePhaseStatus(todos = allTodos) {
+    const stats = new Map(PHASES.map(p => [p.key, { total: 0, done: 0 }]));
+    todos.forEach(todo => {
+        const key = getTodoPhaseKey(todo);
+        const entry = stats.get(key);
+        if (!entry) return;
+        entry.total += 1;
+        if (todo.status === 'completed' || todo.status === 'cancelled') {
+            entry.done += 1;
+        }
+    });
+
+    const phaseOrder = PHASES.filter(p => p.key !== 'other').map(p => p.key);
+    let currentIndex = -1;
+    phaseOrder.some((key, idx) => {
+        const entry = stats.get(key);
+        if (!entry || entry.total === 0) return false;
+        if (entry.done < entry.total) {
+            currentIndex = idx;
+            return true;
+        }
+        return false;
+    });
+
+    phaseStatusCache = {
+        stats,
+        currentIndex,
+        phaseOrder
+    };
+}
+
+function isTodoPhaseLocked(todo) {
+    if (!phaseLockEnabled) return false;
+    if (!phaseStatusCache) computePhaseStatus();
+    const key = getTodoPhaseKey(todo);
+    if (key === 'other') return false;
+    const index = phaseStatusCache.phaseOrder.indexOf(key);
+    if (index === -1) return false;
+    if (phaseStatusCache.currentIndex === -1) return false;
+    return index > phaseStatusCache.currentIndex;
+}
+
+function renderPhaseOverview() {
+    const list = document.getElementById('todo-phase-list');
+    if (!list) return;
+    computePhaseStatus();
+    list.innerHTML = '';
+
+    PHASES.forEach(phase => {
+        const entry = phaseStatusCache.stats.get(phase.key) || { total: 0, done: 0 };
+        if (entry.total === 0) return;
+        const percent = entry.total ? Math.round((entry.done / entry.total) * 100) : 0;
+        const phaseIndex = phaseStatusCache.phaseOrder.indexOf(phase.key);
+        const isLocked = phaseLockEnabled && phase.key !== 'other' && phaseIndex > phaseStatusCache.currentIndex && phaseStatusCache.currentIndex !== -1;
+        const statusText = entry.done === entry.total ? 'จบเฟส' : isLocked ? 'ล็อก' : 'กำลังทำ';
+        const statusColor = entry.done === entry.total ? '#16a34a' : isLocked ? '#9ca3af' : '#d97706';
+
+        const row = document.createElement('div');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr 60px';
+        row.style.alignItems = 'center';
+        row.style.gap = '0.5rem';
+        row.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:0.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+          <strong>${phase.label}</strong>
+          <span style="font-size:12px; color:${statusColor}; font-weight:600;">${statusText}</span>
+        </div>
+        <div style="height:6px; background:#f3f4f6; border-radius:999px; overflow:hidden;">
+          <span style="display:block; height:100%; width:${percent}%; background:${statusColor};"></span>
+        </div>
+        <span style="font-size:12px; color:#6b7280;">${entry.done}/${entry.total} งาน</span>
+      </div>
+      <div style="font-size:12px; color:#6b7280; text-align:right;">${percent}%</div>
+    `;
+        list.appendChild(row);
+    });
+}
+
+function computeTodoDepths(todos = allTodos) {
+    const map = new Map(todos.map(todo => [String(todo.id), todo]));
+    const memo = new Map();
+    const visiting = new Set();
+
+    const depth = (id) => {
+        if (memo.has(id)) return memo.get(id);
+        if (visiting.has(id)) return 0;
+        visiting.add(id);
+        const todo = map.get(id);
+        if (!todo) {
+            visiting.delete(id);
+            return 0;
+        }
+        const deps = parseDependencyIds(todo.dependency_ids)
+            .map(depId => String(depId))
+            .filter(depId => map.has(depId));
+        let maxDepth = 0;
+        deps.forEach(depId => {
+            maxDepth = Math.max(maxDepth, depth(depId));
+        });
+        const value = maxDepth + 1;
+        memo.set(id, value);
+        visiting.delete(id);
+        return value;
+    };
+
+    todos.forEach(todo => depth(String(todo.id)));
+    return memo;
+}
+
+function renderCriticalPath() {
+    const list = document.getElementById('todo-critical-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!allTodos.length) {
+        list.innerHTML = '<div style="color:#9ca3af;">ยังไม่มีงาน</div>';
+        return;
+    }
+
+    const depths = computeTodoDepths(allTodos);
+    const activeTodos = allTodos.filter(todo => !['completed', 'cancelled'].includes(todo.status));
+    const sorted = activeTodos
+        .slice()
+        .sort((a, b) => {
+            const da = depths.get(String(a.id)) || 0;
+            const db = depths.get(String(b.id)) || 0;
+            if (da !== db) return db - da;
+            const aDate = a.due_date ? new Date(a.due_date) : new Date(8640000000000000);
+            const bDate = b.due_date ? new Date(b.due_date) : new Date(8640000000000000);
+            return aDate - bDate;
+        })
+        .slice(0, 6);
+
+    if (!sorted.length) {
+        list.innerHTML = '<div style="color:#9ca3af;">งานทั้งหมดเสร็จแล้ว</div>';
+        return;
+    }
+
+    sorted.forEach(todo => {
+        const depth = depths.get(String(todo.id)) || 1;
+        const overdueDays = todo.due_date && isOverdue(todo.due_date)
+            ? Math.ceil((Date.now() - new Date(todo.due_date).getTime()) / 86400000)
+            : 0;
+        const row = document.createElement('div');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr auto';
+        row.style.gap = '0.5rem';
+        row.style.padding = '0.4rem 0';
+        row.innerHTML = `
+      <div>
+        <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
+        <div style="font-size:12px; color:#6b7280;">ลำดับ ${depth}${todo.due_date ? ` • กำหนด ${formatDate(todo.due_date)}` : ''}${overdueDays ? ` • ช้า ${overdueDays} วัน` : ''}</div>
+      </div>
+      <div style="font-size:12px; color:${overdueDays ? '#dc2626' : '#6b7280'}; font-weight:600;">${formatTodoStatus(todo.status)}</div>
+    `;
+        list.appendChild(row);
+    });
+}
+
+function parseLinkList(raw) {
+    if (!raw) return [];
+    return String(raw)
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+}
+
+function getTodoActualCost(todoId) {
+    const list = purchaseSummaryCache[todoId] || [];
+    if (!list.length) return 0;
+    return list.reduce((sum, item) => {
+        const qty = Number(item.quantity) || 0;
+        const price = Number(item.unit_price) || 0;
+        return sum + (qty * price);
+    }, 0);
+}
+
+function updateTodoBudgetLine(todoId) {
+    const el = document.querySelector(`[data-todo-budget="${todoId}"]`);
+    if (!el) return;
+    const todo = allTodos.find(t => String(t.id) === String(todoId));
+    if (!todo) return;
+    const estimate = Number(todo.budget_estimate) || 0;
+    const actual = getTodoActualCost(todoId);
+    const text = estimate
+        ? `งบ ${formatCurrency(estimate)} / ใช้จริง ${formatCurrency(actual)}`
+        : `ใช้จริง ${formatCurrency(actual)}`;
+    el.textContent = text;
+}
+
+function refreshBudgetSummary() {
+    const target = document.getElementById('todo-budget-summary');
+    if (!target) return;
+    const planned = allTodos.reduce((sum, todo) => sum + (Number(todo.budget_estimate) || 0), 0);
+    let actual = 0;
+    Object.keys(purchaseSummaryCache).forEach(todoId => {
+        actual += getTodoActualCost(todoId);
+    });
+    if (!planned && !actual) {
+        target.textContent = '';
+        return;
+    }
+    target.textContent = `งบรวม ${formatCurrency(planned)} • ใช้จริง ${formatCurrency(actual)}`;
 }
 
 /**
@@ -406,21 +1297,50 @@ function createCategorySection(category, todos) {
 function createTodoItem(todo) {
     const isCancelled = todo.status === 'cancelled';
     const item = document.createElement('div');
-    item.className = `todo-item ${todo.status === 'completed' ? 'completed' : ''} ${isCancelled ? 'cancelled' : ''}`;
+    const isCompleted = todo.status === 'completed';
+    const dependencyIds = parseDependencyIds(todo.dependency_ids);
+    const dependencyInfo = dependencyIds.map(id => ({ id, ...dependencyStatus(id) }));
+    const pendingDeps = dependencyInfo.filter(d => !d.done);
+    const isPhaseLocked = isTodoPhaseLocked(todo);
+    const isBlocked = !isCompleted && !isCancelled && (pendingDeps.length > 0 || isPhaseLocked);
+
+    const contractor = todo.contractor_id ? contractorLookup.get(String(todo.contractor_id)) : null;
+    const assigneeText = contractor
+        ? `${contractor.name}${contractor.trade ? ` (${contractor.trade})` : ''}`
+        : (todo.assignee_name || '');
+    const evidenceCount = parseLinkList(todo.evidence_links).length;
+    const beforeCount = parseLinkList(todo.before_links).length;
+    const afterCount = parseLinkList(todo.after_links).length;
+
+    item.className = `todo-item ${isCompleted ? 'completed' : ''} ${isCancelled ? 'cancelled' : ''} ${isBlocked ? 'locked' : ''}`;
     item.dataset.id = todo.id;
 
-    const isCompleted = todo.status === 'completed';
+    const depLabel = dependencyInfo.length
+        ? dependencyInfo.map(d => d.title || `งาน ${d.id}`).join(', ')
+        : '';
+    const depNote = pendingDeps.length
+        ? `ต้องทำก่อน: ${escapeHtml(depLabel)}`
+        : dependencyInfo.length ? `ทำก่อนแล้ว: ${escapeHtml(depLabel)}` : '';
+    const phaseNote = isPhaseLocked ? 'ล็อกตามเฟสงาน' : '';
 
     item.innerHTML = `
-     <div class="todo-checkbox ${isCompleted ? 'checked' : ''}" data-id="${todo.id}"></div>
+     <div class="todo-checkbox ${isCompleted ? 'checked' : ''} ${isBlocked ? 'disabled' : ''}" data-id="${todo.id}"></div>
   <div class="todo-content">
     <div class="todo-title">${escapeHtml(todo.title)}</div>
     ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ''}
+    ${depNote ? `<div class="todo-meta"><span class="todo-dependency-badge" title="${escapeHtml(depNote)}">⛓ ${depNote}</span></div>` : ''}
+    ${phaseNote ? `<div class="todo-meta"><span class="todo-dependency-badge" title="${phaseNote}">🔒 ${phaseNote}</span></div>` : ''}
     <div class="todo-meta">
       <span class="todo-priority ${todo.priority}">${getPriorityText(todo.priority)}</span>
       ${todo.due_date ? `<span class="todo-due-date ${isOverdue(todo.due_date) ? 'overdue' : ''}">📅 ${formatDate(todo.due_date)}</span>` : ''}
       ${todo.reminder_date ? `<span class="todo-reminder">🔔 ${formatDateTime(todo.reminder_date)}</span>` : ''}
     </div>
+    ${assigneeText ? `<div class="todo-meta" style="font-size:12px;color:#6b7280;">ผู้รับผิดชอบ: ${escapeHtml(assigneeText)}</div>` : ''}
+    <div class="todo-meta" style="font-size:12px;color:#6b7280;" data-todo-budget="${todo.id}"></div>
+    ${(evidenceCount || beforeCount || afterCount) ? `
+      <div class="todo-meta" style="font-size:12px;color:#6b7280;">
+        ลิงก์: หลักฐาน ${evidenceCount} • ก่อน ${beforeCount} • หลัง ${afterCount}
+      </div>` : ''}
     <div class="todo-meta" style="margin-top:4px;">
       <button class="todo-action-btn purchase" data-id="${todo.id}" title="ของที่ต้องซื้อ" style="font-size: 13px; padding:4px 8px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">🛒 จัดการของ</button>
     </div>
@@ -438,7 +1358,13 @@ function createTodoItem(todo) {
 
     // Add event listeners
     const checkbox = item.querySelector('.todo-checkbox');
-    checkbox.addEventListener('click', () => handleToggleStatus(todo.id, todo.status));
+    if (!isBlocked) {
+        checkbox.addEventListener('click', () => handleToggleStatus(todo.id, todo.status));
+    } else {
+        checkbox.title = isPhaseLocked
+            ? 'งานนี้ถูกล็อกตามเฟสงาน'
+            : 'งานนี้ถูกล็อก เพราะมีงานที่ต้องทำก่อน';
+    }
 
     const editBtn = item.querySelector('.edit');
     editBtn.addEventListener('click', () => openTodoModal(todo));
@@ -465,6 +1391,7 @@ function createTodoItem(todo) {
 
     item.querySelector('.todo-content')?.appendChild(purchaseBlock);
     loadPurchaseSummary(todo.id, purchaseSummary);
+    updateTodoBudgetLine(todo.id);
 
     // Move Up/Down Listeners
     const moveUpBtn = item.querySelector('.todo-move-btn.up');
@@ -487,6 +1414,23 @@ function createTodoItem(todo) {
  */
 async function handleToggleStatus(todoId, currentStatus) {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+
+    if (newStatus === 'completed') {
+        const todo = allTodos.find(t => t.id === todoId);
+        if (todo && isTodoPhaseLocked(todo)) {
+            toast('งานนี้ถูกล็อกตามเฟสงาน กรุณาทำเฟสก่อนหน้าให้เสร็จก่อน', 2500, 'error');
+            return;
+        }
+        const dependencyIds = parseDependencyIds(todo?.dependency_ids);
+        const pendingDeps = dependencyIds
+            .map(id => ({ id, ...dependencyStatus(id) }))
+            .filter(d => !d.done);
+        if (pendingDeps.length) {
+            const names = pendingDeps.map(d => d.title || `งาน ${d.id}`).join(', ');
+            toast(`ต้องทำก่อน: ${names}`, 3000, 'warning');
+            return;
+        }
+    }
 
     const { data, error } = await toggleTodoStatus(todoId, newStatus);
 
@@ -909,6 +1853,8 @@ async function loadPurchaseSummary(todoId, targetEl, preloadList = null) {
         targetEl.textContent = text;
         targetEl.style.color = overdue > 0 ? '#dc2626' : '#374151';
         renderPurchaseInline(todoId);
+        updateTodoBudgetLine(todoId);
+        refreshBudgetSummary();
     } catch (err) {
         console.error('Load purchase summary failed', err);
         targetEl.textContent = '🛒 โหลดข้อมูลไม่ได้';
@@ -1344,6 +2290,233 @@ async function handleGenerateDefaults() {
 /**
  * Open todo modal for add/edit
  */
+function renderDependencyOptions(todo = null) {
+    const list = document.getElementById('todo-dependency-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!allTodos.length) {
+        list.innerHTML = '<div style="color:#9ca3af;">ยังไม่มีงานให้เลือก</div>';
+        return;
+    }
+
+    const selected = new Set(parseDependencyIds(todo?.dependency_ids).map(id => String(id)));
+    const currentId = todo?.id ? String(todo.id) : null;
+
+    allTodos
+        .filter(t => !currentId || String(t.id) !== currentId)
+        .forEach(t => {
+            const row = document.createElement('label');
+            row.className = 'todo-dependency-item';
+            const checked = selected.has(String(t.id)) ? 'checked' : '';
+            const status = t.status === 'completed' || t.status === 'cancelled'
+                ? '<span class="todo-dependency-badge">เสร็จแล้ว</span>'
+                : '';
+            row.innerHTML = `
+        <input type="checkbox" value="${t.id}" ${checked}>
+        <span>${escapeHtml(t.title || '-')}</span>
+        ${status}
+      `;
+            list.appendChild(row);
+        });
+}
+
+function setTodoView(view) {
+    const allowed = ['list', 'kanban', 'timeline', 'calendar', 'gantt', 'city', 'tree', 'floor'];
+    const next = allowed.includes(view) ? view : 'list';
+    currentTodoView = next;
+    localStorage.setItem('todoViewMode', next);
+
+    document.querySelectorAll('.todo-view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === next);
+    });
+    document.querySelectorAll('.todo-view-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `todo-view-${next}`);
+    });
+    renderTodos();
+}
+
+function renderDependencyOverview() {
+    const box = document.getElementById('todo-dependency-overview');
+    if (!box) return;
+    box.innerHTML = '';
+
+    if (!allTodos.length) {
+        box.innerHTML = '<div style="color:#9ca3af;">ยังไม่มีงาน</div>';
+        return;
+    }
+
+    const categoryMap = new Map(allCategories.map(cat => [String(cat.id), cat.name]));
+    const orderedCategories = [...allCategories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const orderMap = new Map(orderedCategories.map((cat, i) => [String(cat.id), i]));
+
+    const sorted = allTodos.slice().sort((a, b) => {
+        const aCat = orderMap.get(String(a.category_id)) ?? 999;
+        const bCat = orderMap.get(String(b.category_id)) ?? 999;
+        if (aCat !== bCat) return aCat - bCat;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+    });
+
+    sorted.forEach(todo => {
+        const depIds = parseDependencyIds(todo.dependency_ids);
+        const depTitles = depIds.map(id => dependencyStatus(id).title || `งาน ${id}`).filter(Boolean);
+        const catName = categoryMap.get(String(todo.category_id)) || 'อื่น ๆ';
+        const depText = depTitles.length ? depTitles.join(', ') : 'ไม่มี';
+
+        const card = document.createElement('div');
+        card.className = 'todo-dependency-card';
+        card.innerHTML = `
+      <div class="todo-dependency-card-title">${escapeHtml(todo.title || '-')}</div>
+      <div class="todo-dependency-card-meta">หมวด: ${escapeHtml(catName)}</div>
+      <div class="todo-dependency-card-meta">ต้องทำก่อน: ${escapeHtml(depText)}</div>
+    `;
+        box.appendChild(card);
+    });
+}
+
+async function loadIssuesForProperty() {
+    if (!currentPropertyId) return;
+    try {
+        const { data } = await listIssuesByProperty(currentPropertyId);
+        currentIssues = data || [];
+        renderIssueList();
+    } catch (err) {
+        console.error('Load issues failed', err);
+        currentIssues = [];
+        renderIssueList();
+    }
+}
+
+function populateIssueTodoSelect() {
+    const select = document.getElementById('todo-issue-todo');
+    if (!select) return;
+    const currentValue = select.value;
+    clear(select);
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = '-- ไม่ระบุ --';
+    select.appendChild(empty);
+
+    allTodos.forEach(todo => {
+        const option = document.createElement('option');
+        option.value = todo.id;
+        option.textContent = todo.title || `งาน ${todo.id}`;
+        select.appendChild(option);
+    });
+
+    if (currentValue) {
+        select.value = currentValue;
+    }
+}
+
+function renderIssueList() {
+    const list = document.getElementById('todo-issue-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!currentIssues.length) {
+        list.innerHTML = '<div style="color:#9ca3af;">ยังไม่มีรายการความเสี่ยง/ปัญหา</div>';
+        return;
+    }
+
+    currentIssues.forEach(issue => {
+        const row = document.createElement('div');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr auto';
+        row.style.gap = '0.5rem';
+        row.style.padding = '0.4rem 0';
+        row.innerHTML = `
+      <div>
+        <div style="font-weight:600;">${escapeHtml(issue.title || '-')}</div>
+        <div style="font-size:12px; color:#6b7280;">
+          ${issue.status || 'open'} • ${issue.severity || 'medium'}
+          ${issue.todo_id ? ` • งาน: ${escapeHtml(allTodos.find(t => String(t.id) === String(issue.todo_id))?.title || issue.todo_id)}` : ''}
+        </div>
+        ${issue.detail ? `<div style="font-size:12px; color:#6b7280;">${escapeHtml(issue.detail)}</div>` : ''}
+      </div>
+      <div style="display:flex; gap:0.4rem; align-items:center;">
+        <button class="btn btn-sm btn-secondary" data-issue-action="edit" data-id="${issue.id}" style="padding:4px 8px;">แก้ไข</button>
+        <button class="btn btn-sm" data-issue-action="delete" data-id="${issue.id}" style="padding:4px 8px; background:#ef4444; color:#fff;">ลบ</button>
+      </div>
+    `;
+        list.appendChild(row);
+    });
+
+    list.querySelectorAll('[data-issue-action="edit"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const issue = currentIssues.find(i => String(i.id) === btn.dataset.id);
+            if (issue) openIssueModal(issue);
+        });
+    });
+    list.querySelectorAll('[data-issue-action="delete"]').forEach(btn => {
+        btn.addEventListener('click', () => handleIssueDelete(btn.dataset.id));
+    });
+}
+
+function openIssueModal(issue = null) {
+    const modal = document.getElementById('todo-issue-modal');
+    const form = document.getElementById('todo-issue-form');
+    if (!modal || !form) return;
+    form.reset();
+    document.getElementById('todo-issue-id').value = issue?.id || '';
+    document.getElementById('todo-issue-name').value = issue?.title || '';
+    document.getElementById('todo-issue-todo').value = issue?.todo_id || '';
+    document.getElementById('todo-issue-severity').value = issue?.severity || 'medium';
+    document.getElementById('todo-issue-status').value = issue?.status || 'open';
+    document.getElementById('todo-issue-detail').value = issue?.detail || '';
+    modal.classList.add('open');
+}
+
+function closeIssueModal() {
+    const modal = document.getElementById('todo-issue-modal');
+    if (modal) modal.classList.remove('open');
+}
+
+async function handleIssueSubmit(e) {
+    e.preventDefault();
+    if (!currentPropertyId) return;
+    const payload = {
+        id: document.getElementById('todo-issue-id').value || null,
+        property_id: currentPropertyId,
+        title: document.getElementById('todo-issue-name').value.trim(),
+        todo_id: document.getElementById('todo-issue-todo').value || null,
+        severity: document.getElementById('todo-issue-severity').value || 'medium',
+        status: document.getElementById('todo-issue-status').value || 'open',
+        detail: document.getElementById('todo-issue-detail').value.trim() || null
+    };
+    if (!payload.title) {
+        toast('กรุณาระบุหัวข้อ', 2000, 'error');
+        return;
+    }
+    try {
+        const { data } = await upsertIssue(payload);
+        if (payload.id) {
+            const idx = currentIssues.findIndex(i => String(i.id) === String(payload.id));
+            if (idx !== -1) currentIssues[idx] = data;
+        } else {
+            currentIssues.unshift(data);
+        }
+        renderIssueList();
+        closeIssueModal();
+        toast('บันทึกรายการแล้ว', 2000, 'success');
+    } catch (err) {
+        console.error('Save issue failed', err);
+        toast('บันทึกไม่สำเร็จ', 3000, 'error');
+    }
+}
+
+async function handleIssueDelete(id) {
+    try {
+        await deleteIssue(id);
+        currentIssues = currentIssues.filter(issue => String(issue.id) !== String(id));
+        renderIssueList();
+        toast('ลบรายการแล้ว', 2000, 'success');
+    } catch (err) {
+        console.error('Delete issue failed', err);
+        toast('ลบไม่สำเร็จ', 3000, 'error');
+    }
+}
+
 function openTodoModal(todo = null) {
     const modal = document.getElementById('todo-modal');
     const form = document.getElementById('todo-form');
@@ -1362,6 +2535,12 @@ function openTodoModal(todo = null) {
         document.getElementById('todo-description').value = todo.description || '';
         document.getElementById('todo-category').value = todo.category_id || '';
         document.getElementById('todo-priority').value = todo.priority;
+        document.getElementById('todo-contractor').value = todo.contractor_id || '';
+        document.getElementById('todo-assignee-name').value = todo.assignee_name || '';
+        document.getElementById('todo-budget-estimate').value = todo.budget_estimate ?? '';
+        document.getElementById('todo-evidence-links').value = todo.evidence_links || '';
+        document.getElementById('todo-before-links').value = todo.before_links || '';
+        document.getElementById('todo-after-links').value = todo.after_links || '';
 
         if (todo.due_date) {
             document.getElementById('todo-due-date').value = todo.due_date;
@@ -1379,6 +2558,7 @@ function openTodoModal(todo = null) {
         document.getElementById('todo-property-id').value = currentPropertyId;
     }
 
+    renderDependencyOptions(todo);
     modal.classList.add('open');
 }
 
@@ -1409,8 +2589,19 @@ async function handleTodoSubmit(e) {
         category_id: formData.get('category_id') || null,
         priority: formData.get('priority') || 'medium',
         due_date: formData.get('due_date') || null,
-        reminder_date: formData.get('reminder_date') || null
+        reminder_date: formData.get('reminder_date') || null,
+        contractor_id: formData.get('contractor_id') || null,
+        assignee_name: formData.get('assignee_name') || null,
+        budget_estimate: formData.get('budget_estimate') ? Number(formData.get('budget_estimate')) : null,
+        evidence_links: formData.get('evidence_links') || null,
+        before_links: formData.get('before_links') || null,
+        after_links: formData.get('after_links') || null
     };
+
+    const dependencyIds = Array.from(
+        document.querySelectorAll('#todo-dependency-list input[type="checkbox"]:checked')
+    ).map(el => el.value);
+    todoData.dependency_ids = dependencyIds.length ? dependencyIds : null;
 
     let result;
     if (todoData.id) {
@@ -1635,6 +2826,27 @@ function isOverdue(dateStr) {
     const dueDate = new Date(dateStr);
     const now = new Date();
     return dueDate < now;
+}
+
+function parseDependencyIds(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function dependencyStatus(todoId) {
+    const dep = allTodos.find(t => String(t.id) === String(todoId));
+    if (!dep) return { done: true, title: '' };
+    const done = dep.status === 'completed' || dep.status === 'cancelled';
+    return { done, title: dep.title || '' };
 }
 
 function formatCurrency(val) {

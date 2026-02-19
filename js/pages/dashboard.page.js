@@ -18,6 +18,7 @@ import { listContractorsWithAssignments, upsertContractor, deleteContractor } fr
 import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '../services/renovationBookService.js';
 import { getArticles, createArticle, updateArticle, deleteArticle, uploadArticleImage } from '../services/articlesService.js';
 import { listPaymentsByProperty, upsertPaymentSchedule, markPaymentPaid, deletePaymentSchedule } from '../services/contractorPaymentsService.js';
+import { listQuotesByProperty, upsertPropertyQuote, deletePropertyQuote, uploadQuoteFile } from '../services/quotesService.js';
 
 // To-Do Services
 import {
@@ -77,6 +78,8 @@ let currentPaymentSchedules = [];
 let renderPreview = () => {};
 let contractorsDirectory = [];
 let contractorsDirectoryInitialized = false;
+let currentQuotes = [];
+let selectedQuoteIds = new Set();
 
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -1345,6 +1348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Renovation Init
   setupTabs();
+  setupAdminThemeToggle();
   setupRenovationSubTabs();
   initSiteContentTab();
   await setupRenovationPropertySelect();
@@ -1391,6 +1395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   setupRenovationModals();
+  setupQuoteModal();
 });
 
 // ==================== TAB LOGIC ====================
@@ -1428,6 +1433,21 @@ function setupTabs() {
         loadArticlesList();
       }
     });
+  });
+}
+
+function setupAdminThemeToggle() {
+  const toggle = document.getElementById('admin-theme-toggle');
+  if (!toggle) return;
+  const key = 'adminThemeModern';
+  const enabled = localStorage.getItem(key) === '1';
+  document.body.classList.toggle('theme-modern', enabled);
+  toggle.checked = enabled;
+
+  toggle.addEventListener('change', () => {
+    const isOn = toggle.checked;
+    document.body.classList.toggle('theme-modern', isOn);
+    localStorage.setItem(key, isOn ? '1' : '0');
   });
 }
 
@@ -1662,6 +1682,288 @@ function initContractorsDirectory() {
   loadContractorsDirectory();
 }
 
+function parseQuoteItems(text = '') {
+  return String(text)
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const parts = line.split('|').map(p => p.trim());
+      return {
+        name: parts[0] || '',
+        price: parts[1] ? Number(parts[1].replace(/,/g, '')) : null,
+        note: parts[2] || ''
+      };
+    });
+}
+
+function renderQuoteCompare(quotes) {
+  const compareBox = document.getElementById('rb-quotes-compare');
+  if (!compareBox) return;
+  compareBox.innerHTML = '';
+
+  if (!quotes.length) {
+    compareBox.innerHTML = '<p style="color:#9ca3af;">เลือกใบเสนอราคาเพื่อเปรียบเทียบ</p>';
+    return;
+  }
+
+  const headerRow = `
+    <tr>
+      <th style="min-width:180px;">หัวข้อ</th>
+      ${quotes.map(q => `<th>${escapeHtml(q.title || q.vendor_name || 'ใบเสนอราคา')}</th>`).join('')}
+    </tr>
+  `;
+
+  const row = (label, values) => `
+    <tr>
+      <td style="font-weight:600;color:#374151;">${label}</td>
+      ${values.map(v => `<td>${v}</td>`).join('')}
+    </tr>
+  `;
+
+  const itemsRow = quotes.map(q => {
+    const items = Array.isArray(q.items) ? q.items : [];
+    if (!items.length) return '-';
+    const list = items.map(item => {
+      const price = Number.isFinite(Number(item.price)) ? formatPrice(Number(item.price)) : '';
+      const note = item.note ? ` • ${escapeHtml(item.note)}` : '';
+      return `<li>${escapeHtml(item.name || '-')}${price ? ` (${price})` : ''}${note}</li>`;
+    }).join('');
+    return `<ul style="margin:0; padding-left:1.1rem;">${list}</ul>`;
+  });
+
+  const contractorNameById = (id) => {
+    if (!id) return '-';
+    const hit = currentPropertyContractors.find(c => String(c.contractor_id) === String(id));
+    return hit?.contractor?.name || '-';
+  };
+
+  const rows = [
+    row('ทีมช่าง', quotes.map(q => escapeHtml(contractorNameById(q.contractor_id)))),
+    row('ผู้เสนอราคา/บริษัท', quotes.map(q => escapeHtml(q.vendor_name || '-'))),
+    row('ราคารวม', quotes.map(q => q.total_price ? formatPrice(Number(q.total_price)) : '-')),
+    row('ระยะเวลา (วัน)', quotes.map(q => q.timeline_days ?? '-')),
+    row('รับประกัน (เดือน)', quotes.map(q => q.warranty_months ?? '-')),
+    row('เงื่อนไขการชำระเงิน', quotes.map(q => escapeHtml(q.payment_terms || '-'))),
+    row('ขอบเขตงาน', quotes.map(q => escapeHtml(q.scope || '-'))),
+    row('หมายเหตุ', quotes.map(q => escapeHtml(q.notes || '-'))),
+    row('รายละเอียดรายการ', itemsRow)
+  ].join('');
+
+  compareBox.innerHTML = `
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>${headerRow}</thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderQuotesList() {
+  const container = document.getElementById('rb-quotes-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!currentQuotes.length) {
+    container.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีใบเสนอราคา</small>';
+    renderQuoteCompare([]);
+    return;
+  }
+
+  const stack = document.createElement('div');
+  stack.style.display = 'flex';
+  stack.style.flexDirection = 'column';
+  stack.style.gap = '8px';
+
+  currentQuotes.forEach(q => {
+    const linkedContractor = currentPropertyContractors.find(
+      c => String(c.contractor_id) === String(q.contractor_id)
+    );
+    const contractorLabel = linkedContractor?.contractor?.name || '-';
+    const card = document.createElement('div');
+    card.style.border = '1px solid #e5e7eb';
+    card.style.borderRadius = '10px';
+    card.style.padding = '10px 12px';
+    card.style.background = '#fff';
+    const total = q.total_price ? formatPrice(Number(q.total_price)) : '-';
+    const checked = selectedQuoteIds.has(String(q.id)) ? 'checked' : '';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+        <div>
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" class="quote-compare-toggle" data-id="${q.id}" ${checked}>
+            <span style="font-weight:700;">${escapeHtml(q.title || 'ใบเสนอราคา')}</span>
+          </label>
+          <div style="color:#6b7280;font-size:12px;">${escapeHtml(q.vendor_name || '-')}</div>
+          <div style="color:#6b7280;font-size:12px;">ทีมช่าง: ${escapeHtml(contractorLabel)}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:700;color:#111827;">${total}</div>
+          ${q.file_url ? `<a href="${escapeHtml(q.file_url)}" target="_blank" rel="noopener" style="font-size:12px;">เปิดไฟล์ PDF</a>` : ''}
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-secondary quote-edit-btn" data-id="${q.id}">แก้ไข</button>
+        <button class="btn btn-sm btn-danger quote-delete-btn" data-id="${q.id}">ลบ</button>
+      </div>
+    `;
+    stack.appendChild(card);
+  });
+
+  container.appendChild(stack);
+
+  container.querySelectorAll('.quote-compare-toggle').forEach(input => {
+    input.addEventListener('change', () => {
+      const id = input.dataset.id;
+      if (input.checked) {
+        selectedQuoteIds.add(String(id));
+      } else {
+        selectedQuoteIds.delete(String(id));
+      }
+    });
+  });
+
+  container.querySelectorAll('.quote-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const quote = currentQuotes.find(item => String(item.id) === String(id));
+      openQuoteModal(quote);
+    });
+  });
+
+  container.querySelectorAll('.quote-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!confirm('ลบใบเสนอราคานี้?')) return;
+      try {
+        await deletePropertyQuote(id);
+        toast('ลบใบเสนอราคาแล้ว', 2000, 'success');
+        await loadQuotes(currentRenovationPropertyId);
+      } catch (err) {
+        console.error(err);
+        toast('ลบไม่สำเร็จ', 2500, 'error');
+      }
+    });
+  });
+}
+
+async function loadQuotes(propId) {
+  if (!propId) return;
+  try {
+    currentQuotes = await listQuotesByProperty(propId);
+  } catch (err) {
+    console.error(err);
+    currentQuotes = [];
+  }
+  selectedQuoteIds = new Set();
+  renderQuotesList();
+}
+
+function openQuoteModal(quote = null) {
+  const modal = document.getElementById('quote-modal');
+  const form = document.getElementById('quote-modal-form');
+  const titleEl = document.getElementById('quote-modal-title');
+  if (!modal || !form || !titleEl) return;
+
+  titleEl.textContent = quote ? 'แก้ไขใบเสนอราคา' : 'เพิ่มใบเสนอราคา';
+  form.reset();
+  form.elements.id.value = quote?.id || '';
+  form.elements.title.value = quote?.title || '';
+  form.elements.contractor_id.value = quote?.contractor_id || '';
+  form.elements.vendor_name.value = quote?.vendor_name || '';
+  form.elements.total_price.value = quote?.total_price ?? '';
+  form.elements.timeline_days.value = quote?.timeline_days ?? '';
+  form.elements.warranty_months.value = quote?.warranty_months ?? '';
+  form.elements.payment_terms.value = quote?.payment_terms || '';
+  form.elements.scope.value = quote?.scope || '';
+  form.elements.notes.value = quote?.notes || '';
+  form.elements.file_url.value = quote?.file_url || '';
+
+  const itemsText = Array.isArray(quote?.items)
+    ? quote.items.map(item => {
+        const price = Number.isFinite(Number(item.price)) ? item.price : '';
+        return [item.name || '', price || '', item.note || ''].filter((v, i) => i < 3).join(' | ');
+      }).join('\n')
+    : '';
+  form.elements.items_text.value = itemsText;
+
+  const contractorSelect = document.getElementById('quote-contractor-select');
+  if (contractorSelect) {
+    const options = ['<option value="">-- ไม่ระบุ --</option>'];
+    currentPropertyContractors.forEach(link => {
+      const name = link.contractor?.name || 'ไม่ระบุ';
+      options.push(`<option value="${link.contractor_id}">${escapeHtml(name)}</option>`);
+    });
+    contractorSelect.innerHTML = options.join('');
+    contractorSelect.value = quote?.contractor_id || '';
+  }
+
+  modal.classList.add('open');
+}
+
+function setupQuoteModal() {
+  const modal = document.getElementById('quote-modal');
+  const closeBtn = document.getElementById('quote-modal-close');
+  const cancelBtn = document.getElementById('quote-modal-cancel');
+  const form = document.getElementById('quote-modal-form');
+  const addBtn = document.getElementById('rb-add-quote-btn');
+  const compareBtn = document.getElementById('rb-compare-quotes-btn');
+
+  const close = () => modal?.classList.remove('open');
+  closeBtn?.addEventListener('click', close);
+  cancelBtn?.addEventListener('click', close);
+
+  addBtn?.addEventListener('click', () => openQuoteModal());
+
+  compareBtn?.addEventListener('click', () => {
+    const picked = currentQuotes.filter(q => selectedQuoteIds.has(String(q.id)));
+    if (picked.length < 2) {
+      toast('เลือกใบเสนอราคาอย่างน้อย 2 รายการ', 2000, 'info');
+      return;
+    }
+    renderQuoteCompare(picked);
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentRenovationPropertyId) return;
+    const fd = new FormData(form);
+    const file = fd.get('file');
+    let fileUrl = fd.get('file_url') || '';
+    try {
+      if (file && file.size) {
+        fileUrl = await uploadQuoteFile(file);
+      }
+
+      const items = parseQuoteItems(fd.get('items_text'));
+
+      await upsertPropertyQuote({
+        id: fd.get('id') || undefined,
+        property_id: currentRenovationPropertyId,
+        contractor_id: fd.get('contractor_id') || null,
+        title: fd.get('title'),
+        vendor_name: fd.get('vendor_name'),
+        total_price: fd.get('total_price') ? Number(fd.get('total_price')) : null,
+        timeline_days: fd.get('timeline_days') ? Number(fd.get('timeline_days')) : null,
+        warranty_months: fd.get('warranty_months') ? Number(fd.get('warranty_months')) : null,
+        payment_terms: fd.get('payment_terms'),
+        scope: fd.get('scope'),
+        notes: fd.get('notes'),
+        items,
+        file_url: fileUrl
+      });
+
+      toast('บันทึกใบเสนอราคาแล้ว', 2000, 'success');
+      close();
+      await loadQuotes(currentRenovationPropertyId);
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกไม่สำเร็จ', 2500, 'error');
+    }
+  });
+}
+
 // ==================== RENOVATION LOGIC ====================
 let currentRenovationData = null;
 
@@ -1891,6 +2193,7 @@ async function loadRenovationForProperty(propertyId) {
     await loadRenovationSpecs(propertyId);
     await loadRenovationContractors(propertyId);
     await loadPaymentSchedules(propertyId);
+    await loadQuotes(propertyId);
 
   } catch (err) {
     console.error("Error loading renovation book:", err);

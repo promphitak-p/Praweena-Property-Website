@@ -680,6 +680,97 @@
       transform: translateY(-1px);
     }
 
+    .theme-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .theme-switch input {
+      appearance: none;
+      width: 48px;
+      height: 28px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .theme-switch input::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .theme-switch input:checked {
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
+    }
+
+    .theme-switch input:checked::after {
+      transform: translateX(20px);
+    }
+
+    body.theme-modern {
+      background: #f3f6fb;
+    }
+
+    body.theme-modern .card,
+    body.theme-modern .table-wrapper,
+    body.theme-modern .modal-content {
+      background: #fff;
+      border-color: #e2e8f0;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    body.theme-modern .form-control,
+    body.theme-modern .filter-input .form-control {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+
+    body.theme-modern .form-control:focus {
+      border-color: #94a3b8;
+      box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
+    }
+
+    body.theme-modern .tab-btn.active {
+      color: #0f172a;
+      border-bottom-color: #0f172a;
+    }
+
+    body.theme-modern .rb-subtab-btn.active {
+      border-color: #0f172a;
+      color: #0f172a;
+      background: #f8fafc;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+    }
+
+    body.theme-modern .btn:not(.btn-secondary):not(.btn-danger) {
+      background: linear-gradient(135deg, #0f172a, #334155);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+    }
+
+    body.theme-modern .btn-secondary {
+      background: #fff;
+      border-color: #e2e8f0;
+      color: #0f172a;
+    }
+
+    body.theme-modern .contractor-status.working {
+      background: #dcfce7;
+      color: #166534;
+    }
+
     .contractor-directory-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1028,6 +1119,7 @@
       <button class="tab-btn" data-tab="renovation">สมุดรีโนเวท</button>
       <button class="tab-btn" data-tab="todos">รายการงาน</button>
       <button class="tab-btn" data-tab="contractors">ทีมช่าง</button>
+      <button class="tab-btn" data-tab="settings">ตั้งค่า</button>
       <button class="tab-btn" data-tab="content">จัดการหน้าแรก</button>
       <button class="tab-btn" data-tab="articles">บทความ</button>
     </div>
@@ -1315,6 +1407,16 @@
 
             <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
 
+            <h3>ใบเสนอราคา (Quotes)</h3>
+            <div id="rb-quotes-container"></div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+              <button id="rb-add-quote-btn" class="btn btn-sm btn-secondary">+ เพิ่มใบเสนอราคา</button>
+              <button id="rb-compare-quotes-btn" class="btn btn-sm btn-secondary">เปรียบเทียบที่เลือก</button>
+            </div>
+            <div id="rb-quotes-compare" style="margin-top:1rem;"></div>
+
+            <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #eee;">
+
             <h3>งบรีโนเวท (Budget)</h3>
             <div class="table-wrapper">
               <table class="table" id="rb-budget-table">
@@ -1496,6 +1598,35 @@
               <span>เสร็จแล้ว</span>
             </div>
           </div>
+          <div id="todo-budget-summary" style="margin-top:0.75rem; font-size:12px; color:#6b7280;"></div>
+        </div>
+
+</div>
+        </div>
+
+
+        <div class="todo-phase-overview" style="margin:1rem 0; border:1px solid #f3f4f6; border-radius:12px; padding:12px; background:#fff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <div>
+              <strong style="font-size:0.95rem;">เฟสงาน</strong>
+              <div style="color:#6b7280; font-size:12px;">ล็อกงานเฟสถัดไปจนกว่าจะจบเฟสก่อนหน้า</div>
+            </div>
+            <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem;">
+              <input type="checkbox" id="todo-phase-lock-toggle">
+              <span>เปิดล็อกเฟสงาน</span>
+            </label>
+          </div>
+          <div id="todo-phase-list" style="margin-top:0.75rem; display:grid; gap:0.5rem;">
+          </div>
+        </div>
+
+        <div id="todo-critical-panel" style="margin:1rem 0; border:1px solid #f3f4f6; border-radius:12px; padding:12px; background:#fff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <strong>เส้นทางสำคัญ</strong>
+            <span style="font-size:12px; color:#6b7280;">งานที่กระทบกำหนดเสร็จ</span>
+          </div>
+          <div id="todo-critical-list" style="margin-top:0.5rem;">
+          </div>
         </div>
 
         <!-- Purchase Overview -->
@@ -1517,11 +1648,43 @@
           </button>
           <!-- More category buttons will be injected here -->
         </div>
+        <div class="todo-view-switch" id="todo-view-switch" style="margin:0.5rem 0;">
+          <button type="button" class="todo-view-btn active" data-view="list">รายการ</button>
+          <button type="button" class="todo-view-btn" data-view="kanban">คัมบัง</button>
+          <button type="button" class="todo-view-btn" data-view="timeline">ไทม์ไลน์</button>
+          <button type="button" class="todo-view-btn" data-view="calendar">ปฏิทิน</button>
+          <button type="button" class="todo-view-btn" data-view="gantt">แกนต์</button>
+          <button type="button" class="todo-view-btn" data-view="city">เมือง</button>
+          <button type="button" class="todo-view-btn" data-view="tree">แผนผังลำดับ</button>
+          <button type="button" class="todo-view-btn" data-view="floor">ผังพื้นที่</button>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin:0.5rem 0;">
+          <button id="todo-dependency-toggle" class="btn btn-sm btn-secondary" style="padding:6px 10px;">ดูลำดับงาน</button>
+        </div>
+        <div id="todo-dependency-overview" class="todo-dependency-overview" style="display:none;"></div>
 
-      <!-- Task List -->
-      <div class="todo-list-container" id="todo-list-container">
-        <!-- Task sections will be injected here -->
+
+        <div id="todo-issue-panel" style="margin:1rem 0; border:1px solid #f3f4f6; border-radius:12px; padding:12px; background:#fff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <strong>บันทึกความเสี่ยง/ปัญหา</strong>
+            <button type="button" id="todo-issue-add-btn" class="btn btn-sm btn-secondary" style="padding:6px 10px;">+ เพิ่มรายการ</button>
+          </div>
+          <div id="todo-issue-list" style="margin-top:0.5rem;"></div>
+        </div>
+
+      <!-- Task Views -->
+      <div class="todo-view-panel active" id="todo-view-list">
+        <div class="todo-list-container" id="todo-list-container">
+          <!-- Task sections will be injected here -->
+        </div>
       </div>
+      <div class="todo-view-panel" id="todo-view-kanban"></div>
+      <div class="todo-view-panel" id="todo-view-timeline"></div>
+      <div class="todo-view-panel" id="todo-view-calendar"></div>
+      <div class="todo-view-panel" id="todo-view-gantt"></div>
+      <div class="todo-view-panel" id="todo-view-city"></div>
+      <div class="todo-view-panel" id="todo-view-tree"></div>
+      <div class="todo-view-panel" id="todo-view-floor"></div>
 
       <!-- Purchase Items Modal -->
       <div id="todo-purchase-modal" class="modal">
@@ -1625,6 +1788,28 @@
       <div id="contractor-directory-container"></div>
     </div><!-- End Tab Contractors -->
 
+    <!-- TAB 5: SETTINGS -->
+    <div id="tab-settings" class="tab-content">
+      <header class="page-header" style="margin-top: 1rem;">
+        <div class="page-header-left">
+          <h1 style="margin:0;">ตั้งค่า</h1>
+          <p style="color:#6b7280;margin:0;">ตั้งค่าหน้าตาหลังบ้านและการแสดงผล</p>
+        </div>
+      </header>
+      <section class="card">
+        <div class="card-header">
+          <h2>ธีมหลังบ้าน</h2>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+          <label class="theme-switch">
+            <input type="checkbox" id="admin-theme-toggle">
+            <span>โหมดทันสมัย (Modern)</span>
+          </label>
+          <small style="color:#6b7280;">เปิด/ปิดธีมใหม่แบบทันสมัย ใช้ได้ทุกแท็บในหลังบ้านนี้</small>
+        </div>
+      </section>
+    </div><!-- End Tab Settings -->
+
     <!-- Purchase Overview Modal -->
     <div id="purchase-overview-modal" class="modal">
       <div class="modal-content print-only" style="max-width: 720px;">
@@ -1696,6 +1881,43 @@
               </div>
             </div>
 
+            
+
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+              <div class="form-group">
+                <label>ทีมช่าง (ผูกงาน)</label>
+                <select id="todo-contractor" name="contractor_id" class="form-control">
+                  <option value="">-- เลือกทีมช่าง --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>ผู้รับผิดชอบ (ข้อความ)</label>
+                <input type="text" id="todo-assignee-name" name="assignee_name" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>งบประมาณที่คาด (บาท)</label>
+                <input type="number" id="todo-budget-estimate" name="budget_estimate" class="form-control" step="0.01">
+              </div>
+              <div class="form-group" style="grid-column:1 / -1;">
+                <label>ลิงก์หลักฐาน/ไฟล์งาน (ใส่ทีละบรรทัด)</label>
+                <textarea id="todo-evidence-links" name="evidence_links" class="form-control" rows="2" placeholder="https://..."></textarea>
+              </div>
+              <div class="form-group" style="grid-column:1 / -1;">
+                <label>รูปก่อนทำ (ลิงก์ทีละบรรทัด)</label>
+                <textarea id="todo-before-links" name="before_links" class="form-control" rows="2" placeholder="https://photos.app.goo.gl/"></textarea>
+              </div>
+              <div class="form-group" style="grid-column:1 / -1;">
+                <label>รูปหลังทำ (ลิงก์ทีละบรรทัด)</label>
+                <textarea id="todo-after-links" name="after_links" class="form-control" rows="2" placeholder="https://photos.app.goo.gl/"></textarea>
+              </div>
+            </div>
+
+<div class="form-group" style="margin-top:1rem;">
+              <label>ต้องทำก่อน (เลือกได้หลายงาน)</label>
+              <div id="todo-dependency-list" class="todo-dependency-list"></div>
+              <small style="color:#6b7280;">งานจะเริ่มได้เมื่อรายการที่เลือกเสร็จหรือถูกยกเลิกแล้ว</small>
+            </div>
+
             <div class="form-group"
               style="padding: 10px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; margin-top: 1rem;">
               <label class="checkbox-container" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
@@ -1715,7 +1937,60 @@
       </div>
     </div>
 
-    <!-- TAB 4: SITE CONTENT (HOMEPAGE MANAGER) -->
+
+
+    <!-- Modal: Issue Log -->
+    <div id="todo-issue-modal" class="modal">
+      <div class="modal-content" style="max-width: 520px;">
+        <button class="modal-close" id="todo-issue-close">&times;</button>
+        <div class="modal-body">
+          <h3 id="todo-issue-title" style="margin-bottom: 1rem;">เพิ่มความเสี่ยง/ปัญหา</h3>
+          <form id="todo-issue-form">
+            <input type="hidden" id="todo-issue-id" name="id">
+            <div class="form-group">
+              <label>หัวข้อ *</label>
+              <input type="text" id="todo-issue-name" name="title" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>เชื่อมกับงาน (ถ้ามี)</label>
+              <select id="todo-issue-todo" name="todo_id" class="form-control">
+                <option value="">-- ไม่ระบุ --</option>
+              </select>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label>ระดับความเสี่ยง</label>
+                <select id="todo-issue-severity" name="severity" class="form-control">
+                  <option value="low">ต่ำ</option>
+                  <option value="medium" selected>กลาง</option>
+                  <option value="high">สูง</option>
+                  <option value="critical">วิกฤต</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>สถานะ</label>
+                <select id="todo-issue-status" name="status" class="form-control">
+                  <option value="open">เปิด</option>
+                  <option value="watching">เฝ้าระวัง</option>
+                  <option value="blocked">ติดขัด</option>
+                  <option value="resolved">แก้แล้ว</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>รายละเอียด</label>
+              <textarea id="todo-issue-detail" name="detail" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="modal-actions" style="margin-top: 1.5rem;">
+              <button type="button" class="btn btn-secondary" id="todo-issue-cancel">ยกเลิก</button>
+              <button type="submit" class="btn" id="todo-issue-submit">บันทึก</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+<!-- TAB 4: SITE CONTENT (HOMEPAGE MANAGER) -->
     <div id="tab-content" class="tab-content">
       <div class="card">
         <div style="padding:1.5rem; border-bottom:1px solid #eee;">
@@ -2473,6 +2748,58 @@
       </div>
     </div>
   </div>
+
+  <!-- Quote Modal -->
+  <div id="quote-modal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+      <button class="modal-close" id="quote-modal-close">×</button>
+      <div class="modal-body">
+        <h3 id="quote-modal-title" style="margin-bottom: 1rem;">เพิ่มใบเสนอราคา</h3>
+        <form id="quote-modal-form">
+          <input type="hidden" name="id">
+          <input type="hidden" name="file_url">
+          <div class="form-grid">
+            <div class="form-group"><label>ชื่อใบเสนอราคา</label><input name="title" class="form-control" required></div>
+            <div class="form-group"><label>ทีมช่างที่เกี่ยวข้อง</label>
+              <select name="contractor_id" class="form-control" id="quote-contractor-select">
+                <option value="">-- ไม่ระบุ --</option>
+              </select>
+            </div>
+            <div class="form-group"><label>ผู้เสนอราคา/บริษัท</label><input name="vendor_name" class="form-control"></div>
+            <div class="form-group"><label>ราคารวม (บาท)</label><input name="total_price" type="number" step="0.01" class="form-control"></div>
+            <div class="form-group"><label>ระยะเวลา (วัน)</label><input name="timeline_days" type="number" class="form-control"></div>
+            <div class="form-group"><label>รับประกัน (เดือน)</label><input name="warranty_months" type="number" class="form-control"></div>
+            <div class="form-group"><label>เงื่อนไขการชำระเงิน</label><input name="payment_terms" class="form-control"></div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ขอบเขตงาน</label>
+              <textarea name="scope" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>รายละเอียดรายการ (บรรทัดละ 1 รายการ | ราคา | หมายเหตุ)</label>
+              <textarea name="items_text" class="form-control" rows="4"
+                placeholder="เช่น ทาสีภายใน | 120000 | สี TOA"></textarea>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>หมายเหตุเพิ่มเติม</label>
+              <textarea name="notes" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ไฟล์ PDF (ถ้ามี)</label>
+              <input type="file" name="file" class="form-control" accept="application/pdf">
+              <small style="color:#6b7280;">รองรับ PDF เท่านั้น</small>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" id="quote-modal-cancel">ยกเลิก</button>
+            <button type="submit" class="btn">บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>
+
+
+
