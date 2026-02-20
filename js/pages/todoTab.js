@@ -57,8 +57,11 @@ let currentPurchaseTodoId = null;
 let currentPurchaseItems = [];
 let purchaseSummaryCache = {};
 let purchaseOverviewModal = null;
-let dependencyOverviewVisible = false;
-let currentTodoView = localStorage.getItem('todoViewMode') || 'list';
+const TODO_VIEWS = ['list', 'kanban', 'timeline', 'calendar', 'gantt', 'city', 'floor'];
+let currentTodoView = (() => {
+    const saved = localStorage.getItem('todoViewMode');
+    return TODO_VIEWS.includes(saved) ? saved : 'list';
+})();
 let calendarMonthOffset = 0;
 let currentPropertyContractors = [];
 let contractorLookup = new Map();
@@ -239,27 +242,6 @@ function setupEventListeners() {
     if (addBtn) {
         addBtn.addEventListener('click', () => openTodoModal());
     }
-    const depToggle = document.getElementById('todo-dependency-toggle');
-    const depBox = document.getElementById('todo-dependency-overview');
-    if (depToggle && depBox) {
-        depToggle.addEventListener('click', () => {
-            dependencyOverviewVisible = !dependencyOverviewVisible;
-            depBox.style.display = dependencyOverviewVisible ? 'grid' : 'none';
-            depToggle.textContent = dependencyOverviewVisible ? 'ซ่อนลำดับงาน' : 'ดูลำดับงาน';
-            if (dependencyOverviewVisible) {
-                renderDependencyOverview();
-            }
-        });
-    }
-    const phaseToggle = document.getElementById('todo-phase-lock-toggle');
-    if (phaseToggle) {
-        phaseToggle.addEventListener('change', async (e) => {
-            phaseLockEnabled = !!e.target.checked;
-            await persistPhaseLockSetting();
-            renderPhaseOverview();
-            renderTodos();
-        });
-    }
     const purchaseClose = document.getElementById('todo-purchase-close');
     const purchaseCancel = document.getElementById('purchase-cancel-btn');
     if (purchaseClose) purchaseClose.addEventListener('click', closePurchaseModal);
@@ -268,20 +250,6 @@ function setupEventListeners() {
     if (purchaseSave) purchaseSave.addEventListener('click', handleSavePurchase);
     const overviewBtn = document.getElementById('todo-purchase-overview-btn');
     if (overviewBtn) overviewBtn.addEventListener('click', openPurchaseOverviewModal);
-    const issueAddBtn = document.getElementById('todo-issue-add-btn');
-    if (issueAddBtn) issueAddBtn.addEventListener('click', () => openIssueModal());
-    const issueClose = document.getElementById('todo-issue-close');
-    const issueCancel = document.getElementById('todo-issue-cancel');
-    if (issueClose) issueClose.addEventListener('click', closeIssueModal);
-    if (issueCancel) issueCancel.addEventListener('click', closeIssueModal);
-    const issueForm = document.getElementById('todo-issue-form');
-    if (issueForm) issueForm.addEventListener('submit', handleIssueSubmit);
-    const issueModal = document.getElementById('todo-issue-modal');
-    if (issueModal) {
-        issueModal.addEventListener('click', (e) => {
-            if (e.target === issueModal) closeIssueModal();
-        });
-    }
 
     // Modal close buttons
     const modalClose = document.getElementById('todo-modal-close');
@@ -337,9 +305,7 @@ export function setTodoProperty(propertyId, propertyTitle) {
     if (contentArea) contentArea.style.display = 'block';
     if (addBtn) addBtn.style.display = 'flex';
 
-    loadPhaseSettings();
     loadContractorsForProperty();
-    loadIssuesForProperty();
 
     // Load todos for this property
     loadTodosForProperty();
@@ -375,11 +341,7 @@ async function loadTodosForProperty() {
     renderTodos();
     updateStats();
     loadPurchaseOverview();
-    renderPhaseOverview();
-    renderCriticalPath();
     refreshBudgetSummary();
-    populateIssueTodoSelect();
-    renderIssueList();
 }
 
 /**
@@ -404,13 +366,8 @@ function renderTodos() {
         document.querySelectorAll('.todo-view-panel').forEach(panel => {
             panel.classList.remove('active');
         });
-        const phaseList = document.getElementById('todo-phase-list');
-        if (phaseList) phaseList.innerHTML = '';
-        const criticalList = document.getElementById('todo-critical-list');
-        if (criticalList) criticalList.innerHTML = '';
         const budgetSummary = document.getElementById('todo-budget-summary');
         if (budgetSummary) budgetSummary.textContent = '';
-        renderIssueList();
         return;
     }
 
@@ -436,34 +393,11 @@ function renderTodos() {
         renderGanttView(filteredTodos);
     } else if (currentTodoView === 'city') {
         renderCityView(filteredTodos);
-    } else if (currentTodoView === 'tree') {
-        renderTechTreeView(filteredTodos);
     } else if (currentTodoView === 'floor') {
         renderFloorView(filteredTodos);
     }
 
-    renderPhaseOverview();
-    renderCriticalPath();
     refreshBudgetSummary();
-    populateIssueTodoSelect();
-
-    if (dependencyOverviewVisible) {
-        renderDependencyOverview();
-    }
-}
-
-function getDependencyNote(todo) {
-    const dependencyIds = parseDependencyIds(todo.dependency_ids);
-    if (!dependencyIds.length) return '';
-    const pending = dependencyIds
-        .map(id => ({ id, ...dependencyStatus(id) }))
-        .filter(d => !d.done);
-    const titles = dependencyIds
-        .map(id => dependencyStatus(id).title || `งาน ${id}`)
-        .filter(Boolean);
-    if (!titles.length) return '';
-    if (pending.length) return `ต้องทำก่อน: ${titles.join(', ')}`;
-    return `ทำก่อนแล้ว: ${titles.join(', ')}`;
 }
 
 function renderListView(filteredTodos) {
@@ -515,13 +449,11 @@ function renderKanbanView(filteredTodos) {
         colEl.innerHTML = `<h4>${col.label}</h4>`;
         const list = filteredTodos.filter(t => t.status === col.key);
         list.forEach(todo => {
-            const depNote = getDependencyNote(todo);
             const card = document.createElement('div');
             card.className = 'todo-kanban-card';
             card.innerHTML = `
         <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
         ${todo.due_date ? `<div style="color:#6b7280;">📅 ${formatDate(todo.due_date)}</div>` : ''}
-        ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
       `;
             colEl.appendChild(card);
         });
@@ -546,13 +478,11 @@ function renderTimelineView(filteredTodos) {
     list.className = 'todo-timeline';
 
     sorted.forEach(todo => {
-        const depNote = getDependencyNote(todo);
         const item = document.createElement('div');
         item.className = 'todo-timeline-item';
         item.innerHTML = `
       <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
       <div style="color:#6b7280;">${todo.due_date ? `📅 ${formatDate(todo.due_date)}` : 'ไม่มีวันกำหนด'}</div>
-      ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
     `;
         list.appendChild(item);
     });
@@ -605,12 +535,10 @@ function renderCalendarView(filteredTodos) {
         cell.className = 'todo-calendar-day';
         cell.innerHTML = `<div class="day-number">${day}</div>`;
         tasks.forEach(todo => {
-            const depNote = getDependencyNote(todo);
             const taskEl = document.createElement('div');
             taskEl.className = 'todo-calendar-task';
             taskEl.innerHTML = `
         <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
-        ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
       `;
             cell.appendChild(taskEl);
         });
@@ -646,7 +574,6 @@ function renderGanttView(filteredTodos) {
     });
 
     sorted.forEach(todo => {
-        const depNote = getDependencyNote(todo);
         const progress = todo.status === 'completed' || todo.status === 'cancelled'
             ? 100
             : todo.status === 'in_progress'
@@ -657,7 +584,6 @@ function renderGanttView(filteredTodos) {
         row.innerHTML = `
       <div>
         <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
-        ${depNote ? `<div style="color:#6b7280;">⛓ ${escapeHtml(depNote)}</div>` : ''}
       </div>
       <div>${todo.due_date ? formatDate(todo.due_date) : '-'}</div>
       <div class="todo-gantt-bar"><span style="width:${progress}%"></span></div>
@@ -721,14 +647,12 @@ function renderCityView(filteredTodos) {
             .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
             .slice(0, 4)
             .forEach(todo => {
-                const depNote = getDependencyNote(todo);
                 const item = document.createElement('div');
                 item.innerHTML = `
           <div style="display:flex;justify-content:space-between;gap:0.5rem;">
             <span>${escapeHtml(todo.title || '-')}</span>
             <span style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</span>
           </div>
-          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
         `;
                 list.appendChild(item);
             });
@@ -760,14 +684,12 @@ function renderCityView(filteredTodos) {
             list.style.display = 'grid';
             list.style.gap = '0.4rem';
             todos.slice(0, 4).forEach(todo => {
-                const depNote = getDependencyNote(todo);
                 const item = document.createElement('div');
                 item.innerHTML = `
           <div style="display:flex;justify-content:space-between;gap:0.5rem;">
             <span>${escapeHtml(todo.title || '-')}</span>
             <span style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</span>
           </div>
-          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
         `;
                 list.appendChild(item);
             });
@@ -775,96 +697,6 @@ function renderCityView(filteredTodos) {
             grid.appendChild(tile);
         }
     }
-
-    wrap.appendChild(grid);
-}
-
-function renderTechTreeView(filteredTodos) {
-    const wrap = document.getElementById('todo-view-tree');
-    if (!wrap) return;
-    wrap.innerHTML = '';
-
-    const todoMap = new Map(filteredTodos.map(todo => [String(todo.id), todo]));
-    const depthMemo = new Map();
-    const visiting = new Set();
-
-    const getDepth = (todoId) => {
-        if (depthMemo.has(todoId)) return depthMemo.get(todoId);
-        if (visiting.has(todoId)) return 0;
-        visiting.add(todoId);
-
-        const todo = todoMap.get(todoId);
-        if (!todo) {
-            visiting.delete(todoId);
-            return 0;
-        }
-
-        const deps = parseDependencyIds(todo.dependency_ids)
-            .map(id => String(id))
-            .filter(id => todoMap.has(id));
-        let maxDepth = -1;
-        deps.forEach(id => {
-            maxDepth = Math.max(maxDepth, getDepth(id));
-        });
-        const depth = maxDepth + 1;
-        depthMemo.set(todoId, depth);
-        visiting.delete(todoId);
-        return depth;
-    };
-
-    filteredTodos.forEach(todo => getDepth(String(todo.id)));
-
-    const columns = {};
-    depthMemo.forEach((depth, id) => {
-        if (!columns[depth]) columns[depth] = [];
-        columns[depth].push(todoMap.get(id));
-    });
-
-    const levels = Object.keys(columns).map(Number).sort((a, b) => a - b);
-    const grid = document.createElement('div');
-    grid.className = 'todo-tree-grid';
-
-    const orderMap = new Map(allCategories.map(cat => [String(cat.id), cat.sort_order || 0]));
-
-    levels.forEach(level => {
-        const col = document.createElement('div');
-        col.className = 'todo-tree-col';
-
-        const title = document.createElement('div');
-        title.style.fontWeight = '700';
-        title.style.color = '#374151';
-        title.style.fontSize = '0.85rem';
-        title.textContent = `ช่วงที่ ${level + 1}`;
-        col.appendChild(title);
-
-        columns[level]
-            .slice()
-            .sort((a, b) => {
-                const aOrder = orderMap.get(String(a.category_id)) ?? 999;
-                const bOrder = orderMap.get(String(b.category_id)) ?? 999;
-                if (aOrder !== bOrder) return aOrder - bOrder;
-                return (a.sort_order || 0) - (b.sort_order || 0);
-            })
-            .forEach(todo => {
-                const deps = parseDependencyIds(todo.dependency_ids)
-                    .map(id => String(id))
-                    .filter(id => todoMap.has(id));
-                const depTitles = deps.map(id => todoMap.get(id)?.title || `#${id}`);
-                const depText = depTitles.length ? `ต้องทำก่อน: ${depTitles.join(', ')}` : '';
-                const depNote = getDependencyNote(todo);
-                const node = document.createElement('div');
-                node.className = 'todo-tree-node';
-                node.innerHTML = `
-          <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
-          <div style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</div>
-          ${depText ? `<div style="color:#6b7280;font-size:0.75rem;">${escapeHtml(depText)}</div>` : ''}
-          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
-        `;
-                col.appendChild(node);
-            });
-
-        grid.appendChild(col);
-    });
 
     wrap.appendChild(grid);
 }
@@ -923,12 +755,10 @@ function renderFloorView(filteredTodos) {
             .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
             .forEach(todo => {
                 const cat = categoryMap.get(String(todo.category_id));
-                const depNote = getDependencyNote(todo);
                 const item = document.createElement('div');
                 item.innerHTML = `
           <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
           <div style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}${cat ? ` • ${escapeHtml(cat.name || '')}` : ''}</div>
-          ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
         `;
                 panel.appendChild(item);
             });
@@ -941,12 +771,10 @@ function renderFloorView(filteredTodos) {
         panel.className = 'todo-floor-zone';
         panel.innerHTML = '<h4>อื่นๆ</h4>';
         otherBucket.forEach(todo => {
-            const depNote = getDependencyNote(todo);
             const item = document.createElement('div');
             item.innerHTML = `
         <div style="font-weight:600;">${escapeHtml(todo.title || '-')}</div>
         <div style="color:#9ca3af;font-size:0.75rem;">${formatTodoStatus(todo.status)}</div>
-        ${depNote ? `<div style="color:#9ca3af;font-size:0.75rem;">${escapeHtml(depNote)}</div>` : ''}
       `;
             panel.appendChild(item);
         });
@@ -1077,14 +905,7 @@ function computePhaseStatus(todos = allTodos) {
 }
 
 function isTodoPhaseLocked(todo) {
-    if (!phaseLockEnabled) return false;
-    if (!phaseStatusCache) computePhaseStatus();
-    const key = getTodoPhaseKey(todo);
-    if (key === 'other') return false;
-    const index = phaseStatusCache.phaseOrder.indexOf(key);
-    if (index === -1) return false;
-    if (phaseStatusCache.currentIndex === -1) return false;
-    return index > phaseStatusCache.currentIndex;
+    return false;
 }
 
 function renderPhaseOverview() {
@@ -1125,33 +946,10 @@ function renderPhaseOverview() {
 }
 
 function computeTodoDepths(todos = allTodos) {
-    const map = new Map(todos.map(todo => [String(todo.id), todo]));
     const memo = new Map();
-    const visiting = new Set();
-
-    const depth = (id) => {
-        if (memo.has(id)) return memo.get(id);
-        if (visiting.has(id)) return 0;
-        visiting.add(id);
-        const todo = map.get(id);
-        if (!todo) {
-            visiting.delete(id);
-            return 0;
-        }
-        const deps = parseDependencyIds(todo.dependency_ids)
-            .map(depId => String(depId))
-            .filter(depId => map.has(depId));
-        let maxDepth = 0;
-        deps.forEach(depId => {
-            maxDepth = Math.max(maxDepth, depth(depId));
-        });
-        const value = maxDepth + 1;
-        memo.set(id, value);
-        visiting.delete(id);
-        return value;
-    };
-
-    todos.forEach(todo => depth(String(todo.id)));
+    todos.forEach(todo => {
+        memo.set(String(todo.id), 1);
+    });
     return memo;
 }
 
@@ -1298,11 +1096,8 @@ function createTodoItem(todo) {
     const isCancelled = todo.status === 'cancelled';
     const item = document.createElement('div');
     const isCompleted = todo.status === 'completed';
-    const dependencyIds = parseDependencyIds(todo.dependency_ids);
-    const dependencyInfo = dependencyIds.map(id => ({ id, ...dependencyStatus(id) }));
-    const pendingDeps = dependencyInfo.filter(d => !d.done);
     const isPhaseLocked = isTodoPhaseLocked(todo);
-    const isBlocked = !isCompleted && !isCancelled && (pendingDeps.length > 0 || isPhaseLocked);
+    const isBlocked = !isCompleted && !isCancelled && isPhaseLocked;
 
     const contractor = todo.contractor_id ? contractorLookup.get(String(todo.contractor_id)) : null;
     const assigneeText = contractor
@@ -1315,12 +1110,6 @@ function createTodoItem(todo) {
     item.className = `todo-item ${isCompleted ? 'completed' : ''} ${isCancelled ? 'cancelled' : ''} ${isBlocked ? 'locked' : ''}`;
     item.dataset.id = todo.id;
 
-    const depLabel = dependencyInfo.length
-        ? dependencyInfo.map(d => d.title || `งาน ${d.id}`).join(', ')
-        : '';
-    const depNote = pendingDeps.length
-        ? `ต้องทำก่อน: ${escapeHtml(depLabel)}`
-        : dependencyInfo.length ? `ทำก่อนแล้ว: ${escapeHtml(depLabel)}` : '';
     const phaseNote = isPhaseLocked ? 'ล็อกตามเฟสงาน' : '';
 
     item.innerHTML = `
@@ -1328,8 +1117,7 @@ function createTodoItem(todo) {
   <div class="todo-content">
     <div class="todo-title">${escapeHtml(todo.title)}</div>
     ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ''}
-    ${depNote ? `<div class="todo-meta"><span class="todo-dependency-badge" title="${escapeHtml(depNote)}">⛓ ${depNote}</span></div>` : ''}
-    ${phaseNote ? `<div class="todo-meta"><span class="todo-dependency-badge" title="${phaseNote}">🔒 ${phaseNote}</span></div>` : ''}
+    ${phaseNote ? `<div class="todo-meta"><span class="todo-phase-lock-badge" title="${phaseNote}">🔒 ${phaseNote}</span></div>` : ''}
     <div class="todo-meta">
       <span class="todo-priority ${todo.priority}">${getPriorityText(todo.priority)}</span>
       ${todo.due_date ? `<span class="todo-due-date ${isOverdue(todo.due_date) ? 'overdue' : ''}">📅 ${formatDate(todo.due_date)}</span>` : ''}
@@ -1361,9 +1149,7 @@ function createTodoItem(todo) {
     if (!isBlocked) {
         checkbox.addEventListener('click', () => handleToggleStatus(todo.id, todo.status));
     } else {
-        checkbox.title = isPhaseLocked
-            ? 'งานนี้ถูกล็อกตามเฟสงาน'
-            : 'งานนี้ถูกล็อก เพราะมีงานที่ต้องทำก่อน';
+        checkbox.title = 'งานนี้ถูกล็อกตามเฟสงาน';
     }
 
     const editBtn = item.querySelector('.edit');
@@ -1419,15 +1205,6 @@ async function handleToggleStatus(todoId, currentStatus) {
         const todo = allTodos.find(t => t.id === todoId);
         if (todo && isTodoPhaseLocked(todo)) {
             toast('งานนี้ถูกล็อกตามเฟสงาน กรุณาทำเฟสก่อนหน้าให้เสร็จก่อน', 2500, 'error');
-            return;
-        }
-        const dependencyIds = parseDependencyIds(todo?.dependency_ids);
-        const pendingDeps = dependencyIds
-            .map(id => ({ id, ...dependencyStatus(id) }))
-            .filter(d => !d.done);
-        if (pendingDeps.length) {
-            const names = pendingDeps.map(d => d.title || `งาน ${d.id}`).join(', ');
-            toast(`ต้องทำก่อน: ${names}`, 3000, 'warning');
             return;
         }
     }
@@ -2287,43 +2064,8 @@ async function handleGenerateDefaults() {
     loadTodosForProperty(); // Reload
 }
 
-/**
- * Open todo modal for add/edit
- */
-function renderDependencyOptions(todo = null) {
-    const list = document.getElementById('todo-dependency-list');
-    if (!list) return;
-    list.innerHTML = '';
-
-    if (!allTodos.length) {
-        list.innerHTML = '<div style="color:#9ca3af;">ยังไม่มีงานให้เลือก</div>';
-        return;
-    }
-
-    const selected = new Set(parseDependencyIds(todo?.dependency_ids).map(id => String(id)));
-    const currentId = todo?.id ? String(todo.id) : null;
-
-    allTodos
-        .filter(t => !currentId || String(t.id) !== currentId)
-        .forEach(t => {
-            const row = document.createElement('label');
-            row.className = 'todo-dependency-item';
-            const checked = selected.has(String(t.id)) ? 'checked' : '';
-            const status = t.status === 'completed' || t.status === 'cancelled'
-                ? '<span class="todo-dependency-badge">เสร็จแล้ว</span>'
-                : '';
-            row.innerHTML = `
-        <input type="checkbox" value="${t.id}" ${checked}>
-        <span>${escapeHtml(t.title || '-')}</span>
-        ${status}
-      `;
-            list.appendChild(row);
-        });
-}
-
 function setTodoView(view) {
-    const allowed = ['list', 'kanban', 'timeline', 'calendar', 'gantt', 'city', 'tree', 'floor'];
-    const next = allowed.includes(view) ? view : 'list';
+    const next = TODO_VIEWS.includes(view) ? view : 'list';
     currentTodoView = next;
     localStorage.setItem('todoViewMode', next);
 
@@ -2334,44 +2076,6 @@ function setTodoView(view) {
         panel.classList.toggle('active', panel.id === `todo-view-${next}`);
     });
     renderTodos();
-}
-
-function renderDependencyOverview() {
-    const box = document.getElementById('todo-dependency-overview');
-    if (!box) return;
-    box.innerHTML = '';
-
-    if (!allTodos.length) {
-        box.innerHTML = '<div style="color:#9ca3af;">ยังไม่มีงาน</div>';
-        return;
-    }
-
-    const categoryMap = new Map(allCategories.map(cat => [String(cat.id), cat.name]));
-    const orderedCategories = [...allCategories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-    const orderMap = new Map(orderedCategories.map((cat, i) => [String(cat.id), i]));
-
-    const sorted = allTodos.slice().sort((a, b) => {
-        const aCat = orderMap.get(String(a.category_id)) ?? 999;
-        const bCat = orderMap.get(String(b.category_id)) ?? 999;
-        if (aCat !== bCat) return aCat - bCat;
-        return (a.sort_order || 0) - (b.sort_order || 0);
-    });
-
-    sorted.forEach(todo => {
-        const depIds = parseDependencyIds(todo.dependency_ids);
-        const depTitles = depIds.map(id => dependencyStatus(id).title || `งาน ${id}`).filter(Boolean);
-        const catName = categoryMap.get(String(todo.category_id)) || 'อื่น ๆ';
-        const depText = depTitles.length ? depTitles.join(', ') : 'ไม่มี';
-
-        const card = document.createElement('div');
-        card.className = 'todo-dependency-card';
-        card.innerHTML = `
-      <div class="todo-dependency-card-title">${escapeHtml(todo.title || '-')}</div>
-      <div class="todo-dependency-card-meta">หมวด: ${escapeHtml(catName)}</div>
-      <div class="todo-dependency-card-meta">ต้องทำก่อน: ${escapeHtml(depText)}</div>
-    `;
-        box.appendChild(card);
-    });
 }
 
 async function loadIssuesForProperty() {
@@ -2558,7 +2262,6 @@ function openTodoModal(todo = null) {
         document.getElementById('todo-property-id').value = currentPropertyId;
     }
 
-    renderDependencyOptions(todo);
     modal.classList.add('open');
 }
 
@@ -2597,11 +2300,6 @@ async function handleTodoSubmit(e) {
         before_links: formData.get('before_links') || null,
         after_links: formData.get('after_links') || null
     };
-
-    const dependencyIds = Array.from(
-        document.querySelectorAll('#todo-dependency-list input[type="checkbox"]:checked')
-    ).map(el => el.value);
-    todoData.dependency_ids = dependencyIds.length ? dependencyIds : null;
 
     let result;
     if (todoData.id) {
@@ -2826,27 +2524,6 @@ function isOverdue(dateStr) {
     const dueDate = new Date(dateStr);
     const now = new Date();
     return dueDate < now;
-}
-
-function parseDependencyIds(raw) {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === 'string') {
-        try {
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    }
-    return [];
-}
-
-function dependencyStatus(todoId) {
-    const dep = allTodos.find(t => String(t.id) === String(todoId));
-    if (!dep) return { done: true, title: '' };
-    const done = dep.status === 'completed' || dep.status === 'cancelled';
-    return { done, title: dep.title || '' };
 }
 
 function formatCurrency(val) {

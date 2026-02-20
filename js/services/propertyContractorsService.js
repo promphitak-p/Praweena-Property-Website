@@ -76,8 +76,36 @@ export async function upsertPropertyContractor(row) {
     .select()
     .single();
 
-  if (error) throw error;
-  return data;
+  if (!error) return data;
+
+  const msg = String(error.message || '');
+  if (/rating_cleanliness|rating_system_fit/i.test(msg)) {
+    const legacyPayload = {
+      id: row.id || undefined,
+      property_id: row.property_id,
+      contractor_id: row.contractor_id,
+      scope: row.scope || null,
+      work_comment: row.work_comment ?? null,
+      start_date: row.start_date || null,
+      end_date: row.end_date || null,
+      warranty_months: row.warranty_months ?? null,
+      rating_quality: row.rating_quality ?? null,
+      rating_timeliness: row.rating_timeliness ?? null,
+      rating_commitment: row.rating_commitment ?? null,
+      rating_total: row.rating_total ?? null,
+    };
+
+    const fallback = await supabase
+      .from('property_contractors')
+      .upsert(legacyPayload)
+      .select()
+      .single();
+
+    if (fallback.error) throw fallback.error;
+    return fallback.data;
+  }
+
+  throw error;
 }
 
 export async function deletePropertyContractor(id) {

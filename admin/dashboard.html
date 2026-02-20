@@ -891,6 +891,130 @@
       vertical-align: top;
     }
 
+    /* Documents tab */
+    .documents-filter-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(220px, auto) auto;
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .documents-add-wrap {
+      margin-bottom: 0;
+    }
+
+    .documents-add-btn {
+      white-space: nowrap;
+    }
+
+    .documents-filter-type .form-control {
+      min-width: 220px;
+    }
+
+    .documents-context {
+      margin-top: 0.75rem;
+      border: 2px solid #f59e0b;
+      background: #fffbeb;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .documents-context-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #b45309;
+      margin-bottom: 2px;
+    }
+
+    .documents-context-value {
+      font-size: 22px;
+      line-height: 1.25;
+      font-weight: 800;
+      color: #111827;
+      word-break: break-word;
+    }
+
+    .documents-empty-state {
+      color: #9ca3af;
+      font-size: 13px;
+      padding: 0.5rem 0.25rem;
+    }
+
+    .document-card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .document-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .document-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .document-card-title-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .document-card-title {
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .document-card-meta {
+      color: #6b7280;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .document-card-note {
+      color: #4b5563;
+      font-size: 12px;
+      margin-top: 5px;
+      line-height: 1.45;
+    }
+
+    .document-file-link {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .document-file-empty {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .document-card-actions {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .document-card-actions-main,
+    .document-card-actions-secondary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .document-card-actions-danger {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+    }
+
     /* ===============================
        MOBILE RESPONSIVE OVERRIDES
        =============================== */
@@ -1035,6 +1159,64 @@
 
       #tab-renovation .card-body {
         padding: 1rem;
+      }
+
+      #tab-documents .card-body {
+        padding: 1rem;
+      }
+
+      .documents-filter-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .documents-filter-grid .documents-filter-property {
+        order: 1;
+      }
+
+      .documents-filter-grid .documents-add-wrap {
+        order: 2;
+      }
+
+      .documents-filter-grid .documents-filter-type {
+        order: 3;
+      }
+
+      .documents-filter-type .form-control {
+        min-width: 0;
+      }
+
+      .documents-add-btn {
+        width: 100%;
+      }
+
+      .documents-context-value {
+        font-size: 24px;
+      }
+
+      .document-card {
+        padding: 12px 10px;
+      }
+
+      .document-card-top {
+        display: block;
+      }
+
+      .document-card-top-right {
+        margin-top: 6px;
+        text-align: left !important;
+      }
+
+      .document-card-actions-main,
+      .document-card-actions-secondary {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      #document-modal .modal-actions {
+        flex-direction: column-reverse;
+      }
+
+      #document-modal .modal-actions .btn {
+        width: 100%;
       }
 
       /* Map */
@@ -1602,34 +1784,6 @@
           <div id="todo-budget-summary" style="margin-top:0.75rem; font-size:12px; color:#6b7280;"></div>
         </div>
 
-</div>
-        </div>
-
-
-        <div class="todo-phase-overview" style="margin:1rem 0; border:1px solid #f3f4f6; border-radius:12px; padding:12px; background:#fff;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-            <div>
-              <strong style="font-size:0.95rem;">เฟสงาน</strong>
-              <div style="color:#6b7280; font-size:12px;">ล็อกงานเฟสถัดไปจนกว่าจะจบเฟสก่อนหน้า</div>
-            </div>
-            <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem;">
-              <input type="checkbox" id="todo-phase-lock-toggle">
-              <span>เปิดล็อกเฟสงาน</span>
-            </label>
-          </div>
-          <div id="todo-phase-list" style="margin-top:0.75rem; display:grid; gap:0.5rem;">
-          </div>
-        </div>
-
-        <div id="todo-critical-panel" style="margin:1rem 0; border:1px solid #f3f4f6; border-radius:12px; padding:12px; background:#fff;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-            <strong>เส้นทางสำคัญ</strong>
-            <span style="font-size:12px; color:#6b7280;">งานที่กระทบกำหนดเสร็จ</span>
-          </div>
-          <div id="todo-critical-list" style="margin-top:0.5rem;">
-          </div>
-        </div>
-
         <!-- Purchase Overview -->
         <div id="todo-purchase-overview" style="margin: 1rem 0; display:none;">
           <h3 style="margin-bottom:0.5rem;">รายการซื้อทั้งหมด (บ้านนี้)</h3>
@@ -1656,23 +1810,8 @@
           <button type="button" class="todo-view-btn" data-view="calendar">ปฏิทิน</button>
           <button type="button" class="todo-view-btn" data-view="gantt">แกนต์</button>
           <button type="button" class="todo-view-btn" data-view="city">เมือง</button>
-          <button type="button" class="todo-view-btn" data-view="tree">แผนผังลำดับ</button>
           <button type="button" class="todo-view-btn" data-view="floor">ผังพื้นที่</button>
         </div>
-        <div style="display:flex; justify-content:flex-end; margin:0.5rem 0;">
-          <button id="todo-dependency-toggle" class="btn btn-sm btn-secondary" style="padding:6px 10px;">ดูลำดับงาน</button>
-        </div>
-        <div id="todo-dependency-overview" class="todo-dependency-overview" style="display:none;"></div>
-
-
-        <div id="todo-issue-panel" style="margin:1rem 0; border:1px solid #f3f4f6; border-radius:12px; padding:12px; background:#fff;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-            <strong>บันทึกความเสี่ยง/ปัญหา</strong>
-            <button type="button" id="todo-issue-add-btn" class="btn btn-sm btn-secondary" style="padding:6px 10px;">+ เพิ่มรายการ</button>
-          </div>
-          <div id="todo-issue-list" style="margin-top:0.5rem;"></div>
-        </div>
-
       <!-- Task Views -->
       <div class="todo-view-panel active" id="todo-view-list">
         <div class="todo-list-container" id="todo-list-container">
@@ -1684,7 +1823,6 @@
       <div class="todo-view-panel" id="todo-view-calendar"></div>
       <div class="todo-view-panel" id="todo-view-gantt"></div>
       <div class="todo-view-panel" id="todo-view-city"></div>
-      <div class="todo-view-panel" id="todo-view-tree"></div>
       <div class="todo-view-panel" id="todo-view-floor"></div>
 
       <!-- Purchase Items Modal -->
@@ -1800,16 +1938,16 @@
 
       <div class="card" style="margin-top: 1rem;">
         <div class="card-body">
-          <div class="form-grid" style="grid-template-columns: minmax(260px, 1fr) auto auto; align-items: end; gap: 0.75rem;">
-            <div class="form-group">
+          <div class="documents-filter-grid">
+            <div class="form-group documents-filter-property">
               <label>เลือกบ้าน</label>
               <select id="documents-property-select" class="form-control">
                 <option value="">-- เลือกบ้าน --</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-group documents-filter-type">
               <label>ประเภทเอกสาร</label>
-              <select id="rb-documents-filter" class="form-control" style="min-width:220px;">
+              <select id="rb-documents-filter" class="form-control">
                 <option value="all">ทั้งหมด</option>
                 <option value="receipt">ใบเสร็จ</option>
                 <option value="quote">ใบเสนอราคา</option>
@@ -1820,9 +1958,13 @@
                 <option value="other">อื่นๆ</option>
               </select>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <button id="rb-add-document-btn" class="btn btn-sm btn-secondary">+ เพิ่มเอกสาร</button>
+            <div class="form-group documents-add-wrap">
+              <button id="rb-add-document-btn" class="btn btn-sm btn-secondary documents-add-btn">+ เพิ่มเอกสาร</button>
             </div>
+          </div>
+          <div id="documents-context" class="documents-context" hidden>
+            <div class="documents-context-label">บ้านที่กำลังจัดการเอกสาร</div>
+            <div id="documents-context-value" class="documents-context-value">-</div>
           </div>
           <div id="rb-documents-container" style="margin-top: 0.5rem;"></div>
         </div>
@@ -1953,12 +2095,6 @@
               </div>
             </div>
 
-<div class="form-group" style="margin-top:1rem;">
-              <label>ต้องทำก่อน (เลือกได้หลายงาน)</label>
-              <div id="todo-dependency-list" class="todo-dependency-list"></div>
-              <small style="color:#6b7280;">งานจะเริ่มได้เมื่อรายการที่เลือกเสร็จหรือถูกยกเลิกแล้ว</small>
-            </div>
-
             <div class="form-group"
               style="padding: 10px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; margin-top: 1rem;">
               <label class="checkbox-container" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
@@ -1972,59 +2108,6 @@
             <div class="modal-actions" style="margin-top: 2rem;">
               <button type="button" class="btn btn-secondary" id="todo-cancel-btn">ยกเลิก</button>
               <button type="submit" class="btn" id="todo-submit-btn">บันทึก</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-
-
-    <!-- Modal: Issue Log -->
-    <div id="todo-issue-modal" class="modal">
-      <div class="modal-content" style="max-width: 520px;">
-        <button class="modal-close" id="todo-issue-close">&times;</button>
-        <div class="modal-body">
-          <h3 id="todo-issue-title" style="margin-bottom: 1rem;">เพิ่มความเสี่ยง/ปัญหา</h3>
-          <form id="todo-issue-form">
-            <input type="hidden" id="todo-issue-id" name="id">
-            <div class="form-group">
-              <label>หัวข้อ *</label>
-              <input type="text" id="todo-issue-name" name="title" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label>เชื่อมกับงาน (ถ้ามี)</label>
-              <select id="todo-issue-todo" name="todo_id" class="form-control">
-                <option value="">-- ไม่ระบุ --</option>
-              </select>
-            </div>
-            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
-              <div class="form-group">
-                <label>ระดับความเสี่ยง</label>
-                <select id="todo-issue-severity" name="severity" class="form-control">
-                  <option value="low">ต่ำ</option>
-                  <option value="medium" selected>กลาง</option>
-                  <option value="high">สูง</option>
-                  <option value="critical">วิกฤต</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>สถานะ</label>
-                <select id="todo-issue-status" name="status" class="form-control">
-                  <option value="open">เปิด</option>
-                  <option value="watching">เฝ้าระวัง</option>
-                  <option value="blocked">ติดขัด</option>
-                  <option value="resolved">แก้แล้ว</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>รายละเอียด</label>
-              <textarea id="todo-issue-detail" name="detail" class="form-control" rows="3"></textarea>
-            </div>
-            <div class="modal-actions" style="margin-top: 1.5rem;">
-              <button type="button" class="btn btn-secondary" id="todo-issue-cancel">ยกเลิก</button>
-              <button type="submit" class="btn" id="todo-issue-submit">บันทึก</button>
             </div>
           </form>
         </div>

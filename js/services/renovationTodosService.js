@@ -89,7 +89,6 @@ export async function createTodo(todoData) {
             due_date: todoData.due_date || null,
             reminder_date: todoData.reminder_date || null,
             sort_order: todoData.sort_order || 0,
-            dependency_ids: todoData.dependency_ids || null,
             contractor_id: todoData.contractor_id || null,
             assignee_name: todoData.assignee_name || null,
             budget_estimate: todoData.budget_estimate ?? null,
@@ -351,12 +350,6 @@ export async function generateDefaultTodos(propertyId) {
         }
     }
 
-    const categorySortMap = new Map();
-    standardCats.forEach(sc => {
-        const catId = catMap[sc.keys[0]] || catMap[sc.name.toLowerCase()];
-        if (catId) categorySortMap.set(catId, sc.sort);
-    });
-
     // 2. Fetch Templates (Try DB first)
     let templateList = [];
     const { data: dbTemplates, error: dbError } = await getTemplates();
@@ -481,42 +474,6 @@ export async function generateDefaultTodos(propertyId) {
         .from('renovation_todos')
         .insert(toInsert)
         .select();
-
-    if (data && data.length) {
-        const sortedCats = Array.from(categorySortMap.entries())
-            .sort((a, b) => (a[1] || 999) - (b[1] || 999))
-            .map(([catId]) => String(catId));
-
-        const byCategory = new Map();
-        data.forEach(todo => {
-            const key = String(todo.category_id);
-            if (!byCategory.has(key)) byCategory.set(key, []);
-            byCategory.get(key).push(todo.id);
-        });
-
-        const updates = [];
-        let prevIds = [];
-        sortedCats.forEach(catId => {
-            const ids = byCategory.get(catId) || [];
-            if (ids.length) {
-                ids.forEach(id => {
-                    updates.push({
-                        id,
-                        property_id: propertyId,
-                        dependency_ids: prevIds.length ? prevIds : null
-                    });
-                });
-                prevIds = ids.slice();
-            }
-        });
-
-        if (updates.length) {
-            await supabase
-                .from('renovation_todos')
-                .upsert(updates, { onConflict: 'id' })
-                .select('id');
-        }
-    }
 
     return { data, error };
 }

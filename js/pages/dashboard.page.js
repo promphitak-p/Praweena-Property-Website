@@ -14,7 +14,7 @@ import { setupScrollToTop } from '../utils/scroll.js';
 // Renovation Services
 import { listSpecsByProperty, upsertSpec, deleteSpec } from '../services/propertySpecsService.js';
 import { listContractorsForProperty, upsertPropertyContractor, deletePropertyContractor } from '../services/propertyContractorsService.js';
-import { listContractorsWithAssignments, upsertContractor, deleteContractor } from '../services/contractorsService.js';
+import { listContractors, listContractorsWithAssignments, upsertContractor, deleteContractor } from '../services/contractorsService.js';
 import { getRenovationBookByPropertyId, upsertRenovationBookForProperty } from '../services/renovationBookService.js';
 import { getArticles, createArticle, updateArticle, deleteArticle, uploadArticleImage } from '../services/articlesService.js';
 import { listPaymentsByProperty, upsertPaymentSchedule, markPaymentPaid, deletePaymentSchedule } from '../services/contractorPaymentsService.js';
@@ -113,6 +113,22 @@ function calcContractorRatingTotal(quality, timeliness, commitment, cleanliness,
   if (!vals.length) return null;
   const avg = vals.reduce((sum, v) => sum + v, 0) / vals.length;
   return Math.round(avg * 10) / 10;
+}
+
+async function listContractorPickerOptions() {
+  try {
+    const rows = await listContractors();
+    if (!Array.isArray(rows)) return [];
+    return rows.map(row => ({
+      id: row.id,
+      name: row.name || '',
+      trade: row.trade || '',
+      phone: row.phone || ''
+    }));
+  } catch (err) {
+    console.error('Load contractor picker options failed', err);
+    return [];
+  }
 }
 
 const DOCUMENT_TYPE_META = {
@@ -1496,6 +1512,8 @@ function initDocumentsTab() {
   const initialId = propertySelect.value || sourceList[0]?.id || '';
   if (initialId) {
     propertySelect.value = String(initialId);
+    currentDocumentPropertyId = String(initialId);
+    renderDocumentContext();
     loadDocuments(initialId);
   } else {
     renderDocumentsList();
@@ -1510,6 +1528,8 @@ function initDocumentsTab() {
       renderDocumentsList();
       return;
     }
+    currentDocumentPropertyId = String(propertyId);
+    renderDocumentContext();
     loadDocuments(propertyId);
   });
 }
@@ -1713,7 +1733,10 @@ function openContractorDirectoryModal(contractor = null) {
 }
 
 function initContractorsDirectory() {
-  if (contractorsDirectoryInitialized) return;
+  if (contractorsDirectoryInitialized) {
+    loadContractorsDirectory();
+    return;
+  }
   contractorsDirectoryInitialized = true;
 
   const addBtn = document.getElementById('contractor-add-btn');
@@ -2073,13 +2096,43 @@ function populateDocumentSourceQuoteOptions(selectedId = '') {
   select.value = selectedId ? String(selectedId) : '';
 }
 
+function getCurrentDocumentPropertyLabel() {
+  if (!currentDocumentPropertyId) return '';
+  const propertySelect = document.getElementById('documents-property-select');
+  if (propertySelect) {
+    const selectedOption = propertySelect.options[propertySelect.selectedIndex];
+    const label = (selectedOption?.textContent || '').trim();
+    if (label) return label;
+  }
+  const match = (renovationPropertiesList || []).find(p => String(p.id) === String(currentDocumentPropertyId))
+    || (propertiesData || []).find(p => String(p.id) === String(currentDocumentPropertyId));
+  return match?.title || match?.code || `บ้าน #${currentDocumentPropertyId}`;
+}
+
+function renderDocumentContext() {
+  const contextCard = document.getElementById('documents-context');
+  const contextValue = document.getElementById('documents-context-value');
+  if (!contextCard || !contextValue) return;
+  if (!currentDocumentPropertyId) {
+    contextCard.hidden = true;
+    contextValue.textContent = '-';
+    contextValue.title = '';
+    return;
+  }
+  const label = getCurrentDocumentPropertyLabel();
+  contextValue.textContent = label;
+  contextValue.title = label;
+  contextCard.hidden = false;
+}
+
 function renderDocumentsList() {
   const container = document.getElementById('rb-documents-container');
   if (!container) return;
   container.innerHTML = '';
+  renderDocumentContext();
 
   if (!currentDocumentPropertyId) {
-    container.innerHTML = '<small style="color:#9ca3af;">กรุณาเลือกบ้านก่อน</small>';
+    container.innerHTML = '<div class="documents-empty-state">กรุณาเลือกบ้านก่อน</div>';
     return;
   }
 
@@ -2089,44 +2142,55 @@ function renderDocumentsList() {
   });
 
   if (!list.length) {
-    container.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีเอกสารในหมวดนี้</small>';
+    container.innerHTML = '<div class="documents-empty-state">ยังไม่มีเอกสารในหมวดนี้</div>';
     return;
   }
 
   const stack = document.createElement('div');
-  stack.style.display = 'flex';
-  stack.style.flexDirection = 'column';
-  stack.style.gap = '8px';
+  stack.className = 'document-card-stack';
 
   list.forEach(doc => {
     const meta = docTypeMeta(doc.doc_type);
     const card = document.createElement('div');
-    card.style.border = '1px solid #e5e7eb';
-    card.style.borderRadius = '10px';
-    card.style.padding = '10px 12px';
-    card.style.background = '#fff';
+    card.className = 'document-card';
     const amountText = doc.amount ? formatPrice(Number(doc.amount)) : '-';
+    const hasFile = !!doc.file_url;
+    const fileStatus = hasFile
+      ? '<span class="document-file-link">มีไฟล์เอกสาร</span>'
+      : '<span class="document-file-empty">ยังไม่มีไฟล์แนบ</span>';
+    const fileAction = hasFile
+      ? `<a href="${escapeHtml(doc.file_url)}" target="_blank" rel="noopener" class="btn btn-sm document-open-file-btn">เปิดเอกสาร</a>`
+      : `<button class="btn btn-sm document-attach-file-btn" data-id="${doc.id}">แนบไฟล์</button>`;
+    const deleteFileDisabledAttrs = hasFile ? '' : 'disabled title="ยังไม่มีไฟล์ในรายการนี้"';
+
     card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-        <div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <span style="font-weight:700;">${escapeHtml(doc.title || 'เอกสาร')}</span>
+      <div class="document-card-top">
+        <div class="document-card-main">
+          <div class="document-card-title-row">
+            <span class="document-card-title">${escapeHtml(doc.title || 'เอกสาร')}</span>
             <span style="background:${meta.color}1a;color:${meta.color};padding:2px 8px;border-radius:999px;font-size:12px;">${meta.label}</span>
           </div>
-          <div style="color:#6b7280;font-size:12px;margin-top:2px;">วันที่เอกสาร: ${formatDocDate(doc.doc_date)}</div>
-          <div style="color:#6b7280;font-size:12px;">ผู้ออกเอกสาร: ${escapeHtml(doc.vendor_name || '-')}</div>
-          ${doc.source_quote_id ? `<div style="color:#6b7280;font-size:12px;">อ้างอิง: ${escapeHtml(getQuoteLabelById(doc.source_quote_id))}</div>` : ''}
-          <div style="color:#6b7280;font-size:12px;">จำนวนเงิน: ${amountText}</div>
-          ${doc.note ? `<div style="color:#4b5563;font-size:12px;margin-top:4px;">${escapeHtml(doc.note)}</div>` : ''}
+          <div class="document-card-meta">วันที่เอกสาร: ${formatDocDate(doc.doc_date)}</div>
+          <div class="document-card-meta">ผู้ออกเอกสาร: ${escapeHtml(doc.vendor_name || '-')}</div>
+          ${doc.source_quote_id ? `<div class="document-card-meta">อ้างอิง: ${escapeHtml(getQuoteLabelById(doc.source_quote_id))}</div>` : ''}
+          <div class="document-card-meta">จำนวนเงิน: ${amountText}</div>
+          ${doc.note ? `<div class="document-card-note">${escapeHtml(doc.note)}</div>` : ''}
         </div>
-        <div style="text-align:right;min-width:120px;">
-          ${doc.file_url ? `<a href="${escapeHtml(doc.file_url)}" target="_blank" rel="noopener" style="font-size:12px;">เปิดเอกสาร</a>` : '<span style="font-size:12px;color:#9ca3af;">ไม่มีไฟล์</span>'}
+        <div class="document-card-top-right" style="text-align:right;min-width:120px;">
+          ${fileStatus}
         </div>
       </div>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-secondary document-edit-btn" data-id="${doc.id}">แก้ไข</button>
-        <button class="btn btn-sm btn-secondary document-delete-db-btn" data-id="${doc.id}">ลบเฉพาะรายการ</button>
-        <button class="btn btn-sm btn-danger document-delete-with-file-btn" data-id="${doc.id}">ลบไฟล์+รายการ</button>
+      <div class="document-card-actions">
+        <div class="document-card-actions-main">
+          ${fileAction}
+          <button class="btn btn-sm btn-secondary document-edit-btn" data-id="${doc.id}">แก้ไขข้อมูล</button>
+        </div>
+        <div class="document-card-actions-secondary">
+          <button class="btn btn-sm btn-secondary document-delete-db-btn" data-id="${doc.id}">ลบเฉพาะรายการ</button>
+        </div>
+        <div class="document-card-actions-danger">
+          <button class="btn btn-sm btn-danger document-delete-with-file-btn" data-id="${doc.id}" ${deleteFileDisabledAttrs}>ลบไฟล์+รายการถาวร</button>
+        </div>
       </div>
     `;
     stack.appendChild(card);
@@ -2138,6 +2202,18 @@ function renderDocumentsList() {
     btn.addEventListener('click', () => {
       const doc = currentDocuments.find(item => String(item.id) === String(btn.dataset.id));
       openDocumentModal(doc);
+    });
+  });
+
+  container.querySelectorAll('.document-attach-file-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const doc = currentDocuments.find(item => String(item.id) === String(btn.dataset.id));
+      if (!doc) return;
+      openDocumentModal(doc);
+      setTimeout(() => {
+        const fileInput = document.querySelector('#document-modal-form input[name="file"]');
+        fileInput?.focus();
+      }, 0);
     });
   });
 
@@ -2158,6 +2234,7 @@ function renderDocumentsList() {
 
   container.querySelectorAll('.document-delete-with-file-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
       const id = btn.dataset.id;
       const doc = currentDocuments.find(item => String(item.id) === String(id));
       if (!doc) return;
@@ -3074,11 +3151,27 @@ function setupRenovationModals() {
     modal.classList.add('open');
   });
 
-  document.getElementById('rb-add-contractor-btn')?.addEventListener('click', () => {
+  document.getElementById('rb-add-contractor-btn')?.addEventListener('click', async () => {
     mode = 'contractor';
+    const contractorOptions = await listContractorPickerOptions();
+    const contractorOptionHtml = contractorOptions
+      .map((c) => {
+        const label = c.trade ? `${c.name} (${c.trade})` : c.name;
+        return `<option value="${c.id}" data-name="${escapeHtml(c.name)}" data-trade="${escapeHtml(c.trade)}" data-phone="${escapeHtml(c.phone)}">${escapeHtml(label)}</option>`;
+      })
+      .join('');
+
     document.getElementById('rb-modal-title').textContent = 'เพิ่มทีมช่าง';
     document.getElementById('rb-modal-fields-container').innerHTML = `
-            <div class="form-group"><label>ชื่อช่าง</label><input name="contractor_name" class="form-control" required></div>
+            <div class="form-group">
+              <label>เลือกทีมช่างที่มีอยู่ (ถ้ามี)</label>
+              <select name="contractor_id" class="form-control">
+                <option value="">-- เพิ่มทีมช่างใหม่ --</option>
+                ${contractorOptionHtml}
+              </select>
+              <small style="color:#6b7280;">เลือกจากรายการเพื่อเชื่อมทีมช่างเดิม หรือปล่อยว่างแล้วกรอกข้อมูลใหม่</small>
+            </div>
+            <div class="form-group"><label>ชื่อช่าง</label><input name="contractor_name" class="form-control"></div>
             <div class="form-group"><label>สายงาน</label><input name="contractor_trade" class="form-control"></div>
             <div class="form-group"><label>เบอร์โทร</label><input name="contractor_phone" class="form-control"></div>
             <div class="form-group"><label>ขอบเขตงาน</label><input name="scope" class="form-control"></div>
@@ -3090,7 +3183,36 @@ function setupRenovationModals() {
             <div class="form-group"><label>คะแนนรวม (เฉลี่ย)</label><input name="rating_total" class="form-control" readonly></div>
         `;
     modal.classList.add('open');
+
     const fieldsContainer = document.getElementById('rb-modal-fields-container');
+    const contractorSelect = fieldsContainer.querySelector('select[name="contractor_id"]');
+    const contractorNameInput = fieldsContainer.querySelector('input[name="contractor_name"]');
+    const contractorTradeInput = fieldsContainer.querySelector('input[name="contractor_trade"]');
+    const contractorPhoneInput = fieldsContainer.querySelector('input[name="contractor_phone"]');
+
+    const applyContractorSelection = () => {
+      const selectedId = contractorSelect?.value || '';
+      const selected = contractorOptions.find(c => String(c.id) === String(selectedId));
+      const isExisting = !!selected;
+
+      if (contractorNameInput) {
+        contractorNameInput.readOnly = isExisting;
+        contractorNameInput.required = !isExisting;
+        contractorNameInput.value = isExisting ? (selected.name || '') : '';
+      }
+      if (contractorTradeInput) {
+        contractorTradeInput.readOnly = isExisting;
+        contractorTradeInput.value = isExisting ? (selected.trade || '') : '';
+      }
+      if (contractorPhoneInput) {
+        contractorPhoneInput.readOnly = isExisting;
+        contractorPhoneInput.value = isExisting ? (selected.phone || '') : '';
+      }
+    };
+
+    contractorSelect?.addEventListener('change', applyContractorSelection);
+    applyContractorSelection();
+
     bindRatingChips(fieldsContainer);
     bindRatingAutoCalc(fieldsContainer);
   });
@@ -3135,14 +3257,25 @@ function setupRenovationModals() {
         ratingCleanliness,
         ratingSystemFit
       );
-      const contractor = await upsertContractor({
-        name: fd.get('contractor_name'),
-        trade: fd.get('contractor_trade'),
-        phone: fd.get('contractor_phone')
-      });
+      const selectedContractorId = String(fd.get('contractor_id') || '').trim();
+      let contractorId = selectedContractorId || null;
+      if (!contractorId) {
+        const contractorName = String(fd.get('contractor_name') || '').trim();
+        if (!contractorName) throw new Error('กรุณาเลือกทีมช่าง หรือกรอกชื่อทีมช่างใหม่');
+        const contractor = await upsertContractor({
+          name: contractorName,
+          trade: fd.get('contractor_trade'),
+          phone: fd.get('contractor_phone')
+        });
+        contractorId = contractor?.id || null;
+      }
+      const existingLink = currentPropertyContractors.find(
+        (c) => String(c.contractor_id) === String(contractorId)
+      );
       await upsertPropertyContractor({
+        id: existingLink?.id,
         property_id: currentRenovationPropertyId,
-        contractor_id: contractor.id,
+        contractor_id: contractorId,
         scope: fd.get('scope'),
         rating_quality: Number.isFinite(ratingQuality) ? ratingQuality : null,
         rating_timeliness: Number.isFinite(ratingTimeliness) ? ratingTimeliness : null,
@@ -3153,6 +3286,7 @@ function setupRenovationModals() {
       });
       await loadRenovationContractors(currentRenovationPropertyId);
       await loadPaymentSchedules(currentRenovationPropertyId);
+      await loadContractorsDirectory();
     } else if (mode === 'contractor-rating') {
       const propertyContractorId = fd.get('property_contractor_id') || null;
       const pc = currentPropertyContractors.find(c => String(c.id) === String(propertyContractorId));
