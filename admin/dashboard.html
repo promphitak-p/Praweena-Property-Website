@@ -894,16 +894,33 @@
     /* Documents tab */
     .documents-filter-grid {
       display: grid;
-      grid-template-columns: minmax(280px, 1fr) minmax(220px, auto) auto;
+      grid-template-columns: minmax(240px, 1fr) minmax(220px, 330px) auto;
       gap: 0.75rem;
       align-items: end;
     }
 
-    .documents-add-wrap {
+    .documents-filter-grid .form-group {
       margin-bottom: 0;
     }
 
+    .documents-add-wrap {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      margin-bottom: 0;
+    }
+
+    .documents-add-wrap::before {
+      content: '\00a0';
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      visibility: hidden;
+    }
+
     .documents-add-btn {
+      min-height: 46px;
       white-space: nowrap;
     }
 
@@ -1013,6 +1030,169 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: 8px;
+    }
+
+    /* Renovation Spec Sheet (Excel-like v1) */
+    .rb-spec-sheet {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .rb-spec-sheet-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .rb-spec-sheet-hint {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .rb-spec-sheet-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .rb-spec-sheet-table-wrap {
+      overflow: auto;
+    }
+
+    .rb-spec-sheet-table {
+      min-width: 1100px;
+    }
+
+    .rb-spec-sheet-table td {
+      vertical-align: middle;
+    }
+
+    .rb-spec-cell {
+      min-width: 120px;
+      font-size: 13px;
+      padding: 6px 8px;
+    }
+
+    .rb-spec-sheet-table td:last-child {
+      min-width: 240px;
+    }
+
+    .rb-spec-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .rb-spec-row-status {
+      font-size: 11px;
+      color: #6b7280;
+      padding-right: 4px;
+    }
+
+    .rb-spec-row-status[data-status="saving"] {
+      color: #2563eb;
+    }
+
+    .rb-spec-row-status[data-status="saved"] {
+      color: #059669;
+    }
+
+    .rb-spec-row-status[data-status="error"] {
+      color: #dc2626;
+    }
+
+    .rb-mode-switch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fffcf5;
+      margin-bottom: 14px;
+    }
+
+    .rb-mode-switch-label {
+      font-size: 12px;
+      color: #4b5563;
+      font-weight: 700;
+    }
+
+    .rb-mode-switch-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .rb-mode-btn {
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .rb-mode-btn.is-active {
+      border-color: #d4af37;
+      background: #d4af37;
+      color: #fff;
+    }
+
+    .rb-inline-sheet-wrap {
+      overflow: auto;
+    }
+
+    .rb-inline-sheet {
+      min-width: 980px;
+    }
+
+    .rb-inline-sheet td {
+      vertical-align: middle;
+    }
+
+    .rb-inline-input {
+      min-width: 90px;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+
+    .rb-inline-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      min-width: 220px;
+    }
+
+    .rb-inline-status {
+      font-size: 11px;
+      color: #6b7280;
+      min-width: 60px;
+    }
+
+    .rb-inline-status[data-status="saving"] {
+      color: #2563eb;
+    }
+
+    .rb-inline-status[data-status="saved"] {
+      color: #059669;
+    }
+
+    .rb-inline-status[data-status="error"] {
+      color: #dc2626;
+    }
+
+    .rb-inline-total {
+      font-weight: 700;
+      color: #111827;
     }
 
     /* ===============================
@@ -1181,6 +1361,10 @@
         order: 3;
       }
 
+      .documents-add-wrap::before {
+        display: none;
+      }
+
       .documents-filter-type .form-control {
         min-width: 0;
       }
@@ -1217,6 +1401,39 @@
 
       #document-modal .modal-actions .btn {
         width: 100%;
+      }
+
+      .rb-spec-sheet-toolbar {
+        align-items: flex-start;
+      }
+
+      .rb-spec-sheet-actions {
+        width: 100%;
+      }
+
+      .rb-spec-sheet-actions .btn {
+        width: 100%;
+      }
+
+      .rb-spec-sheet-table {
+        min-width: 900px;
+      }
+
+      .rb-mode-switch {
+        align-items: flex-start;
+      }
+
+      .rb-mode-switch-buttons {
+        width: 100%;
+      }
+
+      .rb-mode-btn {
+        flex: 1 1 0;
+        text-align: center;
+      }
+
+      .rb-inline-sheet {
+        min-width: 900px;
       }
 
       /* Map */
@@ -1569,6 +1786,13 @@
             <h2>7. สเปก & ทีมช่าง & งบ</h2>
           </div>
           <div class="card-body">
+            <div id="rb-view-mode-switch" class="rb-mode-switch">
+              <span class="rb-mode-switch-label">มุมมองการกรอกข้อมูล (สลับได้ทันที)</span>
+              <div class="rb-mode-switch-buttons">
+                <button type="button" class="rb-mode-btn" data-rb-view-mode="classic">แบบเดิม</button>
+                <button type="button" class="rb-mode-btn" data-rb-view-mode="excel">Excel Mode</button>
+              </div>
+            </div>
             <h3>สเปก (Specs)</h3>
             <div id="rb-specs-container"></div>
             <button id="rb-add-spec-btn" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;">+

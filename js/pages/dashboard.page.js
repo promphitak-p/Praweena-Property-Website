@@ -94,6 +94,14 @@ let currentDocumentQuotes = [];
 let documentsTabInitialized = false;
 let currentDocumentModalPropertyId = null;
 let currentDocumentModalPropertyLabel = '';
+const RENOVATION_VIEW_MODE_KEY = 'renovationSummaryViewMode';
+let renovationViewMode = (() => {
+  try {
+    return localStorage.getItem(RENOVATION_VIEW_MODE_KEY) === 'classic' ? 'classic' : 'excel';
+  } catch (_err) {
+    return 'excel';
+  }
+})();
 
 const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -1390,6 +1398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupTabs();
   setupAdminThemeToggle();
   setupRenovationSubTabs();
+  setupRenovationViewModeToggle();
   initSiteContentTab();
   await setupRenovationPropertySelect();
   document.getElementById('rb-save-btn')?.addEventListener('click', saveRenovationBookHandler);
@@ -1547,6 +1556,71 @@ function setupAdminThemeToggle() {
     document.body.classList.toggle('theme-modern', isOn);
     localStorage.setItem(key, isOn ? '1' : '0');
   });
+}
+
+function getRenovationViewMode() {
+  return renovationViewMode === 'classic' ? 'classic' : 'excel';
+}
+
+function isRenovationExcelMode() {
+  return getRenovationViewMode() === 'excel';
+}
+
+function syncRenovationViewModeUI() {
+  const root = document.getElementById('rb-view-mode-switch');
+  if (!root) return;
+  root.querySelectorAll('[data-rb-view-mode]').forEach((btn) => {
+    const active = btn.dataset.rbViewMode === getRenovationViewMode();
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+
+async function refreshRenovationSummarySections() {
+  if (!currentRenovationPropertyId) return;
+  await loadRenovationSpecs(currentRenovationPropertyId);
+  await loadRenovationContractors(currentRenovationPropertyId);
+  await loadPaymentSchedules(currentRenovationPropertyId);
+  await loadQuotes(currentRenovationPropertyId);
+}
+
+async function setRenovationViewMode(mode) {
+  const nextMode = mode === 'classic' ? 'classic' : 'excel';
+  if (nextMode === renovationViewMode) {
+    syncRenovationViewModeUI();
+    return;
+  }
+  renovationViewMode = nextMode;
+  try {
+    localStorage.setItem(RENOVATION_VIEW_MODE_KEY, renovationViewMode);
+  } catch (_err) {
+    // ignore storage failures
+  }
+  syncRenovationViewModeUI();
+  await refreshRenovationSummarySections();
+}
+
+function setupRenovationViewModeToggle() {
+  const root = document.getElementById('rb-view-mode-switch');
+  if (!root) return;
+  root.querySelectorAll('[data-rb-view-mode]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await setRenovationViewMode(btn.dataset.rbViewMode || 'excel');
+        toast(
+          getRenovationViewMode() === 'excel'
+            ? 'เปลี่ยนเป็น Excel Mode แล้ว'
+            : 'เปลี่ยนเป็นโหมดแบบเดิมแล้ว',
+          1600,
+          'success'
+        );
+      } catch (err) {
+        console.error(err);
+        toast('สลับโหมดไม่สำเร็จ', 2200, 'error');
+      }
+    });
+  });
+  syncRenovationViewModeUI();
 }
 
 function setupRenovationSubTabs() {
@@ -1861,10 +1935,152 @@ function renderQuoteCompare(quotes) {
   `;
 }
 
+function renderQuotesExcelTable(container) {
+  const contractorOptions = ['<option value="">-- ไม่ระบุ --</option>']
+    .concat(
+      currentPropertyContractors.map((link) => {
+        const name = link.contractor?.name || 'ไม่ระบุ';
+        return `<option value="${link.contractor_id}">${escapeHtml(name)}</option>`;
+      })
+    )
+    .join('');
+
+  container.innerHTML = `
+    <div class="table-wrapper rb-inline-sheet-wrap">
+      <table class="table rb-inline-sheet">
+        <thead>
+          <tr>
+            <th>เทียบ</th>
+            <th>ชื่อใบเสนอราคา</th>
+            <th>ผู้เสนอ/บริษัท</th>
+            <th>ทีมช่าง</th>
+            <th>ราคารวม</th>
+            <th>เวลา(วัน)</th>
+            <th>รับประกัน(เดือน)</th>
+            <th>ไฟล์</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${currentQuotes.map((q) => `
+            <tr class="rb-quote-inline-row" data-id="${q.id}">
+              <td>
+                <input type="checkbox" class="quote-compare-toggle" data-id="${q.id}" ${selectedQuoteIds.has(String(q.id)) ? 'checked' : ''}>
+              </td>
+              <td><input class="form-control rb-inline-input" data-field="title" value="${escapeHtml(q.title || '')}"></td>
+              <td><input class="form-control rb-inline-input" data-field="vendor_name" value="${escapeHtml(q.vendor_name || '')}"></td>
+              <td>
+                <select class="form-control rb-inline-input" data-field="contractor_id">
+                  ${contractorOptions}
+                </select>
+              </td>
+              <td><input type="number" step="0.01" class="form-control rb-inline-input" data-field="total_price" value="${q.total_price ?? ''}"></td>
+              <td><input type="number" class="form-control rb-inline-input" data-field="timeline_days" value="${q.timeline_days ?? ''}"></td>
+              <td><input type="number" class="form-control rb-inline-input" data-field="warranty_months" value="${q.warranty_months ?? ''}"></td>
+              <td>${q.file_url ? `<a href="${escapeHtml(q.file_url)}" target="_blank" rel="noopener">เปิดไฟล์</a>` : '-'}</td>
+              <td>
+                <div class="rb-inline-actions">
+                  <span class="rb-inline-status" data-status="idle"></span>
+                  <button type="button" class="btn btn-sm btn-secondary rb-inline-save">บันทึก</button>
+                  <button type="button" class="btn btn-sm btn-secondary rb-inline-edit">รายละเอียด</button>
+                  <button type="button" class="btn btn-sm btn-danger rb-inline-delete">ลบ</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  container.querySelectorAll('.rb-quote-inline-row').forEach((rowEl) => {
+    const id = rowEl.dataset.id;
+    const quote = currentQuotes.find((item) => String(item.id) === String(id));
+    if (!quote) return;
+
+    const contractorSelect = rowEl.querySelector('[data-field="contractor_id"]');
+    if (contractorSelect) contractorSelect.value = quote.contractor_id || '';
+
+    const statusEl = rowEl.querySelector('.rb-inline-status');
+    const setStatus = (text, status = 'idle') => {
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      statusEl.dataset.status = status;
+    };
+
+    rowEl.querySelector('.quote-compare-toggle')?.addEventListener('change', (event) => {
+      if (event.currentTarget.checked) {
+        selectedQuoteIds.add(String(id));
+      } else {
+        selectedQuoteIds.delete(String(id));
+      }
+    });
+
+    rowEl.querySelector('.rb-inline-save')?.addEventListener('click', async () => {
+      const toNumberOrNull = (value) => {
+        if (value === '' || value == null) return null;
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+      };
+      try {
+        setStatus('กำลังบันทึก...', 'saving');
+        await upsertPropertyQuote({
+          id: quote.id,
+          property_id: quote.property_id || currentRenovationPropertyId,
+          contractor_id: rowEl.querySelector('[data-field="contractor_id"]')?.value || null,
+          title: rowEl.querySelector('[data-field="title"]')?.value?.trim() || null,
+          vendor_name: rowEl.querySelector('[data-field="vendor_name"]')?.value?.trim() || null,
+          total_price: toNumberOrNull(rowEl.querySelector('[data-field="total_price"]')?.value),
+          timeline_days: toNumberOrNull(rowEl.querySelector('[data-field="timeline_days"]')?.value),
+          warranty_months: toNumberOrNull(rowEl.querySelector('[data-field="warranty_months"]')?.value),
+          payment_terms: quote.payment_terms || null,
+          scope: quote.scope || null,
+          notes: quote.notes || null,
+          items: quote.items || null,
+          file_url: quote.file_url || null
+        });
+        setStatus('บันทึกแล้ว', 'saved');
+        toast('บันทึกใบเสนอราคาแล้ว', 1500, 'success');
+        await loadQuotes(currentRenovationPropertyId);
+      } catch (err) {
+        console.error(err);
+        setStatus('บันทึกไม่สำเร็จ', 'error');
+        toast('บันทึกใบเสนอราคาไม่สำเร็จ', 2200, 'error');
+      }
+    });
+
+    rowEl.querySelector('.rb-inline-edit')?.addEventListener('click', () => {
+      openQuoteModal(quote);
+    });
+
+    rowEl.querySelector('.rb-inline-delete')?.addEventListener('click', async () => {
+      if (!confirm('ลบใบเสนอราคานี้?')) return;
+      try {
+        await deletePropertyQuote(quote.id);
+        toast('ลบใบเสนอราคาแล้ว', 1500, 'success');
+        await loadQuotes(currentRenovationPropertyId);
+      } catch (err) {
+        console.error(err);
+        toast('ลบใบเสนอราคาไม่สำเร็จ', 2200, 'error');
+      }
+    });
+  });
+}
+
 function renderQuotesList() {
   const container = document.getElementById('rb-quotes-container');
   if (!container) return;
   container.innerHTML = '';
+
+  if (isRenovationExcelMode()) {
+    if (!currentQuotes.length) {
+      container.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีใบเสนอราคา</small>';
+      renderQuoteCompare([]);
+      return;
+    }
+    renderQuotesExcelTable(container);
+    return;
+  }
 
   if (!currentQuotes.length) {
     container.innerHTML = '<small style="color:#9ca3af;">ยังไม่มีใบเสนอราคา</small>';
@@ -2441,6 +2657,8 @@ async function setupRenovationPropertySelect() {
   // Sort: recently updated first? or alphabetical. Let's do Alphabetical.
   renovationPropertiesList.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
+  let isUserTypingFilter = false;
+
   const renderList = (properties) => {
     dropdown.innerHTML = '';
     if (properties.length === 0) {
@@ -2467,7 +2685,10 @@ async function setupRenovationPropertySelect() {
 
       item.addEventListener('click', async (e) => {
         e.stopPropagation(); // prevent document click closing immediately
+        isUserTypingFilter = false;
         searchInput.value = p.title;
+        searchInput.dataset.selectedPropertyId = String(p.id);
+        searchInput.dataset.selectedPropertyTitle = p.title || '';
         dropdown.style.display = 'none';
 
         // Load Renovation Data
@@ -2481,9 +2702,10 @@ async function setupRenovationPropertySelect() {
     });
   };
 
-  const openDropdown = () => {
-    // Filter if there is text, else show all
-    const val = searchInput.value.toLowerCase().trim();
+  const openDropdown = ({ showAll = false } = {}) => {
+    // On click (re-open picker), show all properties.
+    // On typing, filter by keyword.
+    const val = showAll ? '' : searchInput.value.toLowerCase().trim();
     if (val) {
       const filtered = renovationPropertiesList.filter(p =>
         (p.title && p.title.toLowerCase().includes(val)) ||
@@ -2499,11 +2721,26 @@ async function setupRenovationPropertySelect() {
   // Trigger on click anywhere on input
   searchInput.addEventListener('click', (e) => {
     e.stopPropagation();
-    openDropdown();
+    isUserTypingFilter = false;
+    openDropdown({ showAll: true });
+  });
+
+  searchInput.addEventListener('focus', () => {
+    if (!isUserTypingFilter) {
+      openDropdown({ showAll: true });
+    }
   });
 
   // Also input event
   searchInput.addEventListener('input', (e) => {
+    isUserTypingFilter = true;
+    const selectedTitle = (searchInput.dataset.selectedPropertyTitle || '').trim().toLowerCase();
+    const currentValue = (searchInput.value || '').trim().toLowerCase();
+    if (selectedTitle && currentValue === selectedTitle) {
+      isUserTypingFilter = false;
+      openDropdown({ showAll: true });
+      return;
+    }
     openDropdown();
   });
 
@@ -2644,6 +2881,7 @@ async function loadRenovationForProperty(propertyId) {
     }
 
     fillRenovationFields(currentRenovationData);
+    currentPaymentSchedules = [];
 
     // Load Specs & Contractors
     await loadRenovationSpecs(propertyId);
@@ -2859,57 +3097,503 @@ async function saveRenovationBookHandler() {
 }
 
 // Specs & Contractors (Partial implementation for brevity)
+const SPEC_SHEET_COLUMNS = [
+  { key: 'zone', label: 'โซน', required: true },
+  { key: 'item_type', label: 'ประเภท' },
+  { key: 'brand', label: 'ยี่ห้อ' },
+  { key: 'model_or_series', label: 'รุ่น/สี' },
+  { key: 'color_code', label: 'โค้ดสี' },
+  { key: 'supplier', label: 'ร้าน/ซัพพลายเออร์' },
+  { key: 'quantity', label: 'จำนวน', type: 'number' },
+  { key: 'unit', label: 'หน่วย' },
+  { key: 'note', label: 'หมายเหตุ' }
+];
+
+function normalizeSpecRow(row = {}) {
+  return {
+    id: row.id || '',
+    zone: row.zone || '',
+    item_type: row.item_type || '',
+    brand: row.brand || '',
+    model_or_series: row.model_or_series || '',
+    color_code: row.color_code || '',
+    supplier: row.supplier || '',
+    quantity: row.quantity ?? '',
+    unit: row.unit || '',
+    note: row.note || ''
+  };
+}
+
+function readSpecRowFromElement(tr) {
+  const data = {};
+  SPEC_SHEET_COLUMNS.forEach(col => {
+    const input = tr.querySelector(`.rb-spec-cell[data-field="${col.key}"]`);
+    data[col.key] = input ? String(input.value || '').trim() : '';
+  });
+  return data;
+}
+
+function hasAnySpecValue(row = {}) {
+  return SPEC_SHEET_COLUMNS.some(col => String(row[col.key] || '').trim() !== '');
+}
+
+function setSpecRowStatus(tr, message, status = 'idle') {
+  const statusEl = tr.querySelector('.rb-spec-row-status');
+  if (!statusEl) return;
+  statusEl.textContent = message || '';
+  statusEl.dataset.status = status;
+}
+
+function renderSpecsClassic(list, container, propId) {
+  container.innerHTML = '';
+  if (!Array.isArray(list) || !list.length) {
+    container.innerHTML = '<small style="color:#999;">ยังไม่มีสเปก</small>';
+    return;
+  }
+
+  const stack = document.createElement('div');
+  stack.style.display = 'grid';
+  stack.style.gridTemplateColumns = 'repeat(auto-fit, minmax(260px, 1fr))';
+  stack.style.gap = '10px';
+
+  list.forEach((item) => {
+    const card = document.createElement('div');
+    card.style.border = '1px solid #e5e7eb';
+    card.style.borderRadius = '10px';
+    card.style.padding = '10px 12px';
+    card.style.background = '#fff';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+        <div>
+          <div style="font-weight:700;color:#111827;">${escapeHtml(item.zone || '-')}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:2px;">${escapeHtml(item.item_type || '-')}</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-danger rb-spec-classic-delete" data-id="${item.id}">ลบ</button>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#374151;line-height:1.45;">
+        <div>ยี่ห้อ: <b>${escapeHtml(item.brand || '-')}</b></div>
+        <div>รุ่น/สี: <b>${escapeHtml(item.model_or_series || '-')}</b></div>
+        <div>ร้าน/ซัพพลายเออร์: <b>${escapeHtml(item.supplier || '-')}</b></div>
+        <div>จำนวน: <b>${item.quantity ?? '-'} ${escapeHtml(item.unit || '')}</b></div>
+        ${item.note ? `<div style="margin-top:4px;color:#4b5563;">หมายเหตุ: ${escapeHtml(item.note)}</div>` : ''}
+      </div>
+    `;
+    stack.appendChild(card);
+  });
+
+  container.appendChild(stack);
+  container.querySelectorAll('.rb-spec-classic-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!id || !confirm('ลบสเปกนี้ใช่หรือไม่?')) return;
+      try {
+        await deleteSpec(id);
+        await loadRenovationSpecs(propId);
+        toast('ลบสเปกแล้ว', 1500, 'success');
+      } catch (err) {
+        console.error(err);
+        toast('ลบไม่สำเร็จ', 2200, 'error');
+      }
+    });
+  });
+}
+
+// Specs & Contractors
 async function loadRenovationSpecs(propId) {
   const list = await listSpecsByProperty(propId);
   const container = document.getElementById('rb-specs-container');
   if (!container) return;
   container.innerHTML = '';
 
-  if (!list.length) {
-    container.innerHTML = '<small style="color:#999;">ยังไม่มีสเปก</small>';
+  if (!isRenovationExcelMode()) {
+    renderSpecsClassic(list, container, propId);
     return;
   }
 
-  const ul = document.createElement('ul');
-  ul.style.paddingLeft = '0';
-  ul.style.display = 'grid';
-  ul.style.gridTemplateColumns = 'repeat(auto-fit, minmax(260px, 1fr))';
-  ul.style.gap = '10px';
-  list.forEach(s => {
-    const li = document.createElement('li');
-    li.style.border = '1px solid #e5e7eb';
-    li.style.borderRadius = '8px';
-    li.style.padding = '10px 12px';
-    li.style.background = '#fff';
-    const info = [
-      s.item_type ? `<div><b>ประเภท:</b> ${escapeHtml(s.item_type)}</div>` : '',
-      s.brand ? `<div><b>ยี่ห้อ:</b> ${escapeHtml(s.brand)}</div>` : '',
-      s.model_or_series ? `<div><b>รุ่น/สี:</b> ${escapeHtml(s.model_or_series)}</div>` : '',
-      s.color_code ? `<div><b>โค้ดสี:</b> ${escapeHtml(s.color_code)}</div>` : '',
-      s.tile_pattern ? `<div><b>ลาย/รหัสกระเบื้อง:</b> ${escapeHtml(s.tile_pattern)}</div>` : '',
-      s.supplier ? `<div><b>ร้าน/ซัพพลายเออร์:</b> ${escapeHtml(s.supplier)}</div>` : '',
-      (s.quantity || s.unit) ? `<div><b>จำนวน:</b> ${escapeHtml(String(s.quantity || ''))} ${escapeHtml(s.unit || '')}</div>` : '',
-      s.note ? `<div style="color:#4b5563;">${escapeHtml(s.note)}</div>` : ''
-    ].filter(Boolean).join('');
-
-    li.innerHTML = `
-      <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(s.zone || '-')}</div>
-      ${info || '<div style="color:#9ca3af;">-</div>'}
-      <div style="margin-top:6px;">
-        <a href="#" class="text-red-500 del-spec" data-id="${s.id}" style="color:red;">ลบ</a>
+  const wrapper = document.createElement('div');
+  wrapper.className = 'rb-spec-sheet';
+  wrapper.innerHTML = `
+    <div class="rb-spec-sheet-toolbar">
+      <div class="rb-spec-sheet-hint">
+        โหมดตารางแบบ Excel (เวอร์ชันแรก): แก้ไขในตารางได้ทันที, กด Enter เพื่อเลื่อนลง และวางข้อมูลจาก Excel ได้
       </div>
-    `;
-    ul.appendChild(li);
-  });
-  container.appendChild(ul);
+      <div class="rb-spec-sheet-actions">
+        <button type="button" class="btn btn-sm btn-secondary" id="rb-spec-sheet-add-row">+ เพิ่มแถว</button>
+      </div>
+    </div>
+    <div class="table-wrapper rb-spec-sheet-table-wrap">
+      <table class="table rb-spec-sheet-table">
+        <thead>
+          <tr>
+            ${SPEC_SHEET_COLUMNS.map(col => `<th>${col.label}</th>`).join('')}
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="rb-spec-sheet-body"></tbody>
+      </table>
+    </div>
+  `;
+  container.appendChild(wrapper);
 
-  ul.querySelectorAll('.del-spec').forEach(a => a.addEventListener('click', async (e) => {
-    e.preventDefault();
-    if (confirm('ลบ?')) {
-      await deleteSpec(e.target.dataset.id);
-      await loadRenovationSpecs(propId);
+  const tbody = wrapper.querySelector('#rb-spec-sheet-body');
+  const addRowBtn = wrapper.querySelector('#rb-spec-sheet-add-row');
+  if (!tbody || !addRowBtn) return;
+
+  const getRows = () => Array.from(tbody.querySelectorAll('tr.rb-spec-row'));
+
+  const ensureAtLeastOneRow = () => {
+    if (!getRows().length) createRow();
+  };
+
+  const focusRowCell = (rowIndex, colIndex) => {
+    if (rowIndex < 0) return;
+    while (rowIndex >= getRows().length) {
+      createRow();
     }
-  }));
+    const row = getRows()[rowIndex];
+    const col = SPEC_SHEET_COLUMNS[colIndex];
+    if (!row || !col) return;
+    const target = row.querySelector(`.rb-spec-cell[data-field="${col.key}"]`);
+    target?.focus();
+    target?.select?.();
+  };
+
+  const saveSpecRow = async (tr, { showToast = false } = {}) => {
+    const row = readSpecRowFromElement(tr);
+    const id = tr.dataset.id || '';
+    const emptyRow = !hasAnySpecValue(row);
+    if (emptyRow && !id) {
+      setSpecRowStatus(tr, 'ยังไม่บันทึก', 'idle');
+      return null;
+    }
+    if (!row.zone) {
+      setSpecRowStatus(tr, 'ต้องระบุโซน', 'error');
+      if (showToast) toast('กรุณากรอกโซนก่อนบันทึก', 1800, 'error');
+      tr.querySelector('.rb-spec-cell[data-field="zone"]')?.focus();
+      return null;
+    }
+
+    try {
+      setSpecRowStatus(tr, 'กำลังบันทึก...', 'saving');
+      const payload = {
+        id: id || undefined,
+        property_id: propId,
+        zone: row.zone,
+        item_type: row.item_type || null,
+        brand: row.brand || null,
+        model_or_series: row.model_or_series || null,
+        color_code: row.color_code || null,
+        supplier: row.supplier || null,
+        quantity: row.quantity === '' || !Number.isFinite(Number(row.quantity)) ? null : Number(row.quantity),
+        unit: row.unit || null,
+        note: row.note || null
+      };
+      const saved = await upsertSpec(payload);
+      tr.dataset.id = saved.id;
+      setSpecRowStatus(tr, 'บันทึกแล้ว', 'saved');
+      if (showToast) toast('บันทึกสเปกแล้ว', 1400, 'success');
+      return saved;
+    } catch (err) {
+      console.error(err);
+      setSpecRowStatus(tr, 'บันทึกไม่สำเร็จ', 'error');
+      if (showToast) toast(`บันทึกไม่สำเร็จ: ${err.message}`, 2400, 'error');
+      return null;
+    }
+  };
+
+  const deleteSpecRow = async (tr) => {
+    const id = tr.dataset.id || '';
+    if (!id) {
+      tr.remove();
+      ensureAtLeastOneRow();
+      return;
+    }
+    if (!confirm('ลบแถวนี้ใช่หรือไม่?')) return;
+    try {
+      await deleteSpec(id);
+      tr.remove();
+      ensureAtLeastOneRow();
+      toast('ลบสเปกแล้ว', 1400, 'success');
+    } catch (err) {
+      console.error(err);
+      toast(`ลบไม่สำเร็จ: ${err.message}`, 2400, 'error');
+    }
+  };
+
+  const handlePasteMatrix = (event) => {
+    const text = event.clipboardData?.getData('text/plain') || '';
+    if (!text || (!text.includes('\t') && !text.includes('\n'))) return;
+    event.preventDefault();
+
+    const rowsText = text.replace(/\r/g, '').split('\n').filter(line => line.length > 0);
+    if (!rowsText.length) return;
+    const matrix = rowsText.map(line => line.split('\t'));
+
+    const input = event.target;
+    const tr = input.closest('tr.rb-spec-row');
+    if (!tr) return;
+
+    const startRow = getRows().indexOf(tr);
+    const startCol = SPEC_SHEET_COLUMNS.findIndex(col => col.key === input.dataset.field);
+    if (startRow < 0 || startCol < 0) return;
+
+    matrix.forEach((rowValues, rOffset) => {
+      const rowIndex = startRow + rOffset;
+      focusRowCell(rowIndex, 0);
+      const targetRow = getRows()[rowIndex];
+      if (!targetRow) return;
+      rowValues.forEach((value, cOffset) => {
+        const colIndex = startCol + cOffset;
+        if (colIndex >= SPEC_SHEET_COLUMNS.length) return;
+        const col = SPEC_SHEET_COLUMNS[colIndex];
+        const targetInput = targetRow.querySelector(`.rb-spec-cell[data-field="${col.key}"]`);
+        if (targetInput) targetInput.value = value.trim();
+      });
+    });
+  };
+
+  const createRow = (seed = {}) => {
+    const rowData = normalizeSpecRow(seed);
+    const tr = document.createElement('tr');
+    tr.className = 'rb-spec-row';
+    if (rowData.id) tr.dataset.id = rowData.id;
+
+    SPEC_SHEET_COLUMNS.forEach(col => {
+      const td = document.createElement('td');
+      const input = document.createElement(col.key === 'note' ? 'textarea' : 'input');
+      input.className = 'form-control rb-spec-cell';
+      input.dataset.field = col.key;
+      if (input.tagName === 'TEXTAREA') {
+        input.rows = 1;
+      } else {
+        input.type = col.type === 'number' ? 'number' : 'text';
+      }
+      if (col.type === 'number') input.step = '0.01';
+      input.value = rowData[col.key] ?? '';
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          const rowIndex = getRows().indexOf(tr);
+          const colIndex = SPEC_SHEET_COLUMNS.findIndex(item => item.key === col.key);
+          focusRowCell(rowIndex + 1, colIndex);
+        }
+      });
+      input.addEventListener('paste', handlePasteMatrix);
+      input.addEventListener('blur', () => {
+        saveSpecRow(tr);
+      });
+
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    const actionTd = document.createElement('td');
+    actionTd.className = 'rb-spec-row-actions';
+    actionTd.innerHTML = `
+      <span class="rb-spec-row-status" data-status="idle">ยังไม่บันทึก</span>
+      <button type="button" class="btn btn-sm btn-secondary rb-spec-row-save">บันทึก</button>
+      <button type="button" class="btn btn-sm btn-danger rb-spec-row-delete">ลบ</button>
+    `;
+    actionTd.querySelector('.rb-spec-row-save')?.addEventListener('click', () => {
+      saveSpecRow(tr, { showToast: true });
+    });
+    actionTd.querySelector('.rb-spec-row-delete')?.addEventListener('click', () => {
+      deleteSpecRow(tr);
+    });
+
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+
+    if (rowData.id) {
+      setSpecRowStatus(tr, 'บันทึกแล้ว', 'saved');
+    }
+    return tr;
+  };
+
+  addRowBtn.addEventListener('click', () => {
+    const row = createRow();
+    row.querySelector('.rb-spec-cell[data-field="zone"]')?.focus();
+  });
+
+  if (list.length) {
+    list.forEach(item => createRow(item));
+  } else {
+    createRow();
+  }
+}
+
+function renderRenovationContractorsExcel(list, container, propId) {
+  container.innerHTML = '';
+  if (!Array.isArray(list) || !list.length) {
+    container.innerHTML = '<small style="color:#999;">ยังไม่มีทีมช่าง</small>';
+    return;
+  }
+
+  const toNumberOrNull = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  };
+
+  const buildRatingSelect = (field, rawValue) => {
+    const current = Number(rawValue);
+    const currentValue = Number.isFinite(current) ? String(Math.round(current)) : '';
+    const options = ['<option value="">-</option>'];
+    for (let i = 1; i <= 10; i += 1) {
+      options.push(`<option value="${i}" ${currentValue === String(i) ? 'selected' : ''}>${i}</option>`);
+    }
+    return `<select class="form-control rb-inline-input" data-field="${field}">${options.join('')}</select>`;
+  };
+
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'table-wrapper rb-inline-sheet-wrap';
+  tableWrap.innerHTML = `
+    <table class="table rb-inline-sheet">
+      <thead>
+        <tr>
+          <th>ทีมช่าง</th>
+          <th>สายงาน</th>
+          <th>เบอร์โทร</th>
+          <th>ขอบเขตงาน</th>
+          <th>ผลงาน</th>
+          <th>ตรงเวลา</th>
+          <th>รักษาคำพูด</th>
+          <th>ความสะอาด</th>
+          <th>เข้ากับระบบ</th>
+          <th>เฉลี่ย</th>
+          <th>งวดจ่าย</th>
+          <th>จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.map((c) => {
+          const contractorName = c.contractor?.name || '-';
+          const trade = c.contractor?.trade || '-';
+          const phone = c.contractor?.phone || '-';
+          const paymentCount = currentPaymentSchedules.filter(
+            (p) => String(p.property_contractor_id || '') === String(c.id)
+          ).length;
+          const ratingTotal = Number.isFinite(Number(c.rating_total))
+            ? Number(c.rating_total)
+            : calcContractorRatingTotal(
+                c.rating_quality,
+                c.rating_timeliness,
+                c.rating_commitment,
+                c.rating_cleanliness,
+                c.rating_system_fit
+              );
+          const displayTotal = Number.isFinite(Number(ratingTotal)) ? Number(ratingTotal).toFixed(1) : '-';
+          return `
+            <tr class="rb-contractor-inline-row" data-id="${c.id}">
+              <td>${escapeHtml(contractorName)}</td>
+              <td>${escapeHtml(trade)}</td>
+              <td>${escapeHtml(phone)}</td>
+              <td><input class="form-control rb-inline-input" data-field="scope" value="${escapeHtml(c.scope || '')}"></td>
+              <td>${buildRatingSelect('rating_quality', c.rating_quality)}</td>
+              <td>${buildRatingSelect('rating_timeliness', c.rating_timeliness)}</td>
+              <td>${buildRatingSelect('rating_commitment', c.rating_commitment)}</td>
+              <td>${buildRatingSelect('rating_cleanliness', c.rating_cleanliness)}</td>
+              <td>${buildRatingSelect('rating_system_fit', c.rating_system_fit)}</td>
+              <td><span class="rb-inline-total">${displayTotal}</span></td>
+              <td>${paymentCount}</td>
+              <td>
+                <div class="rb-inline-actions">
+                  <span class="rb-inline-status" data-status="idle"></span>
+                  <button type="button" class="btn btn-sm btn-secondary rb-inline-save">บันทึก</button>
+                  <button type="button" class="btn btn-sm btn-secondary rb-inline-add-pay">+งวด</button>
+                  <button type="button" class="btn btn-sm btn-danger rb-inline-delete">ลบ</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+  container.appendChild(tableWrap);
+
+  const updateRowTotal = (rowEl) => {
+    const getValue = (field) => rowEl.querySelector(`[data-field="${field}"]`)?.value;
+    const total = calcContractorRatingTotal(
+      getValue('rating_quality'),
+      getValue('rating_timeliness'),
+      getValue('rating_commitment'),
+      getValue('rating_cleanliness'),
+      getValue('rating_system_fit')
+    );
+    const totalEl = rowEl.querySelector('.rb-inline-total');
+    if (totalEl) totalEl.textContent = Number.isFinite(total) ? total.toFixed(1) : '-';
+    return total;
+  };
+
+  container.querySelectorAll('.rb-contractor-inline-row').forEach((rowEl) => {
+    rowEl.querySelectorAll('.rb-inline-input[data-field^="rating_"]').forEach((input) => {
+      input.addEventListener('input', () => updateRowTotal(rowEl));
+      input.addEventListener('change', () => updateRowTotal(rowEl));
+    });
+
+    rowEl.querySelector('.rb-inline-add-pay')?.addEventListener('click', () => {
+      const pcId = rowEl.dataset.id;
+      if (pcId && typeof window.openPaymentModal === 'function') {
+        window.openPaymentModal(pcId);
+      }
+    });
+
+    rowEl.querySelector('.rb-inline-save')?.addEventListener('click', async () => {
+      const id = rowEl.dataset.id;
+      const target = list.find((item) => String(item.id) === String(id));
+      if (!target) return;
+
+      const statusEl = rowEl.querySelector('.rb-inline-status');
+      const setStatus = (text, status = 'idle') => {
+        if (!statusEl) return;
+        statusEl.textContent = text;
+        statusEl.dataset.status = status;
+      };
+
+      try {
+        setStatus('กำลังบันทึก...', 'saving');
+        const ratingTotal = updateRowTotal(rowEl);
+        await upsertPropertyContractor({
+          id: target.id,
+          property_id: target.property_id || propId,
+          contractor_id: target.contractor_id,
+          scope: rowEl.querySelector('[data-field="scope"]')?.value?.trim() || null,
+          work_comment: target.work_comment || null,
+          start_date: target.start_date || null,
+          end_date: target.end_date || null,
+          warranty_months: target.warranty_months ?? null,
+          rating_quality: toNumberOrNull(rowEl.querySelector('[data-field="rating_quality"]')?.value),
+          rating_timeliness: toNumberOrNull(rowEl.querySelector('[data-field="rating_timeliness"]')?.value),
+          rating_commitment: toNumberOrNull(rowEl.querySelector('[data-field="rating_commitment"]')?.value),
+          rating_cleanliness: toNumberOrNull(rowEl.querySelector('[data-field="rating_cleanliness"]')?.value),
+          rating_system_fit: toNumberOrNull(rowEl.querySelector('[data-field="rating_system_fit"]')?.value),
+          rating_total: Number.isFinite(ratingTotal) ? ratingTotal : null
+        });
+        setStatus('บันทึกแล้ว', 'saved');
+        toast('บันทึกทีมช่างแล้ว', 1500, 'success');
+        await loadRenovationContractors(propId);
+      } catch (err) {
+        console.error(err);
+        setStatus('บันทึกไม่สำเร็จ', 'error');
+        toast('บันทึกทีมช่างไม่สำเร็จ', 2200, 'error');
+      }
+    });
+
+    rowEl.querySelector('.rb-inline-delete')?.addEventListener('click', async () => {
+      const id = rowEl.dataset.id;
+      if (!id || !confirm('ลบทีมช่างรายการนี้ใช่หรือไม่?')) return;
+      try {
+        await deletePropertyContractor(id);
+        toast('ลบทีมช่างแล้ว', 1500, 'success');
+        await loadRenovationContractors(propId);
+        await loadPaymentSchedules(propId);
+      } catch (err) {
+        console.error(err);
+        toast('ลบทีมช่างไม่สำเร็จ', 2200, 'error');
+      }
+    });
+  });
 }
 
 async function loadRenovationContractors(propId) {
@@ -2918,6 +3602,11 @@ async function loadRenovationContractors(propId) {
   const container = document.getElementById('rb-contractors-container');
   if (!container) return;
   container.innerHTML = '';
+  if (isRenovationExcelMode()) {
+    renderRenovationContractorsExcel(list, container, propId);
+    renderPaymentsIntoCards();
+    return;
+  }
 
   if (!list.length) {
     container.innerHTML = '<small style="color:#999;">ยังไม่มีทีมช่าง</small>';
@@ -3367,7 +4056,165 @@ async function loadPaymentSchedules(propId) {
   renderPaymentSummary();
 }
 
+function renderPaymentsExcelTable() {
+  const container = document.getElementById('rb-payments-container');
+  if (!container) return;
+
+  if (!Array.isArray(currentPaymentSchedules) || !currentPaymentSchedules.length) {
+    container.innerHTML = '<small style="color:#999;">ยังไม่มีงวดจ่าย</small>';
+    return;
+  }
+
+  const contractorOptions = ['<option value="">-- ไม่ระบุ --</option>']
+    .concat(
+      currentPropertyContractors.map((c) => {
+        const name = c.contractor?.name || 'ไม่ระบุ';
+        const scope = c.scope ? ` (${c.scope})` : '';
+        return `<option value="${c.id}">${escapeHtml(name + scope)}</option>`;
+      })
+    )
+    .join('');
+
+  const statusOptionHtml = (status) => {
+    const options = [
+      { value: 'pending', label: 'รอดำเนินการ' },
+      { value: 'paid', label: 'จ่ายแล้ว' },
+      { value: 'deferred', label: 'เลื่อน' },
+      { value: 'overdue', label: 'เกินกำหนด' }
+    ];
+    return options
+      .map((opt) => `<option value="${opt.value}" ${status === opt.value ? 'selected' : ''}>${opt.label}</option>`)
+      .join('');
+  };
+
+  const fmtDate = (d) => {
+    if (!d) return '-';
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  container.innerHTML = `
+    <div class="table-wrapper rb-inline-sheet-wrap">
+      <table class="table rb-inline-sheet">
+        <thead>
+          <tr>
+            <th>งวด/หัวข้อ</th>
+            <th>ทีมช่าง</th>
+            <th>จำนวนเงิน</th>
+            <th>กำหนดจ่าย</th>
+            <th>สถานะ</th>
+            <th>หมายเหตุ</th>
+            <th>จ่ายแล้วเมื่อ</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${currentPaymentSchedules.map((p) => `
+            <tr class="rb-payment-inline-row" data-id="${p.id}">
+              <td><input class="form-control rb-inline-input" data-field="title" value="${escapeHtml(p.title || '')}"></td>
+              <td>
+                <select class="form-control rb-inline-input" data-field="property_contractor_id">
+                  ${contractorOptions}
+                </select>
+              </td>
+              <td><input type="number" step="0.01" class="form-control rb-inline-input" data-field="amount" value="${Number(p.amount || 0)}"></td>
+              <td><input type="date" class="form-control rb-inline-input" data-field="due_date" value="${p.due_date || ''}"></td>
+              <td>
+                <select class="form-control rb-inline-input" data-field="status">
+                  ${statusOptionHtml(p.status || 'pending')}
+                </select>
+              </td>
+              <td><input class="form-control rb-inline-input" data-field="note" value="${escapeHtml(p.note || '')}"></td>
+              <td>${fmtDate(p.paid_at)}</td>
+              <td>
+                <div class="rb-inline-actions">
+                  <span class="rb-inline-status" data-status="idle"></span>
+                  <button type="button" class="btn btn-sm btn-secondary rb-inline-save">บันทึก</button>
+                  ${p.status !== 'paid' ? '<button type="button" class="btn btn-sm btn-secondary rb-inline-mark-paid">จ่ายแล้ว</button>' : ''}
+                  <button type="button" class="btn btn-sm btn-danger rb-inline-delete">ลบ</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  container.querySelectorAll('.rb-payment-inline-row').forEach((rowEl) => {
+    const id = rowEl.dataset.id;
+    const dataRow = currentPaymentSchedules.find((p) => String(p.id) === String(id));
+    if (!dataRow) return;
+
+    const contractorSelect = rowEl.querySelector('[data-field="property_contractor_id"]');
+    if (contractorSelect) contractorSelect.value = dataRow.property_contractor_id || '';
+
+    const statusEl = rowEl.querySelector('.rb-inline-status');
+    const setStatus = (text, status = 'idle') => {
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      statusEl.dataset.status = status;
+    };
+
+    rowEl.querySelector('.rb-inline-save')?.addEventListener('click', async () => {
+      const selectedPcId = rowEl.querySelector('[data-field="property_contractor_id"]')?.value || null;
+      const selectedLink = currentPropertyContractors.find((c) => String(c.id) === String(selectedPcId));
+      const status = rowEl.querySelector('[data-field="status"]')?.value || 'pending';
+      try {
+        setStatus('กำลังบันทึก...', 'saving');
+        await upsertPaymentSchedule({
+          id: dataRow.id,
+          property_id: dataRow.property_id || currentRenovationPropertyId,
+          property_contractor_id: selectedPcId || null,
+          contractor_id: selectedLink?.contractor_id || null,
+          title: rowEl.querySelector('[data-field="title"]')?.value?.trim() || null,
+          amount: Number(rowEl.querySelector('[data-field="amount"]')?.value || 0),
+          due_date: rowEl.querySelector('[data-field="due_date"]')?.value || null,
+          status,
+          note: rowEl.querySelector('[data-field="note"]')?.value?.trim() || null,
+          paid_at: status === 'paid' ? (dataRow.paid_at || new Date().toISOString()) : null
+        });
+        setStatus('บันทึกแล้ว', 'saved');
+        toast('บันทึกงวดจ่ายแล้ว', 1500, 'success');
+        await loadPaymentSchedules(currentRenovationPropertyId);
+      } catch (err) {
+        console.error(err);
+        setStatus('บันทึกไม่สำเร็จ', 'error');
+        toast('บันทึกงวดจ่ายไม่สำเร็จ', 2200, 'error');
+      }
+    });
+
+    rowEl.querySelector('.rb-inline-mark-paid')?.addEventListener('click', async () => {
+      try {
+        await markPaymentPaid(dataRow.id);
+        toast('บันทึกการจ่ายแล้ว', 1500, 'success');
+        await loadPaymentSchedules(currentRenovationPropertyId);
+      } catch (err) {
+        console.error(err);
+        toast('อัปเดตสถานะไม่สำเร็จ', 2200, 'error');
+      }
+    });
+
+    rowEl.querySelector('.rb-inline-delete')?.addEventListener('click', async () => {
+      if (!confirm('ลบงวดจ่ายนี้ใช่หรือไม่?')) return;
+      try {
+        await deletePaymentSchedule(dataRow.id);
+        toast('ลบงวดจ่ายแล้ว', 1500, 'success');
+        await loadPaymentSchedules(currentRenovationPropertyId);
+      } catch (err) {
+        console.error(err);
+        toast('ลบงวดจ่ายไม่สำเร็จ', 2200, 'error');
+      }
+    });
+  });
+}
+
 function renderPaymentsIntoCards() {
+  if (isRenovationExcelMode()) {
+    renderPaymentsExcelTable();
+    return;
+  }
   const contractorName = (payment) => {
     const pc = currentPropertyContractors.find(c => c.id === payment.property_contractor_id);
     if (pc?.contractor?.name) return pc.contractor.name;
